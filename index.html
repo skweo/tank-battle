@@ -137,6 +137,124 @@ canvas {
   pointer-events: none;
   text-align: center;
 }
+#achieve-toast {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.9);
+  border: 2px solid #da0;
+  border-radius: 10px;
+  padding: 12px 24px;
+  color: #ff0;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  display: none;
+  z-index: 20;
+  pointer-events: none;
+  text-align: center;
+  animation: toastIn 0.4s ease-out;
+  box-shadow: 0 0 20px rgba(255,200,0,0.5);
+}
+#achieve-toast .achieve-icon { font-size: 28px; display: block; }
+#achieve-toast .achieve-label { color: #888; font-size: 11px; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+#achievements-screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 15;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 40px;
+  overflow-y: auto;
+}
+#achievements-screen h1 {
+  color: #da0;
+  font-size: 36px;
+  letter-spacing: 4px;
+  margin-bottom: 20px;
+  text-shadow: 0 0 20px rgba(200,170,0,0.6);
+}
+#achievements-screen .achieve-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 500px;
+}
+#achievements-screen .achieve-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 2px solid #333;
+  background: rgba(30,30,30,0.8);
+}
+#achievements-screen .achieve-row.unlocked {
+  border-color: #da0;
+  background: rgba(40,35,0,0.6);
+  box-shadow: 0 0 10px rgba(200,170,0,0.2);
+}
+#achievements-screen .achieve-row .ach-icon {
+  font-size: 28px;
+  width: 40px;
+  text-align: center;
+  flex-shrink: 0;
+}
+#achievements-screen .achieve-row.locked .ach-icon {
+  filter: grayscale(1);
+  opacity: 0.3;
+}
+#achievements-screen .achieve-row .ach-info {
+  flex: 1;
+}
+#achievements-screen .achieve-row .ach-name {
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+#achievements-screen .achieve-row.locked .ach-name { color: #666; }
+#achievements-screen .achieve-row .ach-desc {
+  color: #888;
+  font-size: 12px;
+  margin-top: 2px;
+}
+#achievements-screen .achieve-row.locked .ach-desc { color: #444; }
+#achievements-screen .ach-back-btn {
+  margin-top: 24px;
+  padding: 12px 40px;
+  font-size: 18px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  letter-spacing: 3px;
+  border: 2px solid #da0;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #ff0;
+  background: rgba(100,80,0,0.2);
+  transition: all 0.2s;
+}
+#achievements-screen .ach-back-btn:hover {
+  background: rgba(150,120,0,0.4);
+  box-shadow: 0 0 20px rgba(200,170,0,0.4);
+}
+#start-screen .achieve-link {
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  border-bottom: 1px dashed #555;
+  transition: color 0.2s;
+}
+#start-screen .achieve-link:hover { color: #da0; border-color: #da0; }
 </style>
 </head>
 <body>
@@ -153,6 +271,11 @@ canvas {
     <p>最终得分: <span id="final-score">0</span></p>
     <button onclick="restartGame()">重新开始</button>
   </div>
+  <div id="achieve-toast">
+    <span class="achieve-icon"></span>
+    <span class="achieve-name"></span>
+    <span class="achieve-label">成就已解锁!</span>
+  </div>
   <div id="start-screen">
     <h1>坦 克 大 战</h1>
     <p class="subtitle">T A N K &nbsp; B A T T L E</p>
@@ -162,6 +285,12 @@ canvas {
       <button class="diff-btn hard" onclick="startGame('hard')">困难</button>
     </div>
     <p class="diff-info">简单: 5条命 · 敌人较弱<br>普通: 3条命 · 标准难度<br>困难: 2条命 · 敌人更强</p>
+    <p class="achieve-link" onclick="showAchievements()">🏆 查看成就</p>
+  </div>
+  <div id="achievements-screen">
+    <h1>🏆 成 就</h1>
+    <div class="achieve-grid" id="achieve-grid"></div>
+    <button class="ach-back-btn" onclick="hideAchievements()">返回</button>
   </div>
   <div id="instructions">WASD 移动 | 鼠标瞄准 | 左键射击 | R 重新开始</div>
 </div>
@@ -189,6 +318,106 @@ const difficultySettings = {
   normal: { lives: 3, spawnRate: 150, enemyHpBonus: 0,  playerHp: 5, enemySpeedMul: 1.0,  label: '普通' },
   hard:   { lives: 2, spawnRate: 100, enemyHpBonus: 1,  playerHp: 4, enemySpeedMul: 1.3,  label: '困难' },
 };
+
+// --- Achievements ---
+const achievementsDef = [
+  { id: 'first_blood', name: '首次击杀', desc: '消灭第一个敌人', icon: '🎯' },
+  { id: 'sharpshooter', name: '百发百中', desc: '累计消灭10个敌人', icon: '🔫' },
+  { id: 'tank_hunter', name: '坦克杀手', desc: '累计消灭50个敌人', icon: '💥' },
+  { id: 'battle_veteran', name: '战斗老兵', desc: '累计消灭100个敌人', icon: '🏅' },
+  { id: 'survivor', name: '生存专家', desc: '到达第5关', icon: '🛡️' },
+  { id: 'tenacious', name: '顽强战士', desc: '到达第10关', icon: '⚔️' },
+  { id: 'score_500', name: '初露锋芒', desc: '单局得分达到500', icon: '⭐' },
+  { id: 'score_2000', name: '高分玩家', desc: '单局得分达到2000', icon: '🌟' },
+  { id: 'score_5000', name: '积分之王', desc: '单局得分达到5000', icon: '👑' },
+  { id: 'hardcore', name: '硬核玩家', desc: '困难难度到达第5关', icon: '💀' },
+  { id: 'flawless', name: '无伤过关', desc: '一关内未受任何伤害', icon: '✨' },
+];
+
+const STORAGE_KEY = 'tankbattle_achievements';
+let unlockedAchievements = new Set();
+
+function loadAchievements() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) unlockedAchievements = new Set(JSON.parse(raw));
+  } catch(e) { unlockedAchievements = new Set(); }
+}
+
+function saveAchievements() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...unlockedAchievements]));
+  } catch(e) {}
+}
+
+function unlockAchievement(id) {
+  if (unlockedAchievements.has(id)) return;
+  unlockedAchievements.add(id);
+  saveAchievements();
+  const def = achievementsDef.find(a => a.id === id);
+  if (!def) return;
+  const toast = document.getElementById('achieve-toast');
+  toast.querySelector('.achieve-icon').textContent = def.icon;
+  toast.querySelector('.achieve-name').textContent = def.name;
+  toast.style.display = 'block';
+  toast.style.animation = 'none';
+  toast.offsetHeight;
+  toast.style.animation = 'toastIn 0.4s ease-out';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+// --- Achievement tracking ---
+let sessionKills = 0;
+let gotHitThisLevel = false;
+
+function checkAchievements() {
+  if (sessionKills >= 1) unlockAchievement('first_blood');
+  if (sessionKills >= 10) unlockAchievement('sharpshooter');
+  if (sessionKills >= 50) unlockAchievement('tank_hunter');
+  if (sessionKills >= 100) unlockAchievement('battle_veteran');
+  if (level >= 5) unlockAchievement('survivor');
+  if (level >= 10) unlockAchievement('tenacious');
+  if (score >= 500) unlockAchievement('score_500');
+  if (score >= 2000) unlockAchievement('score_2000');
+  if (score >= 5000) unlockAchievement('score_5000');
+  if (currentDifficulty === 'hard' && level >= 5) unlockAchievement('hardcore');
+}
+
+function onLevelUp() {
+  if (!gotHitThisLevel) unlockAchievement('flawless');
+  gotHitThisLevel = false;
+}
+
+function resetAchievementTracking() {
+  sessionKills = 0;
+  gotHitThisLevel = false;
+}
+
+function renderAchievements() {
+  const grid = document.getElementById('achieve-grid');
+  grid.innerHTML = achievementsDef.map(a => {
+    const unlocked = unlockedAchievements.has(a.id);
+    return `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'}">
+      <span class="ach-icon">${unlocked ? a.icon : '🔒'}</span>
+      <div class="ach-info">
+        <div class="ach-name">${a.name}</div>
+        <div class="ach-desc">${unlocked ? a.desc : '???'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showAchievements() {
+  renderAchievements();
+  document.getElementById('achievements-screen').style.display = 'flex';
+  document.getElementById('start-screen').style.display = 'none';
+}
+
+function hideAchievements() {
+  document.getElementById('achievements-screen').style.display = 'none';
+  document.getElementById('start-screen').style.display = 'flex';
+}
 
 // --- Input ---
 const keys = {};
@@ -404,6 +633,7 @@ class PlayerTank extends Tank {
     if (this.invincible > 0) return false;
     this.hp--;
     this.invincible = 60;
+    gotHitThisLevel = true;
     spawnExplosion(this.x, this.y, 8, '#f80', '#ff0');
     if (this.hp <= 0) {
       this.alive = false;
@@ -491,6 +721,8 @@ class EnemyTank extends Tank {
       this.alive = false;
       spawnExplosion(this.x, this.y, 20, '#f80', '#f44');
       score += 100;
+      sessionKills++;
+      checkAchievements();
     }
     return !this.alive;
   }
@@ -677,6 +909,8 @@ function update() {
   if (difficultyTimer >= 1800) {
     difficultyTimer = 0;
     level++;
+    onLevelUp();
+    checkAchievements();
     spawnEnemy();
   }
 
@@ -761,6 +995,7 @@ function restartGame() {
 
 // --- Init ---
 function init() {
+  loadAchievements();
   player = new PlayerTank();
   gameRunning = false;
   document.getElementById('start-screen').style.display = 'flex';
@@ -781,6 +1016,7 @@ function startGame(difficulty) {
   particles.length = 0;
   spawnTimer = 0;
   difficultyTimer = 0;
+  resetAchievementTracking();
   generateObstacles();
   for (let i = 0; i < 2; i++) spawnEnemy();
   document.getElementById('start-screen').style.display = 'none';
