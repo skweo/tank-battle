@@ -255,6 +255,110 @@ canvas {
   transition: color 0.2s;
 }
 #start-screen .achieve-link:hover { color: #da0; border-color: #da0; }
+#bestiary-screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 15;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 30px;
+  overflow-y: auto;
+}
+#bestiary-screen h1 {
+  color: #4af;
+  font-size: 32px;
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+  text-shadow: 0 0 20px rgba(64,170,255,0.5);
+}
+#bestiary-screen .best-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+}
+#bestiary-screen .best-tab {
+  padding: 8px 24px;
+  font-size: 15px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  letter-spacing: 2px;
+  border: 2px solid #444;
+  cursor: pointer;
+  color: #888;
+  background: rgba(20,20,20,0.6);
+  transition: all 0.2s;
+}
+#bestiary-screen .best-tab:first-child { border-radius: 6px 0 0 6px; }
+#bestiary-screen .best-tab:last-child { border-radius: 0 6px 6px 0; }
+#bestiary-screen .best-tab.active {
+  color: #4af;
+  border-color: #4af;
+  background: rgba(0,50,100,0.3);
+  box-shadow: 0 0 10px rgba(64,170,255,0.3);
+}
+#bestiary-screen .best-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 520px;
+}
+#bestiary-screen .best-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 2px solid #333;
+  background: rgba(20,25,35,0.8);
+}
+#bestiary-screen .best-row .bst-icon {
+  font-size: 26px;
+  width: 38px;
+  text-align: center;
+  flex-shrink: 0;
+}
+#bestiary-screen .best-row .bst-info { flex: 1; }
+#bestiary-screen .best-row .bst-name {
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+#bestiary-screen .best-row .bst-desc {
+  color: #888;
+  font-size: 12px;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+#bestiary-screen .best-row .bst-tag {
+  font-size: 10px;
+  color: #444;
+  border: 1px solid #444;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+#bestiary-screen .best-back-btn {
+  margin-top: 20px;
+  padding: 12px 40px;
+  font-size: 18px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  letter-spacing: 3px;
+  border: 2px solid #4af;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #4af;
+  background: rgba(0,50,100,0.2);
+  transition: all 0.2s;
+}
+#bestiary-screen .best-back-btn:hover {
+  background: rgba(0,80,150,0.4);
+  box-shadow: 0 0 20px rgba(64,170,255,0.4);
+}
 </style>
 </head>
 <body>
@@ -286,11 +390,21 @@ canvas {
     </div>
     <p class="diff-info">简单: 5条命 · 敌人较弱<br>普通: 3条命 · 标准难度<br>困难: 2条命 · 敌人更强</p>
     <p class="achieve-link" onclick="showAchievements()">🏆 查看成就</p>
+    <p class="achieve-link" onclick="showBestiary()" style="margin-top:4px;">📖 查看图鉴</p>
   </div>
   <div id="achievements-screen">
     <h1>🏆 成 就</h1>
     <div class="achieve-grid" id="achieve-grid"></div>
     <button class="ach-back-btn" onclick="hideAchievements()">返回</button>
+  </div>
+  <div id="bestiary-screen">
+    <h1>📖 图 鉴</h1>
+    <div class="best-tabs">
+      <button class="best-tab active" id="tab-powerups" onclick="switchBestiaryTab('powerups')">道具</button>
+      <button class="best-tab" id="tab-elites" onclick="switchBestiaryTab('elites')">精英敌人</button>
+    </div>
+    <div class="best-grid" id="bestiary-grid"></div>
+    <button class="best-back-btn" onclick="hideBestiary()">返回</button>
   </div>
   <div id="instructions">WASD 移动 | 鼠标瞄准 | 左键射击 | R 重新开始</div>
 </div>
@@ -299,8 +413,8 @@ canvas {
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const W = 780;
-const H = 580;
+const W = 900;
+const H = 650;
 canvas.width = W;
 canvas.height = H;
 
@@ -314,9 +428,9 @@ let currentDifficulty = 'normal';
 
 // --- Difficulty Settings ---
 const difficultySettings = {
-  easy:   { lives: 5, spawnRate: 280, enemyHpBonus: -1, playerHp: 6, enemySpeedMul: 0.75, label: '简单' },
-  normal: { lives: 3, spawnRate: 240, enemyHpBonus: 0,  playerHp: 5, enemySpeedMul: 1.0,  label: '普通' },
-  hard:   { lives: 2, spawnRate: 180, enemyHpBonus: 1,  playerHp: 4, enemySpeedMul: 1.3,  label: '困难' },
+  easy:   { lives: 5, spawnRate: 400, enemyHpBonus: 0,  playerHp: 10, enemySpeedMul: 0.7,  label: '简单' },
+  normal: { lives: 3, spawnRate: 350, enemyHpBonus: 1,  playerHp: 8,  enemySpeedMul: 0.9,  label: '普通' },
+  hard:   { lives: 2, spawnRate: 280, enemyHpBonus: 2,  playerHp: 6,  enemySpeedMul: 1.2,  label: '困难' },
 };
 
 // --- Achievements ---
@@ -401,7 +515,7 @@ const powerUpDefs = [
   { type: 'ricochet', name: '反弹弹',   icon: '💫', color: '#fa4', desc: '子弹弹射', duration: 600 },
   { type: 'shield',   name: '能量护盾', icon: '🛡️', color: '#4ff', desc: '临时无敌', duration: 300 },
   { type: 'rapid',    name: '急速连射', icon: '🔥', color: '#f44', desc: '射速翻倍', duration: 420 },
-  { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复1HP', duration: 0 },
+  { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复2HP', duration: 0 },
   { type: 'freeze',   name: '冰冻弹',   icon: '❄️', color: '#8cf', desc: '减缓敌人', duration: 360 },
   { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '三发散射', duration: 540 },
 ];
@@ -428,7 +542,7 @@ function spawnPowerUp(x, y) {
 
 function applyPowerUp(p) {
   if (p.type === 'repair') {
-    player.hp = Math.min(player.hp + 1, player.maxHp);
+    player.hp = Math.min(player.hp + 2, player.maxHp);
     return;
   }
   buffs[p.type] = p.duration;
@@ -477,6 +591,69 @@ function showAchievements() {
 
 function hideAchievements() {
   document.getElementById('achievements-screen').style.display = 'none';
+  document.getElementById('start-screen').style.display = 'flex';
+}
+
+// --- Bestiary ---
+let bestiaryTab = 'powerups';
+
+function renderBestiary() {
+  const grid = document.getElementById('bestiary-grid');
+  let items;
+  if (bestiaryTab === 'powerups') {
+    items = powerUpDefs.map(p => ({
+      icon: p.icon, name: p.name, desc: p.desc,
+      tag: p.duration > 0 ? (p.duration/60).toFixed(0) + '秒' : '即时',
+    }));
+  } else {
+    items = eliteTypes.map(e => {
+      let desc = '';
+      switch(e.special) {
+        case 'heavy': desc = '40%概率格挡伤害，高血量'; break;
+        case 'sniper': desc = '高速远程精准射击'; break;
+        case 'fast': desc = '极快移速，灵活机动'; break;
+        case 'flame': desc = '扇形三连火焰弹'; break;
+        case 'summoner': desc = '周期性召唤敌方小兵增援'; break;
+        case 'stealth': desc = '周期性隐身，现身时攻击'; break;
+        case 'splitter': desc = '被击败时分裂为2个普通敌人'; break;
+        case 'regen': desc = '每秒自动恢复生命值'; break;
+        case 'laser': desc = '发射高速穿透激光束'; break;
+        case 'miner': desc = '在地面布置触碰爆炸的地雷'; break;
+        default: desc = '强大的精英敌人';
+      }
+      return { icon: e.icon, name: e.name, desc: desc, tag: '精英' };
+    });
+  }
+  grid.innerHTML = items.map(it =>
+    `<div class="best-row">
+      <span class="bst-icon">${it.icon}</span>
+      <div class="bst-info">
+        <div class="bst-name">${it.name}</div>
+        <div class="bst-desc">${it.desc}</div>
+      </div>
+      <span class="bst-tag">${it.tag}</span>
+    </div>`
+  ).join('');
+}
+
+function switchBestiaryTab(tab) {
+  bestiaryTab = tab;
+  document.getElementById('tab-powerups').classList.toggle('active', tab === 'powerups');
+  document.getElementById('tab-elites').classList.toggle('active', tab === 'elites');
+  renderBestiary();
+}
+
+function showBestiary() {
+  bestiaryTab = 'powerups';
+  document.getElementById('tab-powerups').classList.add('active');
+  document.getElementById('tab-elites').classList.remove('active');
+  renderBestiary();
+  document.getElementById('bestiary-screen').style.display = 'flex';
+  document.getElementById('start-screen').style.display = 'none';
+}
+
+function hideBestiary() {
+  document.getElementById('bestiary-screen').style.display = 'none';
   document.getElementById('start-screen').style.display = 'flex';
 }
 
@@ -673,7 +850,7 @@ class Tank {
 
 class PlayerTank extends Tank {
   constructor() {
-    super(W/2, H - 60, '#4a8', '#3c6', 1.4, difficultySettings[currentDifficulty].playerHp);
+    super(W/2, H - 60, '#4a8', '#3c6', 1.1, difficultySettings[currentDifficulty].playerHp);
     this.shootDelay = 25;
     this.invincible = 0;
   }
@@ -891,18 +1068,23 @@ class EnemyTank extends Tank {
 
 // --- Elite Enemies ---
 const eliteTypes = [
-  { name: '重装坦克', color: '#633', turret: '#c44', speed: 0.4, hp: 6, special: 'heavy', icon: '🛡️' },
-  { name: '狙击坦克', color: '#363', turret: '#6c6', speed: 0.5, hp: 3, special: 'sniper', icon: '🎯' },
-  { name: '疾风坦克', color: '#336', turret: '#66c', speed: 1.4, hp: 2, special: 'fast', icon: '💨' },
-  { name: '火焰坦克', color: '#633', turret: '#c63', speed: 0.5, hp: 4, special: 'flame', icon: '🔥' },
-  { name: '召唤坦克', color: '#366', turret: '#6c6', speed: 0.4, hp: 5, special: 'summoner', icon: '📡' },
+  { name: '重装坦克', color: '#633', turret: '#c44', speed: 0.35, hp: 8, special: 'heavy', icon: '🛡️' },
+  { name: '狙击坦克', color: '#363', turret: '#6c6', speed: 0.4,  hp: 4, special: 'sniper', icon: '🎯' },
+  { name: '疾风坦克', color: '#336', turret: '#66c', speed: 1.1,  hp: 3, special: 'fast', icon: '💨' },
+  { name: '火焰坦克', color: '#633', turret: '#c63', speed: 0.4,  hp: 5, special: 'flame', icon: '🔥' },
+  { name: '召唤坦克', color: '#366', turret: '#6c6', speed: 0.35, hp: 6, special: 'summoner', icon: '📡' },
+  { name: '隐身坦克', color: '#555', turret: '#999', speed: 0.6,  hp: 4, special: 'stealth', icon: '👻' },
+  { name: '分裂坦克', color: '#653', turret: '#c84', speed: 0.5,  hp: 6, special: 'splitter', icon: '🔀' },
+  { name: '再生坦克', color: '#353', turret: '#6a6', speed: 0.4,  hp: 7, special: 'regen', icon: '♻️' },
+  { name: '激光坦克', color: '#335', turret: '#88f', speed: 0.35, hp: 5, special: 'laser', icon: '⚡' },
+  { name: '地雷坦克', color: '#553', turret: '#ca4', speed: 0.45, hp: 5, special: 'miner', icon: '💣' },
 ];
 
 class EliteEnemy extends EnemyTank {
   constructor(x, y, eliteDef) {
     const diff = difficultySettings[currentDifficulty];
     const hp = eliteDef.hp + Math.floor(level / 3) + diff.enemyHpBonus;
-    super(x, y, eliteDef.color, eliteDef.turret, eliteDef.speed * diff.enemySpeedMul, Math.max(2, hp));
+    super(x, y, eliteDef.color, eliteDef.turret, eliteDef.speed * diff.enemySpeedMul, Math.max(3, hp));
     this.isElite = true;
     this.armor = eliteDef.special === 'heavy';
     this.special = eliteDef.special;
@@ -915,16 +1097,46 @@ class EliteEnemy extends EnemyTank {
     if (eliteDef.special === 'summoner') {
       this.summonCooldown = 120 + Math.random() * 120;
     }
+    if (eliteDef.special === 'stealth') {
+      this.stealthPhase = 0;
+      this.stealthTimer = 0;
+    }
+    if (eliteDef.special === 'regen') {
+      this.regenTimer = 0;
+    }
+    if (eliteDef.special === 'miner') {
+      this.mineCooldown = 80 + Math.random() * 80;
+    }
   }
   update() {
     super.update();
     if (!this.alive) return;
-    // Summoner spawns minions
     if (this.special === 'summoner' && this.summonCooldown > 0) {
       this.summonCooldown--;
       if (this.summonCooldown <= 0) {
         this.summonCooldown = 200 + Math.random() * 150;
         spawnEnemy();
+      }
+    }
+    if (this.special === 'stealth') {
+      this.stealthTimer++;
+      if (this.stealthTimer > 120) {
+        this.stealthTimer = 0;
+        this.stealthPhase = this.stealthPhase === 0 ? 1 : 0;
+      }
+    }
+    if (this.special === 'regen') {
+      this.regenTimer++;
+      if (this.regenTimer >= 120 && this.hp < this.maxHp) {
+        this.regenTimer = 0;
+        this.hp = Math.min(this.hp + 1, this.maxHp);
+      }
+    }
+    if (this.special === 'miner') {
+      this.mineCooldown--;
+      if (this.mineCooldown <= 0) {
+        this.mineCooldown = 80 + Math.random() * 80;
+        mines.push({ x: this.x, y: this.y, life: 300, armed: true });
       }
     }
   }
@@ -939,21 +1151,52 @@ class EliteEnemy extends EnemyTank {
       const bx = this.x + Math.cos(this.turretAngle) * 18;
       const by = this.y + Math.sin(this.turretAngle) * 18;
       enemyBullets.push(new Bullet(bx, by, this.turretAngle, 5, '#6f6', false));
+    } else if (this.special === 'laser') {
+      const bx = this.x + Math.cos(this.turretAngle) * 18;
+      const by = this.y + Math.sin(this.turretAngle) * 18;
+      const b = new Bullet(bx, by, this.turretAngle, 9, '#88f', false);
+      b.radius = 2;
+      b.railgun = true;
+      enemyBullets.push(b);
     } else {
       super.shoot();
     }
   }
   draw(ctx) {
+    if (this.special === 'stealth' && this.stealthPhase === 1) {
+      ctx.globalAlpha = 0.25;
+    }
     ctx.save();
     ctx.shadowColor = '#ff0';
     ctx.shadowBlur = 8 + Math.sin(Date.now() / 200) * 3;
     super.draw(ctx);
-    // Elite star
     ctx.font = '14px sans-serif';
     ctx.fillStyle = '#ff0';
     ctx.shadowBlur = 0;
     ctx.fillText(this.eliteIcon, -7, -28);
     ctx.restore();
+    if (this.special === 'stealth' && this.stealthPhase === 1) {
+      ctx.globalAlpha = 1;
+    }
+  }
+  hit(bullet) {
+    if (this.special === 'stealth' && this.stealthPhase === 1 && Math.random() < 0.5) {
+      spawnExplosion(this.x, this.y, 3, '#888', '#aaa');
+      return false;
+    }
+    const dead = super.hit(bullet);
+    if (dead && this.special === 'splitter') {
+      for (let i = 0; i < 2; i++) {
+        const sx = this.x + (Math.random() - 0.5) * 60;
+        const sy = this.y + (Math.random() - 0.5) * 60;
+        const nx = Math.max(30, Math.min(W - 30, sx));
+        const ny = Math.max(30, Math.min(H - 30, sy));
+        const diff = difficultySettings[currentDifficulty];
+        const hp = Math.max(1, 2 + diff.enemyHpBonus);
+        enemies.push(new EnemyTank(nx, ny, '#d44', '#f66', 0.5 * diff.enemySpeedMul, hp));
+      }
+    }
+    return dead;
   }
 }
 
@@ -962,6 +1205,7 @@ let player;
 let enemies = [];
 let playerBullets = [];
 let enemyBullets = [];
+const mines = [];
 let spawnTimer = 0;
 let difficultyTimer = 0;
 const obstacles = [];
@@ -1038,10 +1282,10 @@ function tankCollidesObstacle(x, y, w, h) {
 
 // --- Spawn enemies ---
 const enemyTypes = [
-  { color: '#d44', turret: '#f66', speed: 0.6, hp: 1, label: 'Scout' },
-  { color: '#d84', turret: '#fa8', speed: 0.9, hp: 1, label: 'Fast' },
-  { color: '#a4d', turret: '#c6f', speed: 0.5, hp: 2, label: 'Heavy' },
-  { color: '#d4a', turret: '#f6c', speed: 0.7, hp: 2, label: 'Elite' },
+  { color: '#d44', turret: '#f66', speed: 0.5, hp: 2, label: 'Scout' },
+  { color: '#d84', turret: '#fa8', speed: 0.7, hp: 1, label: 'Fast' },
+  { color: '#a4d', turret: '#c6f', speed: 0.4, hp: 3, label: 'Heavy' },
+  { color: '#d4a', turret: '#f6c', speed: 0.6, hp: 3, label: 'Elite' },
 ];
 
 function spawnEnemy() {
@@ -1061,7 +1305,7 @@ function spawnEnemy() {
   // Chance to spawn elite (increases with level)
   const eliteChance = Math.min(0.35, 0.08 + level * 0.02);
   if (level >= 2 && Math.random() < eliteChance) {
-    const maxIdx = Math.min(4, Math.floor((level - 1) / 2));
+    const maxIdx = Math.min(9, Math.floor((level + 1) / 2));
     const idx = Math.floor(Math.random() * (maxIdx + 1));
     const etype = eliteTypes[idx];
     enemies.push(new EliteEnemy(x, y, etype));
@@ -1188,6 +1432,24 @@ function update() {
     }
   }
 
+  // Update mines
+  for (let i = mines.length - 1; i >= 0; i--) {
+    mines[i].life--;
+    if (mines[i].life <= 0) { mines.splice(i, 1); continue; }
+    if (mines[i].armed) {
+      const mx = mines[i].x - player.x;
+      const my = mines[i].y - player.y;
+      if (mx * mx + my * my < 30 * 30) {
+        spawnExplosion(mines[i].x, mines[i].y, 15, '#f80', '#ff0');
+        if (!player.hit()) {
+          player.hp = 0;
+          player.alive = false;
+        }
+        mines.splice(i, 1);
+      }
+    }
+  }
+
   // Update buff timers
   for (const key of Object.keys(buffs)) {
     if (buffs[key] > 0) buffs[key]--;
@@ -1214,6 +1476,23 @@ function draw() {
 
   // Obstacles
   drawObstacles(ctx);
+
+  // Mines
+  for (const m of mines) {
+    const pulse = Math.sin(Date.now() / 300 + m.x) * 0.3 + 0.7;
+    ctx.save();
+    ctx.shadowColor = '#f80';
+    ctx.shadowBlur = 8 * pulse;
+    ctx.fillStyle = m.armed ? '#c40' : '#864';
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f80';
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   // Power-ups
   for (const p of powerUps) {
@@ -1286,6 +1565,7 @@ function restartGame() {
   enemies = [];
   playerBullets = [];
   enemyBullets = [];
+  mines.length = 0;
   powerUps.length = 0;
   powerUpSpawnTimer = 0;
   buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0 };
@@ -1316,6 +1596,7 @@ function startGame(difficulty) {
   enemies = [];
   playerBullets = [];
   enemyBullets = [];
+  mines.length = 0;
   powerUps.length = 0;
   powerUpSpawnTimer = 0;
   buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0 };
