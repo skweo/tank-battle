@@ -314,9 +314,9 @@ let currentDifficulty = 'normal';
 
 // --- Difficulty Settings ---
 const difficultySettings = {
-  easy:   { lives: 5, spawnRate: 180, enemyHpBonus: -1, playerHp: 6, enemySpeedMul: 0.75, label: '简单' },
-  normal: { lives: 3, spawnRate: 150, enemyHpBonus: 0,  playerHp: 5, enemySpeedMul: 1.0,  label: '普通' },
-  hard:   { lives: 2, spawnRate: 100, enemyHpBonus: 1,  playerHp: 4, enemySpeedMul: 1.3,  label: '困难' },
+  easy:   { lives: 5, spawnRate: 280, enemyHpBonus: -1, playerHp: 6, enemySpeedMul: 0.75, label: '简单' },
+  normal: { lives: 3, spawnRate: 240, enemyHpBonus: 0,  playerHp: 5, enemySpeedMul: 1.0,  label: '普通' },
+  hard:   { lives: 2, spawnRate: 180, enemyHpBonus: 1,  playerHp: 4, enemySpeedMul: 1.3,  label: '困难' },
 };
 
 // --- Achievements ---
@@ -586,7 +586,7 @@ class Tank {
 
 class PlayerTank extends Tank {
   constructor() {
-    super(W/2, H - 60, '#4a8', '#3c6', 2.5, difficultySettings[currentDifficulty].playerHp);
+    super(W/2, H - 60, '#4a8', '#3c6', 1.8, difficultySettings[currentDifficulty].playerHp);
     this.shootDelay = 15;
     this.invincible = 0;
   }
@@ -623,7 +623,7 @@ class PlayerTank extends Tank {
   shoot() {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
     const by = this.y + Math.sin(this.turretAngle) * 18;
-    playerBullets.push(new Bullet(bx, by, this.turretAngle, 7, '#ff0', true));
+    playerBullets.push(new Bullet(bx, by, this.turretAngle, 4, '#ff0', true));
   }
   draw(ctx) {
     if (this.invincible > 0 && Math.floor(this.invincible / 4) % 2 === 0) return;
@@ -712,7 +712,7 @@ class EnemyTank extends Tank {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
     const by = this.y + Math.sin(this.turretAngle) * 18;
     const spread = (Math.random() - 0.5) * 0.15;
-    enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, 4, '#f44', false));
+    enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, 2.5, '#f44', false));
   }
   hit() {
     this.hp--;
@@ -795,10 +795,10 @@ function tankCollidesObstacle(x, y, w, h) {
 
 // --- Spawn enemies ---
 const enemyTypes = [
-  { color: '#d44', turret: '#f66', speed: 1.2, hp: 1, label: 'Scout' },
-  { color: '#d84', turret: '#fa8', speed: 1.8, hp: 1, label: 'Fast' },
-  { color: '#a4d', turret: '#c6f', speed: 1.0, hp: 2, label: 'Heavy' },
-  { color: '#d4a', turret: '#f6c', speed: 1.4, hp: 2, label: 'Elite' },
+  { color: '#d44', turret: '#f66', speed: 0.8, hp: 1, label: 'Scout' },
+  { color: '#d84', turret: '#fa8', speed: 1.2, hp: 1, label: 'Fast' },
+  { color: '#a4d', turret: '#c6f', speed: 0.7, hp: 2, label: 'Heavy' },
+  { color: '#d4a', turret: '#f6c', speed: 1.0, hp: 2, label: 'Elite' },
 ];
 
 function spawnEnemy() {
