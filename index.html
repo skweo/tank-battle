@@ -394,6 +394,67 @@ function resetAchievementTracking() {
   gotHitThisLevel = false;
 }
 
+// --- Power-ups ---
+const powerUpDefs = [
+  { type: 'speed',    name: '加强履带', icon: '⚡', color: '#4af', desc: '移速×1.2', duration: 600 },
+  { type: 'railgun',  name: '电磁炮',   icon: '🔫', color: '#a4f', desc: '穿透脉冲', duration: 480 },
+  { type: 'ricochet', name: '反弹弹',   icon: '💫', color: '#fa4', desc: '子弹弹射', duration: 600 },
+  { type: 'shield',   name: '能量护盾', icon: '🛡️', color: '#4ff', desc: '临时无敌', duration: 300 },
+  { type: 'rapid',    name: '急速连射', icon: '🔥', color: '#f44', desc: '射速翻倍', duration: 420 },
+  { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复1HP', duration: 0 },
+  { type: 'freeze',   name: '冰冻弹',   icon: '❄️', color: '#8cf', desc: '减缓敌人', duration: 360 },
+  { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '三发散射', duration: 540 },
+];
+
+const powerUps = [];
+let powerUpSpawnTimer = 0;
+
+// Active buffs (duration in frames, 0 = inactive)
+let buffs = {
+  speed: 0, railgun: 0, ricochet: 0, shield: 0,
+  rapid: 0, freeze: 0, multishot: 0,
+};
+
+function spawnPowerUp(x, y) {
+  const def = powerUpDefs[Math.floor(Math.random() * powerUpDefs.length)];
+  // Don't spawn inside obstacles
+  if (tankCollidesObstacle(x, y, 20, 20)) return;
+  powerUps.push({
+    x: x, y: y, type: def.type, name: def.name,
+    icon: def.icon, color: def.color, duration: def.duration,
+    life: 600, // despawn after 10 seconds
+  });
+}
+
+function applyPowerUp(p) {
+  if (p.type === 'repair') {
+    player.hp = Math.min(player.hp + 1, player.maxHp);
+    return;
+  }
+  buffs[p.type] = p.duration;
+  const def = powerUpDefs.find(d => d.type === p.type);
+  if (def) {
+    const toast = document.getElementById('achieve-toast');
+    toast.querySelector('.achieve-icon').textContent = def.icon;
+    toast.querySelector('.achieve-name').textContent = '获得: ' + def.name;
+    toast.querySelector('.achieve-label').textContent = def.desc;
+    toast.style.display = 'block';
+    toast.style.animation = 'none';
+    toast.offsetHeight;
+    toast.style.animation = 'toastIn 0.4s ease-out';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  }
+}
+
+function getEffectiveSpeed() {
+  return player.speed * (buffs.speed > 0 ? 1.2 : 1);
+}
+
+function getEffectiveShootDelay() {
+  return buffs.rapid > 0 ? Math.floor(player.shootDelay / 2) : player.shootDelay;
+}
+
 function renderAchievements() {
   const grid = document.getElementById('achieve-grid');
   grid.innerHTML = achievementsDef.map(a => {
@@ -481,22 +542,48 @@ class Bullet {
     this.fromPlayer = fromPlayer;
     this.radius = 3;
     this.alive = true;
+    this.ricochet = false;
+    this.railgun = false;
+    this.freeze = false;
+    this.bounces = 0;
   }
   update() {
     this.x += Math.cos(this.angle) * this.speed;
     this.y += Math.sin(this.angle) * this.speed;
-    if (this.x < -10 || this.x > W + 10 || this.y < -10 || this.y > H + 10) {
+
+    // Ricochet off walls
+    if (this.ricochet && this.bounces > 0) {
+      let bounced = false;
+      if (this.x < 5) { this.x = 5; this.angle = Math.PI - this.angle; bounced = true; }
+      if (this.x > W - 5) { this.x = W - 5; this.angle = Math.PI - this.angle; bounced = true; }
+      if (this.y < 5) { this.y = 5; this.angle = -this.angle; bounced = true; }
+      if (this.y > H - 5) { this.y = H - 5; this.angle = -this.angle; bounced = true; }
+      if (bounced) this.bounces--;
+    }
+
+    if (this.x < -20 || this.x > W + 20 || this.y < -20 || this.y > H + 20) {
       this.alive = false;
     }
   }
   draw(ctx) {
     ctx.fillStyle = this.color;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 6;
+    ctx.shadowBlur = this.railgun ? 12 : 6;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
+    if (this.railgun) {
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(this.x - Math.cos(this.angle) * 12, this.y - Math.sin(this.angle) * 12);
+      ctx.lineTo(this.x, this.y);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
   }
 }
 
@@ -586,13 +673,14 @@ class Tank {
 
 class PlayerTank extends Tank {
   constructor() {
-    super(W/2, H - 60, '#4a8', '#3c6', 1.8, difficultySettings[currentDifficulty].playerHp);
-    this.shootDelay = 15;
+    super(W/2, H - 60, '#4a8', '#3c6', 1.4, difficultySettings[currentDifficulty].playerHp);
+    this.shootDelay = 25;
     this.invincible = 0;
   }
   update() {
     if (!this.alive) return;
     if (this.invincible > 0) this.invincible--;
+    if (buffs.shield > 0) this.invincible = Math.max(this.invincible, 2);
     if (this.shootCooldown > 0) this.shootCooldown--;
 
     let dx = 0, dy = 0;
@@ -606,10 +694,11 @@ class PlayerTank extends Tank {
       dy *= 0.707;
     }
 
-    const newX = this.x + dx * this.speed;
-    const newY = this.y + dy * this.speed;
-    if (newX > 25 && newX < W - 25) this.x = newX;
-    if (newY > 25 && newY < H - 25) this.y = newY;
+    const effSpeed = getEffectiveSpeed();
+    const newX = this.x + dx * effSpeed;
+    const newY = this.y + dy * effSpeed;
+    if (newX > 25 && newX < W - 25 && !tankCollidesObstacle(newX, this.y, 36, 36)) this.x = newX;
+    if (newY > 25 && newY < H - 25 && !tankCollidesObstacle(this.x, newY, 36, 36)) this.y = newY;
 
     // Turret aims at mouse
     this.turretAngle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
@@ -617,20 +706,61 @@ class PlayerTank extends Tank {
     // Shoot
     if ((mouseDown || keys[' '] || keys['j']) && this.shootCooldown <= 0) {
       this.shoot();
-      this.shootCooldown = this.shootDelay;
+      this.shootCooldown = getEffectiveShootDelay();
     }
   }
   shoot() {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
     const by = this.y + Math.sin(this.turretAngle) * 18;
-    playerBullets.push(new Bullet(bx, by, this.turretAngle, 4, '#ff0', true));
+    const baseSpeed = buffs.railgun > 0 ? 8 : 4;
+    const baseColor = buffs.railgun > 0 ? '#a4f' : (buffs.freeze > 0 ? '#8cf' : '#ff0');
+    const baseRadius = buffs.railgun > 0 ? 5 : 3;
+    if (buffs.multishot > 0) {
+      for (let a = -0.12; a <= 0.12; a += 0.12) {
+        const b = new Bullet(bx, by, this.turretAngle + a, baseSpeed, baseColor, true);
+        b.radius = baseRadius;
+        b.ricochet = buffs.ricochet > 0;
+        b.railgun = buffs.railgun > 0;
+        b.freeze = buffs.freeze > 0;
+        b.bounces = buffs.ricochet > 0 ? 3 : 0;
+        playerBullets.push(b);
+      }
+    } else {
+      const b = new Bullet(bx, by, this.turretAngle, baseSpeed, baseColor, true);
+      b.radius = baseRadius;
+      b.ricochet = buffs.ricochet > 0;
+      b.railgun = buffs.railgun > 0;
+      b.freeze = buffs.freeze > 0;
+      b.bounces = buffs.ricochet > 0 ? 3 : 0;
+      playerBullets.push(b);
+    }
   }
   draw(ctx) {
     if (this.invincible > 0 && Math.floor(this.invincible / 4) % 2 === 0) return;
+    ctx.save();
+    if (buffs.shield > 0) {
+      ctx.shadowColor = '#4ff';
+      ctx.shadowBlur = 14;
+    }
     super.draw(ctx);
+    // Buff indicator dots
+    const activeBuffs = [];
+    if (buffs.speed > 0) activeBuffs.push({icon:'⚡',c:'#4af'});
+    if (buffs.railgun > 0) activeBuffs.push({icon:'🔫',c:'#a4f'});
+    if (buffs.ricochet > 0) activeBuffs.push({icon:'💫',c:'#fa4'});
+    if (buffs.shield > 0) activeBuffs.push({icon:'🛡️',c:'#4ff'});
+    if (buffs.rapid > 0) activeBuffs.push({icon:'🔥',c:'#f44'});
+    if (buffs.freeze > 0) activeBuffs.push({icon:'❄️',c:'#8cf'});
+    if (buffs.multishot > 0) activeBuffs.push({icon:'💥',c:'#f8f'});
+    for (let i = 0; i < activeBuffs.length; i++) {
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = activeBuffs[i].c;
+      ctx.fillText(activeBuffs[i].icon, -18 + i * 14, -28);
+    }
+    ctx.restore();
   }
   hit() {
-    if (this.invincible > 0) return false;
+    if (this.invincible > 0 || buffs.shield > 0) return false;
     this.hp--;
     this.invincible = 60;
     gotHitThisLevel = true;
@@ -651,11 +781,20 @@ class EnemyTank extends Tank {
     this.moveDir = Math.random() < 0.5 ? -1 : 1;
     this.moveAxis = Math.random() < 0.5 ? 'x' : 'y';
     this.aiChangeTime = 40 + Math.random() * 80;
-    this.shootDelay = 60 + Math.random() * 60;
+    this.shootDelay = 90 + Math.random() * 60;
+    this.frozen = 0;
+    this._origSpeed = speed;
+    this.armor = false;
+    this.isElite = false;
   }
   update() {
     if (!this.alive) return;
     if (this.shootCooldown > 0) this.shootCooldown--;
+    if (this.frozen > 0) {
+      this.frozen--;
+      this.speed = this._origSpeed * 0.4;
+      if (this.frozen <= 0) this.speed = this._origSpeed;
+    }
 
     this.aiTimer++;
 
@@ -686,9 +825,9 @@ class EnemyTank extends Tank {
 
     const newX = this.x + moveX * this.speed;
     const newY = this.y + moveY * this.speed;
-    if (newX > 25 && newX < W - 25) this.x = newX;
+    if (newX > 25 && newX < W - 25 && !tankCollidesObstacle(newX, this.y, 36, 36)) this.x = newX;
     else this.moveDir *= -1;
-    if (newY > 25 && newY < H - 25) this.y = newY;
+    if (newY > 25 && newY < H - 25 && !tankCollidesObstacle(this.x, newY, 36, 36)) this.y = newY;
     else this.moveDir *= -1;
 
     // Shoot at player
@@ -708,23 +847,113 @@ class EnemyTank extends Tank {
       }
     }
   }
+  draw(ctx) {
+    if (this.frozen > 0) {
+      ctx.save();
+      ctx.shadowColor = '#8cf';
+      ctx.shadowBlur = 10;
+    }
+    super.draw(ctx);
+    if (this.frozen > 0) ctx.restore();
+  }
   shoot() {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
     const by = this.y + Math.sin(this.turretAngle) * 18;
     const spread = (Math.random() - 0.5) * 0.15;
     enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, 2.5, '#f44', false));
   }
-  hit() {
+  hit(bullet) {
+    if (this.armor && Math.random() < 0.4) {
+      spawnExplosion(this.x, this.y, 3, '#888', '#aaa');
+      return false;
+    }
     this.hp--;
+    if (bullet && bullet.freeze && !this.frozen) {
+      this.frozen = 120;
+      this._origSpeed = this.speed;
+      spawnExplosion(this.x, this.y, 8, '#8cf', '#fff');
+    }
     spawnExplosion(this.x, this.y, 5, '#f80', '#ff0');
     if (this.hp <= 0) {
       this.alive = false;
       spawnExplosion(this.x, this.y, 20, '#f80', '#f44');
-      score += 100;
+      const points = this.isElite ? 300 : 100;
+      score += points;
       sessionKills++;
       checkAchievements();
+      if (this.isElite && Math.random() < 0.7) {
+        spawnPowerUp(this.x, this.y);
+      }
     }
     return !this.alive;
+  }
+}
+
+// --- Elite Enemies ---
+const eliteTypes = [
+  { name: '重装坦克', color: '#633', turret: '#c44', speed: 0.4, hp: 6, special: 'heavy', icon: '🛡️' },
+  { name: '狙击坦克', color: '#363', turret: '#6c6', speed: 0.5, hp: 3, special: 'sniper', icon: '🎯' },
+  { name: '疾风坦克', color: '#336', turret: '#66c', speed: 1.4, hp: 2, special: 'fast', icon: '💨' },
+  { name: '火焰坦克', color: '#633', turret: '#c63', speed: 0.5, hp: 4, special: 'flame', icon: '🔥' },
+  { name: '召唤坦克', color: '#366', turret: '#6c6', speed: 0.4, hp: 5, special: 'summoner', icon: '📡' },
+];
+
+class EliteEnemy extends EnemyTank {
+  constructor(x, y, eliteDef) {
+    const diff = difficultySettings[currentDifficulty];
+    const hp = eliteDef.hp + Math.floor(level / 3) + diff.enemyHpBonus;
+    super(x, y, eliteDef.color, eliteDef.turret, eliteDef.speed * diff.enemySpeedMul, Math.max(2, hp));
+    this.isElite = true;
+    this.armor = eliteDef.special === 'heavy';
+    this.special = eliteDef.special;
+    this.eliteIcon = eliteDef.icon;
+    this.eliteName = eliteDef.name;
+    this.shootDelay = 60 + Math.random() * 40;
+    if (eliteDef.special === 'sniper') {
+      this.shootDelay = 40 + Math.random() * 30;
+    }
+    if (eliteDef.special === 'summoner') {
+      this.summonCooldown = 120 + Math.random() * 120;
+    }
+  }
+  update() {
+    super.update();
+    if (!this.alive) return;
+    // Summoner spawns minions
+    if (this.special === 'summoner' && this.summonCooldown > 0) {
+      this.summonCooldown--;
+      if (this.summonCooldown <= 0) {
+        this.summonCooldown = 200 + Math.random() * 150;
+        spawnEnemy();
+      }
+    }
+  }
+  shoot() {
+    if (this.special === 'flame') {
+      for (let a = -0.2; a <= 0.2; a += 0.2) {
+        const bx = this.x + Math.cos(this.turretAngle + a) * 18;
+        const by = this.y + Math.sin(this.turretAngle + a) * 18;
+        enemyBullets.push(new Bullet(bx, by, this.turretAngle + a, 2.5, '#f84', false));
+      }
+    } else if (this.special === 'sniper') {
+      const bx = this.x + Math.cos(this.turretAngle) * 18;
+      const by = this.y + Math.sin(this.turretAngle) * 18;
+      enemyBullets.push(new Bullet(bx, by, this.turretAngle, 5, '#6f6', false));
+    } else {
+      super.shoot();
+    }
+  }
+  draw(ctx) {
+    ctx.save();
+    ctx.shadowColor = '#ff0';
+    ctx.shadowBlur = 8 + Math.sin(Date.now() / 200) * 3;
+    super.draw(ctx);
+    // Elite star
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = '#ff0';
+    ctx.shadowBlur = 0;
+    ctx.fillText(this.eliteIcon, -7, -28);
+    ctx.restore();
   }
 }
 
@@ -776,8 +1005,22 @@ function bulletHitsObstacle(bullet) {
   for (const obs of obstacles) {
     if (bullet.x > obs.x && bullet.x < obs.x + obs.w &&
         bullet.y > obs.y && bullet.y < obs.y + obs.h) {
-      spawnExplosion(bullet.x, bullet.y, 4, '#aaa', '#888');
-      return true;
+      if (bullet.ricochet && bullet.bounces > 0) {
+        // Ricochet: reflect off obstacle edge
+        const cx = obs.x + obs.w/2, cy = obs.y + obs.h/2;
+        if (Math.abs(bullet.x - cx) / obs.w > Math.abs(bullet.y - cy) / obs.h) {
+          bullet.angle = Math.PI - bullet.angle;
+        } else {
+          bullet.angle = -bullet.angle;
+        }
+        bullet.bounces--;
+        spawnExplosion(bullet.x, bullet.y, 3, '#fa4', '#ff0');
+        return false;
+      }
+      if (!bullet.railgun) {
+        spawnExplosion(bullet.x, bullet.y, 4, '#aaa', '#888');
+        return true;
+      }
     }
   }
   return false;
@@ -795,10 +1038,10 @@ function tankCollidesObstacle(x, y, w, h) {
 
 // --- Spawn enemies ---
 const enemyTypes = [
-  { color: '#d44', turret: '#f66', speed: 0.8, hp: 1, label: 'Scout' },
-  { color: '#d84', turret: '#fa8', speed: 1.2, hp: 1, label: 'Fast' },
-  { color: '#a4d', turret: '#c6f', speed: 0.7, hp: 2, label: 'Heavy' },
-  { color: '#d4a', turret: '#f6c', speed: 1.0, hp: 2, label: 'Elite' },
+  { color: '#d44', turret: '#f66', speed: 0.6, hp: 1, label: 'Scout' },
+  { color: '#d84', turret: '#fa8', speed: 0.9, hp: 1, label: 'Fast' },
+  { color: '#a4d', turret: '#c6f', speed: 0.5, hp: 2, label: 'Heavy' },
+  { color: '#d4a', turret: '#f6c', speed: 0.7, hp: 2, label: 'Elite' },
 ];
 
 function spawnEnemy() {
@@ -814,6 +1057,16 @@ function spawnEnemy() {
     const pdx = player.x - x, pdy = player.y - y;
     safe = safe && Math.sqrt(pdx*pdx + pdy*pdy) > 80;
   } while (!safe);
+
+  // Chance to spawn elite (increases with level)
+  const eliteChance = Math.min(0.35, 0.08 + level * 0.02);
+  if (level >= 2 && Math.random() < eliteChance) {
+    const maxIdx = Math.min(4, Math.floor((level - 1) / 2));
+    const idx = Math.floor(Math.random() * (maxIdx + 1));
+    const etype = eliteTypes[idx];
+    enemies.push(new EliteEnemy(x, y, etype));
+    return;
+  }
 
   const maxIdx = Math.min(3, Math.floor(level / 2));
   const idx = Math.floor(Math.random() * (maxIdx + 1));
@@ -831,17 +1084,17 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
       if (!tank.alive) continue;
       const dx = bullet.x - tank.x;
       const dy = bullet.y - tank.y;
-      if (Math.sqrt(dx * dx + dy * dy) < 20) {
-        bullet.alive = false;
-        const destroyed = tank.hit();
+      if (Math.sqrt(dx * dx + dy * dy) < (bullet.railgun ? 24 : 20)) {
+        if (!bullet.railgun) bullet.alive = false;
+        const destroyed = tank.hit(bullet);
         if (destroyed && !fromPlayer) {
           // enemy killed by player bullet
         }
-        break;
+        if (!bullet.railgun) break;
       }
     }
     if (bullet.alive && bulletHitsObstacle(bullet)) {
-      bullet.alive = false;
+      if (!bullet.ricochet) bullet.alive = false;
     }
   }
 }
@@ -914,6 +1167,32 @@ function update() {
     spawnEnemy();
   }
 
+  // Power-up spawn on map
+  powerUpSpawnTimer++;
+  if (powerUpSpawnTimer >= 600 && powerUps.length < 4) {
+    powerUpSpawnTimer = 0;
+    const px = 40 + Math.random() * (W - 80);
+    const py = 40 + Math.random() * (H - 80);
+    spawnPowerUp(px, py);
+  }
+
+  // Pickup power-ups
+  for (let i = powerUps.length - 1; i >= 0; i--) {
+    powerUps[i].life--;
+    if (powerUps[i].life <= 0) { powerUps.splice(i, 1); continue; }
+    const dx = player.x - powerUps[i].x;
+    const dy = player.y - powerUps[i].y;
+    if (dx * dx + dy * dy < 30 * 30) {
+      applyPowerUp(powerUps[i]);
+      powerUps.splice(i, 1);
+    }
+  }
+
+  // Update buff timers
+  for (const key of Object.keys(buffs)) {
+    if (buffs[key] > 0) buffs[key]--;
+  }
+
   // Update UI
   document.getElementById('score').textContent = score;
   document.getElementById('lives').textContent = lives;
@@ -935,6 +1214,27 @@ function draw() {
 
   // Obstacles
   drawObstacles(ctx);
+
+  // Power-ups
+  for (const p of powerUps) {
+    const t = Date.now() / 1000;
+    ctx.save();
+    ctx.globalAlpha = 0.7 + Math.sin(t * 3 + p.x) * 0.3;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 10 + Math.sin(t * 4) * 4;
+    // Glow circle
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // Icon
+    ctx.font = '16px sans-serif';
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.icon, p.x, p.y);
+    ctx.restore();
+  }
 
   // Bullets
   for (const b of playerBullets) b.draw(ctx);
@@ -986,6 +1286,9 @@ function restartGame() {
   enemies = [];
   playerBullets = [];
   enemyBullets = [];
+  powerUps.length = 0;
+  powerUpSpawnTimer = 0;
+  buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0 };
   particles.length = 0;
   spawnTimer = 0;
   difficultyTimer = 0;
@@ -1013,6 +1316,9 @@ function startGame(difficulty) {
   enemies = [];
   playerBullets = [];
   enemyBullets = [];
+  powerUps.length = 0;
+  powerUpSpawnTimer = 0;
+  buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0 };
   particles.length = 0;
   spawnTimer = 0;
   difficultyTimer = 0;
