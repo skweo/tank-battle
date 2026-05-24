@@ -68,6 +68,65 @@ canvas {
   letter-spacing: 2px;
 }
 #game-over button:hover { background: #0c0; }
+#start-screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  background: rgba(0,0,0,0.85);
+  z-index: 10;
+}
+#start-screen h1 {
+  color: #0f0;
+  font-size: 52px;
+  text-shadow: 0 0 30px rgba(0,255,0,0.8), 0 0 60px rgba(0,255,0,0.4);
+  letter-spacing: 6px;
+  margin-bottom: 8px;
+}
+#start-screen .subtitle {
+  color: #888;
+  font-size: 14px;
+  letter-spacing: 4px;
+  margin-top: -16px;
+}
+#start-screen .difficulty-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+#start-screen .diff-btn {
+  padding: 14px 60px;
+  font-size: 20px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  letter-spacing: 3px;
+  border: 2px solid #0a0;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #0f0;
+  background: rgba(0,100,0,0.15);
+  transition: all 0.2s;
+}
+#start-screen .diff-btn:hover {
+  background: rgba(0,180,0,0.3);
+  box-shadow: 0 0 20px rgba(0,255,0,0.4);
+  transform: scale(1.05);
+}
+#start-screen .diff-btn.easy { border-color: #0a0; color: #4f4; }
+#start-screen .diff-btn.normal { border-color: #da0; color: #ff4; }
+#start-screen .diff-btn.hard { border-color: #d40; color: #f66; }
+#start-screen .diff-btn.hard:hover { box-shadow: 0 0 20px rgba(255,0,0,0.4); }
+#start-screen .diff-info {
+  color: #666;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-align: center;
+  line-height: 1.6;
+}
 #instructions {
   position: absolute;
   bottom: 12px;
@@ -94,6 +153,16 @@ canvas {
     <p>最终得分: <span id="final-score">0</span></p>
     <button onclick="restartGame()">重新开始</button>
   </div>
+  <div id="start-screen">
+    <h1>坦 克 大 战</h1>
+    <p class="subtitle">T A N K &nbsp; B A T T L E</p>
+    <div class="difficulty-buttons">
+      <button class="diff-btn easy" onclick="startGame('easy')">简单</button>
+      <button class="diff-btn normal" onclick="startGame('normal')">普通</button>
+      <button class="diff-btn hard" onclick="startGame('hard')">困难</button>
+    </div>
+    <p class="diff-info">简单: 5条命 · 敌人较弱<br>普通: 3条命 · 标准难度<br>困难: 2条命 · 敌人更强</p>
+  </div>
   <div id="instructions">WASD 移动 | 鼠标瞄准 | 左键射击 | R 重新开始</div>
 </div>
 
@@ -112,6 +181,14 @@ let lives = 3;
 let level = 1;
 let gameRunning = true;
 let gameOverFlag = false;
+let currentDifficulty = 'normal';
+
+// --- Difficulty Settings ---
+const difficultySettings = {
+  easy:   { lives: 5, spawnRate: 180, enemyHpBonus: -1, playerHp: 6, enemySpeedMul: 0.75, label: '简单' },
+  normal: { lives: 3, spawnRate: 150, enemyHpBonus: 0,  playerHp: 5, enemySpeedMul: 1.0,  label: '普通' },
+  hard:   { lives: 2, spawnRate: 100, enemyHpBonus: 1,  playerHp: 4, enemySpeedMul: 1.3,  label: '困难' },
+};
 
 // --- Input ---
 const keys = {};
@@ -280,7 +357,7 @@ class Tank {
 
 class PlayerTank extends Tank {
   constructor() {
-    super(W/2, H - 60, '#4a8', '#3c6', 2.5, 5);
+    super(W/2, H - 60, '#4a8', '#3c6', 2.5, difficultySettings[currentDifficulty].playerHp);
     this.shootDelay = 15;
     this.invincible = 0;
   }
@@ -509,7 +586,9 @@ function spawnEnemy() {
   const maxIdx = Math.min(3, Math.floor(level / 2));
   const idx = Math.floor(Math.random() * (maxIdx + 1));
   const type = enemyTypes[idx];
-  enemies.push(new EnemyTank(x, y, type.color, type.turret, type.speed, type.hp + Math.floor(level / 3)));
+  const diff = difficultySettings[currentDifficulty];
+  const hp = Math.max(1, type.hp + Math.floor(level / 3) + diff.enemyHpBonus);
+  enemies.push(new EnemyTank(x, y, type.color, type.turret, type.speed * diff.enemySpeedMul, hp));
 }
 
 // --- Collision detection ---
@@ -585,7 +664,8 @@ function update() {
 
   // Spawn enemies
   spawnTimer++;
-  const spawnRate = Math.max(40, 150 - level * 8);
+  const diff = difficultySettings[currentDifficulty];
+  const spawnRate = Math.max(40, diff.spawnRate - level * 8);
   const maxEnemies = 3 + level;
   if (spawnTimer >= spawnRate && enemies.length < maxEnemies) {
     spawnTimer = 0;
@@ -666,6 +746,32 @@ function restartGame() {
   score = 0;
   lives = 3;
   level = 1;
+  gameRunning = false;
+  gameOverFlag = false;
+  player = new PlayerTank();
+  enemies = [];
+  playerBullets = [];
+  enemyBullets = [];
+  particles.length = 0;
+  spawnTimer = 0;
+  difficultyTimer = 0;
+  document.getElementById('game-over').classList.remove('visible');
+  document.getElementById('start-screen').style.display = 'flex';
+}
+
+// --- Init ---
+function init() {
+  player = new PlayerTank();
+  gameRunning = false;
+  document.getElementById('start-screen').style.display = 'flex';
+}
+
+function startGame(difficulty) {
+  currentDifficulty = difficulty;
+  const diff = difficultySettings[difficulty];
+  lives = diff.lives;
+  score = 0;
+  level = 1;
   gameRunning = true;
   gameOverFlag = false;
   player = new PlayerTank();
@@ -676,15 +782,12 @@ function restartGame() {
   spawnTimer = 0;
   difficultyTimer = 0;
   generateObstacles();
-  document.getElementById('game-over').classList.remove('visible');
-}
-
-// --- Init ---
-function init() {
-  player = new PlayerTank();
-  generateObstacles();
-  // Spawn initial enemies
   for (let i = 0; i < 2; i++) spawnEnemy();
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('game-over').classList.remove('visible');
+  document.getElementById('lives').textContent = lives;
+  document.getElementById('score').textContent = score;
+  document.getElementById('level').textContent = level;
 }
 
 init();
