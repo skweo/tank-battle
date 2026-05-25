@@ -590,23 +590,23 @@ canvas {
   border-radius: 4px;
   flex-shrink: 0;
 }
-#bestiary-screen .best-back-btn {
-  margin-top: 20px;
-  padding: 12px 40px;
-  font-size: 18px;
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
+.best-back-btn {
+  margin-top: 10px;
+  padding: 10px 36px;
+  font-size: 15px;
+  font-family: 'STKaiti','KaiTi','SimSun',serif;
   letter-spacing: 3px;
-  border: 2px solid #4af;
-  border-radius: 8px;
+  border: 1px solid rgba(200,160,80,0.4);
+  border-radius: 4px;
   cursor: pointer;
-  color: #4af;
-  background: rgba(0,50,100,0.2);
+  color: #c8a860;
+  background: rgba(30,20,10,0.5);
   transition: all 0.2s;
 }
-#bestiary-screen .best-back-btn:hover {
-  background: rgba(0,80,150,0.4);
-  box-shadow: 0 0 20px rgba(64,170,255,0.4);
+.best-back-btn:hover {
+  background: rgba(60,40,15,0.6);
+  border-color: #da0;
+  color: #edc;
 }
 #upgrade-screen {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -1795,6 +1795,13 @@ let mouseDown = false;
 window.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
   if (e.key.toLowerCase() === 'r') { if (gameOverFlag) quickRestart(); else if (gameRunning) restartGame(); }
+  if (e.key === 'Escape') {
+    if (document.getElementById('lab-screen').style.display === 'flex') hideLabScreen();
+    else if (document.getElementById('leaderboard-screen').style.display === 'flex') hideLeaderboard();
+    else if (document.getElementById('bestiary-screen').style.display === 'flex') hideBestiary();
+    else if (document.getElementById('achievements-screen').style.display === 'flex') hideAchievements();
+    else if (document.getElementById('upgrade-screen').style.display === 'flex') hideUpgradeScreen();
+  }
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvas.addEventListener('mousemove', e => {
