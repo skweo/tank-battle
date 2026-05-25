@@ -3563,8 +3563,6 @@ function applyTankUpgrades(tankType) {
 function renderLabUI() {
   const grid = document.getElementById('lab-tank-grid');
   const detail = document.getElementById('lab-detail');
-  // Diagnostic: show bright pink text to confirm renderLabUI is called
-  if (detail) detail.innerHTML = '<div style="color:#f0f;font-size:18px;text-align:center;padding:10px;">DEBUG: renderLabUI called, tank=' + labSelectedTank + '</div>';
   if (!grid) return;
   const tankKeys = Object.keys(tankTypes);
   const icons = {spread:'☆',focus:'★',wide:'❋',burst:'✦',sniper:'◈',homing:'◎'};
@@ -3588,6 +3586,7 @@ function renderLabUI() {
   }).join('');
   // Detail panel
   if (!detail) return;
+  try {
   const k = labSelectedTank;
   const unlocked = unlockedTanks.has(k);
   const ug = tankUpgrades[k] || {};
@@ -3639,6 +3638,9 @@ function renderLabUI() {
     const sel = labSelectedTank;
     confirmBtn.style.display = (sel !== currentTankType && unlockedTanks.has(sel)) ? 'inline-block' : 'none';
     confirmBtn.textContent = '✅ 出战: ' + (tankTypes[sel]?.name || '??');
+  }
+  } catch(e) {
+    if (detail) detail.innerHTML = '<div style="color:#f44;font-size:16px;text-align:center;padding:10px;">❌ ERROR: ' + e.message + '<br><small>' + e.stack.split('\\n')[0] + '</small></div>';
   }
 }
 function selectLabTank(tank) {
