@@ -531,7 +531,7 @@ canvas { display: block; background: #0a0f18; }
 #lab-screen .lab-tank-name { font-size: 10px; color: #c0c8d0; font-weight: 500; margin-top: 2px; }
 #lab-screen .lab-tank-dots { font-size: 7px; color: #6b7d95; margin-top: 1px; }
 #lab-screen .lab-evo-badge { position: absolute; top: 1px; right: 1px; font-size: 6px; color: #c8a0d8; background: rgba(160,80,200,0.15); padding: 0 3px; }
-#lab-screen .lab-detail-panel { width: 94%; max-width: 450px; padding: 12px 16px; border: 1px solid rgba(244,152,0,0.15); background: rgba(16,22,32,0.7); clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px); flex-shrink: 0; }
+#lab-screen .lab-detail-panel { width: 94%; max-width: 460px; padding: 12px 14px; border: 2px solid rgba(244,152,0,0.2); background: rgba(14,20,30,0.8); flex-shrink: 0; }
 #lab-screen .lab-detail-name { font-size: 15px; color: #f49800; font-weight: 500; letter-spacing: 2px; }
 #lab-screen .lab-detail-desc { font-size: 11px; color: #8a94a4; margin: 2px 0; }
 #lab-screen .lab-stats { display: flex; flex-direction: column; gap: 5px; margin: 8px 0; }
@@ -3604,27 +3604,32 @@ function renderLabUI() {
     const defs = TANK_UPGRADE_DEFS[k] || [];
     const allMaxed = defs.every(d => (ug[d.id]||0) >= d.max);
     let evoHTML = '';
-    if (evolved) evoHTML = `<div style="color:#f8d;font-size:13px;text-align:center;">${evoDef.icon} ${evoDef.name} · ${evoDef.bonus} ✅</div>`;
-    else if (allMaxed && defs.length > 0) evoHTML = `<div style="text-align:center;"><button class="lab-btn" style="border-color:#f8d;color:#f8d;" onclick="tryEvolveTank('${k}');renderLabUI();">✨ 进化 → ${evoDef.name} (200💎)</button></div>`;
-    const statsHTML = defs.map(d => {
+    if (evolved) evoHTML = `<div style="color:#f8d;font-size:14px;text-align:center;padding:4px;">${evoDef.icon} ${evoDef.name} · ${evoDef.bonus} ✅</div>`;
+    else if (allMaxed && defs.length > 0) evoHTML = `<div style="text-align:center;padding:4px;"><button class="lab-btn" style="border-color:#f8d;color:#f8d;font-size:14px;padding:6px 16px;" onclick="tryEvolveTank('${k}');renderLabUI();">✨ 进化 → ${evoDef.name} (200💎)</button></div>`;
+    let statsHTML = '';
+    for (const d of defs) {
       const lvl = (ug[d.id]||0);
       const capped = lvl >= d.max;
       const cost = capped ? 999 : getTankUpgradeCost(k, d.id);
       const canAfford = coreFragments >= cost;
       const costText = capped ? 'MAX' : (cost + '💎');
-      const costColor = capped ? '#5a6878' : (canAfford ? '#e0e4ec' : '#f06060');
-      return `<div class="lab-stat-row" style="color:#c0c8d0;">
-        <span style="width:70px;">${d.icon} ${d.name}</span>
-        <span class="lab-stat-dots">${'●'.repeat(lvl)}${'○'.repeat(d.max-lvl)}</span>
-        <span style="font-size:10px;color:${capped?'#5a6878':'#a0a8b4'};width:65px;text-align:center;">${capped?'已满':'→ '+d.desc}</span>
-        <button class="lab-upg-btn ${capped?'capped':''}" style="color:${costColor};" onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}>${costText}</button>
+      const barW = Math.floor((lvl / d.max) * 100);
+      statsHTML += `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin:3px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+        <span style="color:#e0e4ec;font-size:13px;width:60px;">${d.icon}</span>
+        <span style="color:#c0c8d0;font-size:12px;width:55px;">${d.name}</span>
+        <span style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+          <span style="display:block;height:100%;width:${barW}%;background:${capped?'#4a5a70':'#f49800'};border-radius:3px;"></span>
+        </span>
+        <span style="color:${capped?'#5a6878':'#8a94a4'};font-size:10px;width:60px;text-align:right;">${capped?'MAX':'→ '+d.desc}</span>
+        <button onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}
+          style="padding:5px 12px;font-size:12px;font-weight:bold;border:1px solid ${capped?'rgba(255,255,255,0.08)':'#f49800'};background:${capped?'rgba(255,255,255,0.03)':'rgba(244,152,0,0.15)'};color:${capped?'#4a5a70':(canAfford?'#f49800':'#f06060')};cursor:${capped?'not-allowed':'pointer'};clip-path:polygon(3px 0,100% 0,100% calc(100% - 3px),calc(100% - 3px) 100%,0 100%,0 3px);">${costText}</button>
       </div>`;
-    }).join('');
+    }
     detail.innerHTML = `
-      <div class="lab-detail-name" style="text-align:center;">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${selected ? '✅ 出战中' : ''}</div>
+      <div style="color:#f49800;font-size:16px;font-weight:500;text-align:center;letter-spacing:2px;">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${selected ? '✅ 出战中' : ''}</div>
       ${evoHTML}
-      <div class="lab-stats">${statsHTML}</div>
-      <div style="font-size:10px;color:#8a94a4;text-align:center;">${defs.length}项升级 · ${evolved?'已达最终形态':(allMaxed?'满级可进化!':'')}</div>`;
+      <div style="margin:8px 0;">${statsHTML}</div>
+      <div style="font-size:10px;color:#8a94a4;text-align:center;">💎 ${coreFragments} · ${defs.length}项升级 · ${evolved?'已达最终形态':(allMaxed?'满级可进化!':'')}</div>`;
   }
   // Update fixed confirm button visibility
   const confirmBtn = document.getElementById('lab-confirm-btn');
