@@ -20,7 +20,7 @@ body {
   position: relative;
   border: 3px solid rgba(200,160,80,0.3);
   box-shadow: 0 0 30px rgba(200,150,40,0.2);
-  overflow: hidden;
+  transform-origin: center center;
 }
 canvas {
   display: block;
@@ -79,7 +79,7 @@ canvas {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 18px;
+  gap: 6px;
   background: radial-gradient(ellipse at 50% 30%, rgba(15,10,40,0.92) 0%, rgba(3,2,12,0.96) 100%);
   z-index: 10;
   border: 2px solid rgba(200,160,80,0.25);
@@ -87,9 +87,9 @@ canvas {
 #start-screen h1 {
   font-family: 'STKaiti','KaiTi','SimSun','Courier New',serif;
   color: #da0;
-  font-size: 56px;
-  text-shadow: 0 0 40px rgba(220,170,0,0.7), 0 0 80px rgba(200,120,0,0.4), 0 2px 4px rgba(0,0,0,0.8);
-  letter-spacing: 10px;
+  font-size: 44px;
+  text-shadow: 0 0 25px rgba(220,170,0,0.7), 0 0 50px rgba(200,120,0,0.4), 0 2px 4px rgba(0,0,0,0.8);
+  letter-spacing: 8px;
   margin-bottom: 0;
   animation: titleGlow 3s ease-in-out infinite;
   -webkit-text-stroke: 1px rgba(180,120,20,0.3);
@@ -102,24 +102,24 @@ canvas {
   font-family: 'STKaiti','KaiTi','Courier New',serif;
   color: #c8a8b8;
   font-size: 13px;
-  letter-spacing: 6px;
-  margin-top: -12px;
+  letter-spacing: 5px;
+  margin-top: -8px;
   text-shadow: 0 0 10px rgba(200,120,160,0.4);
 }
 #start-screen .ornament {
   width: 260px; height: 2px;
   background: linear-gradient(90deg, transparent, rgba(200,160,80,0.5), rgba(200,160,80,0.8), rgba(200,160,80,0.5), transparent);
-  margin: -6px 0;
+  margin: -2px 0;
 }
 #start-screen .difficulty-buttons {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 4px;
 }
 #start-screen .diff-btn {
-  padding: 12px 56px;
-  font-size: 18px;
+  padding: 8px 50px;
+  font-size: 16px;
   font-family: 'STKaiti','KaiTi','SimSun','Courier New',serif;
   font-weight: bold;
   letter-spacing: 4px;
@@ -160,10 +160,10 @@ canvas {
 #start-screen .diff-btn.nightmare:hover { border-color: rgba(255,100,100,0.6); color: #f0b0b0; box-shadow: 0 0 20px rgba(220,60,60,0.3); }
 #start-screen .diff-info {
   color: #887870;
-  font-size: 13px;
-  letter-spacing: 2px;
+  font-size: 11px;
+  letter-spacing: 1px;
   text-align: center;
-  line-height: 1.8;
+  line-height: 1.5;
   font-family: 'STKaiti','KaiTi','SimSun',serif;
 }
 #start-screen .diff-btn.locked {
@@ -189,17 +189,18 @@ canvas {
 #start-screen .locked-info { color: #504840; }
 #start-screen .achieve-link {
   color: #908078;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   font-family: 'STKaiti','KaiTi','SimSun',serif;
   border-bottom: 1px dashed rgba(160,140,120,0.3);
   transition: all 0.3s;
 }
 #start-screen .achieve-link:hover { color: #da0; border-color: rgba(220,170,0,0.5); text-shadow: 0 0 8px rgba(200,150,40,0.3); }
 .currency-display {
-  color: #da0; font-size: 14px; letter-spacing: 2px; text-align: center;
-  font-family: 'STKaiti','KaiTi',serif; text-shadow: 0 0 8px rgba(200,150,40,0.4);
+  color: #da0; font-size: 12px; letter-spacing: 1px; text-align: center;
+  font-family: 'STKaiti','KaiTi',serif; text-shadow: 0 0 6px rgba(200,150,40,0.4);
+  margin: -2px 0;
 }
 .daily-challenge-btn { color: #c8a860 !important; border-color: rgba(200,160,80,0.5) !important; }
 #tank-select-screen .tank-card.locked-card { opacity: 0.5; cursor: pointer; border-color: rgba(80,70,60,0.4); }
@@ -730,12 +731,12 @@ canvas {
     <p class="currency-display" id="currency-display">💎 0</p>
     <div class="difficulty-buttons" id="difficulty-buttons"></div>
     <p class="diff-info" id="diff-info"></p>
-    <div class="ornament" style="width:160px;"></div>
+    <div class="ornament" style="width:120px;"></div>
     <p class="achieve-link" onclick="showAchievements()">🏆 成 就</p>
-    <p class="achieve-link" onclick="showBestiary()" style="margin-top:2px;">📖 图 鉴</p>
-    <p class="achieve-link" onclick="showLeaderboard()" style="margin-top:2px;">🏅 排 行 榜</p>
-    <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()" style="margin-top:2px;">📅 每 日 挑 战</p>
-    <p class="achieve-link" onclick="showLabScreen()" style="margin-top:2px;">🔬 机 装 研 究 室</p>
+    <p class="achieve-link" onclick="showBestiary()">📖 图 鉴</p>
+    <p class="achieve-link" onclick="showLeaderboard()">🏅 排 行 榜</p>
+    <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()">📅 每 日 挑 战</p>
+    <p class="achieve-link" onclick="showLabScreen()">🔬 机 装 研 究 室</p>
   </div>
   <div id="leaderboard-screen">
     <h1>🏅 排 行 榜</h1>
@@ -825,8 +826,8 @@ canvas {
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const W = 1100;
-const H = 750;
+const W = 960;
+const H = 640;
 canvas.width = W;
 canvas.height = H;
 
@@ -4154,6 +4155,16 @@ function init() {
   player = new PlayerTank(currentTankType);
   gameRunning = false;
   document.getElementById('start-screen').style.display = 'flex';
+  // Auto-scale game container to fit viewport
+  scaleToFit();
+  window.addEventListener('resize', scaleToFit);
+}
+function scaleToFit() {
+  const container = document.getElementById('game-container');
+  const scaleX = (window.innerWidth - 20) / W;
+  const scaleY = (window.innerHeight - 20) / H;
+  const scale = Math.min(scaleX, scaleY, 1.0);
+  container.style.transform = 'scale(' + scale + ')';
 }
 
 function startGame(difficulty, tankType) {
