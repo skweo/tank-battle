@@ -537,9 +537,10 @@ canvas { display: block; background: #0a0f18; }
 #lab-screen .lab-stats { display: flex; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
 #lab-screen .lab-stat-row { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #8a94a4; }
 #lab-screen .lab-stat-dots { letter-spacing: 1px; color: #6b7d95; }
-#lab-screen .lab-upg-btn { padding: 2px 6px; font-size: 9px; border: 1px solid rgba(107,125,149,0.15); background: rgba(14,18,26,0.5); color: #8a94a4; cursor: pointer; font-family: 'Segoe UI','Microsoft YaHei',sans-serif; clip-path: polygon(2px 0, 100% 0, 100% calc(100% - 2px), calc(100% - 2px) 100%, 0 100%, 0 2px); }
-#lab-screen .lab-upg-btn:hover { background: rgba(24,30,40,0.6); border-color: rgba(244,152,0,0.3); color: #f49800; }
-#lab-screen .lab-upg-btn.capped { border-color: rgba(107,125,149,0.06); color: #4a5a70; cursor: not-allowed; }
+#lab-screen .lab-upg-btn { padding: 5px 10px; font-size: 12px; font-weight: 600; border: 1px solid rgba(244,152,0,0.3); background: rgba(20,26,36,0.7); color: #f49800; cursor: pointer; font-family: 'Segoe UI','Microsoft YaHei',sans-serif; clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px); min-width: 52px; transition: all 0.2s; }
+#lab-screen .lab-upg-btn:hover { background: rgba(30,38,48,0.8); border-color: #f49800; box-shadow: 0 0 8px rgba(244,152,0,0.2); transform: scale(1.05); }
+#lab-screen .lab-upg-btn.capped { border-color: rgba(107,125,149,0.08); color: #3a4a58; cursor: not-allowed; background: rgba(12,16,22,0.4); }
+#lab-screen .lab-upg-btn.capped:hover { transform: none; box-shadow: none; background: rgba(12,16,22,0.4); }
 #lab-screen .lab-btn { padding: 5px 14px; font-size: 12px; border: 1px solid rgba(107,125,149,0.15); background: rgba(14,18,26,0.5); color: #a0a8b4; cursor: pointer; font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 2px; margin: 2px; clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px); }
 #lab-screen .lab-btn:hover { background: rgba(24,30,40,0.6); border-color: rgba(244,152,0,0.3); color: #f49800; }
 #lab-screen .lab-btn.sortie-btn { border-color: rgba(244,152,0,0.3); background: rgba(20,26,36,0.6); font-size: 13px; color: #f49800; }
@@ -3616,12 +3617,12 @@ function renderLabUI() {
         const canAfford = coreFragments >= cost;
         const costText = capped ? 'MAX' : (cost + '💎');
         const costColor = capped ? '#4a5a70' : (canAfford ? '#a0a8b4' : '#d05050');
-        const preview = capped ? '' : `→ ${d.desc}`;
+        const preview = capped ? '已满' : `→ ${d.desc}`;
         return `<div class="lab-stat-row">
-          <span style="width:75px;">${d.icon} ${d.name}</span>
+          <span style="width:80px;font-weight:500;">${d.icon} ${d.name}</span>
           <span class="lab-stat-dots" title="Lv.${lvl}/${d.max}">${'●'.repeat(lvl)}${'○'.repeat(d.max-lvl)}</span>
-          <span style="font-size:9px;color:#5a6878;width:60px;text-align:right;">${preview}</span>
-          <button class="lab-upg-btn ${capped?'capped':''}" style="color:${costColor};min-width:45px;" onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}>${costText}</button>
+          <span style="font-size:9px;color:${capped?'#3a4a58':'#8a94a4'};width:55px;text-align:right;">${preview}</span>
+          <button class="lab-upg-btn ${capped?'capped':''}" style="color:${costColor};" onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}>${costText}</button>
         </div>`;
       }).join('')}</div>
       <div style="font-size:10px;color:#666;">${!selected ? '点击下方"确认出战"切换机体' : '当前出战机体'} · ${defs.some(d=>(ug[d.id]||0)<d.max) ? defs.length+'项可升级' : evolved ? '已达最终形态' : '满级可进化'}</div>`;
