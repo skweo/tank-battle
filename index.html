@@ -629,7 +629,7 @@ canvas {
         <div class="tank-name">追踪型</div>
         <div class="tank-subtitle">东风谷早苗式</div>
         <div class="tank-desc">追踪弹幕</div>
-        <div class="tank-detail">标准速度 · 标准血量<br>追踪弹 · 每4发强化追踪</div>
+        <div class="tank-detail">标准速度 · 标准血量<br>双发弹幕 · 每4发追踪弹</div>
       </div>
     </div>
     <button class="tank-back-btn" onclick="hideTankSelect()">返回</button>
@@ -900,7 +900,7 @@ const tankTypes = {
   wide:   { name:'广域型', color:'#4af', turret:'#38c', speed:0.85,hpBonus:2,  shootDelay:44, bulletCount:5, spreadAngle:0.18, bulletSpeed:1.4, bulletDamage:1, desc:'5方向广域压制', specialInterval:6, specialType:'freeze' },
   burst:  { name:'爆裂型', color:'#f84', turret:'#d62', speed:1.0, hpBonus:0,  shootDelay:55, bulletCount:7, spreadAngle:0.16, bulletSpeed:1.9, bulletDamage:1, desc:'7方向爆裂弹幕', specialInterval:5, specialType:'explosive' },
   sniper: { name:'狙击型', color:'#a4f', turret:'#82d', speed:0.7, hpBonus:-1, shootDelay:52, bulletCount:1, spreadAngle:0,    bulletSpeed:4.8, bulletDamage:3, desc:'超远程高伤狙击', specialInterval:3, specialType:'super_pierce' },
-  homing: { name:'追踪型', color:'#f8f', turret:'#d6d', speed:0.95,hpBonus:0,  shootDelay:38, bulletCount:2, spreadAngle:0.08, bulletSpeed:1.8, bulletDamage:1, desc:'追踪弹幕', specialInterval:4, specialType:'homing_burst' },
+  homing: { name:'追踪型', color:'#f8f', turret:'#d6d', speed:0.95,hpBonus:0,  shootDelay:38, bulletCount:2, spreadAngle:0.08, bulletSpeed:2.2, bulletDamage:1, desc:'追踪弹幕', specialInterval:4, specialType:'homing_burst' },
 };
 let currentTankType = 'spread';
 
@@ -1624,8 +1624,8 @@ class PlayerTank extends Tank {
     let baseRadius = 3;
     let isRailgun = false, isPierce = false, isFreeze = false, isExplosive = false, isRicochet = false;
     let bounceCount = 0;
-    let isHoming = (def.specialType === 'homing_burst');
-    let homingStr = isHoming ? 0.03 : 0;
+    let isHoming = false;
+    let homingStr = 0;
 
     // Power-up overrides
     if (buffs.railgun > 0) { baseSpeed = 4.0; baseColor = '#a4f'; baseRadius = 5; isRailgun = true; }
