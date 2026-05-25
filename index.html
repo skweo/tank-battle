@@ -1004,6 +1004,44 @@ function getDailyCompletedKey() { return 'tankbattle_daily_done_' + getDailySeed
 
 let dailyTarget = null;
 let dailyTargetAchieved = false;
+let dailyCompletedToday = false;
+let dailyBestScore = 0;
+
+function loadDailyChallengeStatus() {
+  try {
+    dailyCompletedToday = localStorage.getItem(getDailyCompletedKey()) === '1';
+    dailyBestScore = parseInt(localStorage.getItem(getDailyBestKey()) || '0', 10) || 0;
+  } catch(e) {
+    dailyCompletedToday = false;
+    dailyBestScore = 0;
+  }
+}
+
+function markDailyChallengeCompleted() {
+  dailyCompletedToday = true;
+  try { localStorage.setItem(getDailyCompletedKey(), '1'); } catch(e) {}
+}
+
+function saveDailyBest(scoreValue) {
+  const nextBest = Math.max(dailyBestScore || 0, Math.max(0, Math.floor(scoreValue || 0)));
+  if (nextBest === dailyBestScore) return;
+  dailyBestScore = nextBest;
+  try { localStorage.setItem(getDailyBestKey(), dailyBestScore.toString()); } catch(e) {}
+}
+
+function renderDailyTarget() {
+  const targetEl = document.getElementById('daily-target');
+  if (!targetEl) return;
+  if (!isDailyChallenge || !dailyTarget) {
+    targetEl.style.display = 'none';
+    return;
+  }
+  const rewardText = dailyCompletedToday ? '已领取' : (dailyTarget.reward + '💎');
+  const statusText = dailyTargetAchieved ? ' · 已达成' : '';
+  const bestText = dailyBestScore > 0 ? (' · 最高分 ' + dailyBestScore) : '';
+  targetEl.textContent = '🎯 今日目标: ' + dailyTarget.desc + ' (奖励' + rewardText + ')' + statusText + bestText;
+  targetEl.style.display = 'block';
+}
 
 function getDailyTarget(seed) {
   const targets = [
@@ -1022,55 +1060,59 @@ function checkDailyTarget() {
   if (!isDailyChallenge || !dailyTarget || dailyTargetAchieved) return;
   if (dailyTarget.check()) {
     dailyTargetAchieved = true;
-    earnFragments(dailyTarget.reward);
     const toast = document.getElementById('achieve-toast');
     toast.querySelector('.achieve-icon').textContent = '🎯';
     toast.querySelector('.achieve-name').textContent = '每日目标达成!';
-    toast.querySelector('.achieve-label').textContent = '奖励 +' + dailyTarget.reward + ' 月光石';
+    if (!dailyCompletedToday) {
+      coreFragments += dailyTarget.reward;
+      saveProgression();
+      markDailyChallengeCompleted();
+      toast.querySelector('.achieve-label').textContent = '奖励 +' + dailyTarget.reward + ' 月光石';
+    } else {
+      toast.querySelector('.achieve-label').textContent = '今日奖励已领取';
+    }
     toast.querySelector('.achieve-name').style.color = '#fd0';
     toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
     toast.style.animation = 'toastIn 0.4s ease-out';
     clearTimeout(toast._timeout);
     toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    renderDailyTarget();
   }
 }
 
 function startDailyChallenge() {
   const seed = getDailySeed();
-  seededRandom = mulberry32(seed);
-  isDailyChallenge = true;
-  dailyTarget = getDailyTarget(seed);
-  dailyTargetAchieved = false;
+  loadDailyChallengeStatus();
+  const dailyTargetDef = getDailyTarget(seed);
   const tanks = Object.keys(tankTypes).filter(k => unlockedTanks.has(k));
   if (tanks.length === 0) tanks.push('spread');
-  currentTankType = tanks[seed % tanks.length];
+  const dailyTank = tanks[seed % tanks.length];
   const diffs = DIFFICULTY_ORDER.filter(d => unlockedDifficulties.has(d));
-  currentDifficulty = diffs[Math.floor((seed % 100) / 100 * diffs.length)] || 'easy';
-  const targetEl = document.getElementById('daily-target');
-  if (targetEl) {
-    targetEl.textContent = '🎯 今日目标: ' + dailyTarget.desc + ' (奖励' + dailyTarget.reward + '💎)';
-    targetEl.style.display = 'block';
-  }
-  startGame(currentDifficulty, currentTankType);
+  const dailyDifficulty = diffs[Math.floor((seed % 100) / 100 * diffs.length)] || 'easy';
+  startGame(dailyDifficulty, dailyTank, {
+    dailyChallenge: true,
+    seededRandom: mulberry32(seed),
+    dailyTarget: dailyTargetDef,
+  });
 }
 
 // --- Wave Modifier System ---
 const MODIFIER_DEFS = [
   { id:'dmg_up', name:'弹头强化', desc:'+30% 伤害', icon:'💥', apply(){ playerBulletDmgMul+=0.3; } },
   { id:'spd_up', name:'机动优化', desc:'+20% 移动速度', icon:'💨', apply(){ playerSpeedMul+=0.2; } },
-  { id:'firerate', name:'射速提升', desc:'射击冷却-25%', icon:'🔥', apply(){ playerShootDelayMul-=0.25; } },
+  { id:'firerate', name:'射速提升', desc:'射击冷却-25%', icon:'🔥', apply(){ playerShootDelayMul*=0.75; } },
   { id:'hp_up', name:'耐久强化', desc:'+2 最大HP', icon:'❤️', apply(){ if(player.alive){ player.maxHp+=2; player.hp+=2; } } },
   { id:'more_pups', name:'补给增加', desc:'道具掉落+50%', icon:'🎁', apply(){ powerUpDropMul+=0.5; } },
   { id:'extra_life', name:'备用生命', desc:'+1 条命', icon:'💖', apply(){ lives++; } },
   { id:'bullet_spd', name:'弹速提升', desc:'+15% 子弹速度', icon:'🚀', apply(){ bulletSpeedMul+=0.15; } },
   { id:'combo_bonus', name:'连击加成', desc:'连击奖励分×2', icon:'✨', apply(){ comboBonusMul*=2; } },
-  { id:'loot_double', name:'战利翻倍', desc:'敌人掉落双倍道具概率+30%', icon:'💰', apply(){ eliteDropMul+=0.3; } },
+  { id:'loot_double', name:'战利翻倍', desc:'精英额外掉落概率+30%', icon:'💰', apply(){ eliteDropMul+=0.3; } },
   { id:'big_explosion', name:'大型爆炸', desc:'爆炸范围+50%', icon:'💢', apply(){ explosionRadiusMul+=0.5; } },
 ];
 let activeModifiers = [];
 let playerBulletDmgMul = 1, playerSpeedMul = 1, playerShootDelayMul = 1;
 let powerUpDropMul = 1, bulletSpeedMul = 1, comboBonusMul = 1;
-let eliteDropMul = 1, explosionRadiusMul = 1;
+let eliteDropMul = 0, explosionRadiusMul = 1;
 
 function showModifierChoice() {
   const choices = [];
@@ -1116,7 +1158,7 @@ function resetModifiers() {
   activeModifiers = [];
   playerBulletDmgMul = 1; playerSpeedMul = 1; playerShootDelayMul = 1;
   powerUpDropMul = 1; bulletSpeedMul = 1; comboBonusMul = 1;
-  eliteDropMul = 1; explosionRadiusMul = 1;
+  eliteDropMul = 0; explosionRadiusMul = 1;
 }
 
 // --- Seeded RNG (mulberry32) ---
@@ -1455,7 +1497,7 @@ function startNextWave() {
   }
 
   if (isBossWave) {
-    spawnChest(W/2 + (Math.random()-0.5)*200, H/2 + (Math.random()-0.5)*100, true);
+    spawnChest(W/2 + (rng()-0.5)*200, H/2 + (rng()-0.5)*100, true);
     isBossWave = false;
   }
   bossRef = null;
@@ -1496,7 +1538,7 @@ const powerUpDefs = [
   { type: 'goldrush', name: '黄金时刻', icon: '💰', color: '#fd0', desc: '分数和碎片×3', duration: 360 },
 ];
 function getRandomRarity() {
-  const r = Math.random() * 100;
+  const r = rng() * 100;
   if (r < 10) return 'legendary';
   if (r < 40) return 'rare';
   return 'common';
@@ -1517,7 +1559,7 @@ let buffs = {
 };
 
 function spawnPowerUp(x, y) {
-  const def = powerUpDefs[Math.floor(Math.random() * powerUpDefs.length)];
+  const def = powerUpDefs[Math.floor(rng() * powerUpDefs.length)];
   // Don't spawn inside obstacles
   if (tankCollidesObstacle(x, y, 20, 20)) return;
   const rarity = getRandomRarity();
@@ -1643,8 +1685,8 @@ function checkChestMilestone() {
   const milestone = Math.floor(score / 1500) * 1500;
   if (milestone > lastChestMilestone && milestone > 0) {
     lastChestMilestone = milestone;
-    const cx = 50 + Math.random() * (W - 100);
-    const cy = 50 + Math.random() * (H - 100);
+    const cx = 50 + rng() * (W - 100);
+    const cy = 50 + rng() * (H - 100);
     spawnChest(cx, cy, false);
   }
 }
@@ -1652,15 +1694,16 @@ function openChest(chest) {
   if (chest.opened) return;
   chest.opened = true;
   const isBoss = chest.isBossChest;
-  const fragAmt = isBoss ? (30 + Math.floor(Math.random() * 20)) : (10 + Math.floor(Math.random() * 15));
+  const fragAmt = isBoss ? (30 + Math.floor(rng() * 20)) : (10 + Math.floor(rng() * 15));
   coreFragments += fragAmt;
   saveProgression();
   // Spawn rare/legendary items
   const itemCount = isBoss ? 3 : 2;
   for (let i = 0; i < itemCount; i++) {
-    const def = powerUpDefs[Math.floor(Math.random() * powerUpDefs.length)];
+    const def = powerUpDefs[Math.floor(rng() * powerUpDefs.length)];
     if (def.type === 'repair') { player.hp = Math.min(player.hp + 3, player.maxHp); continue; }
-    const rarity = Math.random() < 0.4 ? 'legendary' : (Math.random() < 0.5 ? 'rare' : 'common');
+    const rarityRoll = rng();
+    const rarity = rarityRoll < 0.4 ? 'legendary' : (rarityRoll < 0.5 ? 'rare' : 'common');
     const rc = RARITY_CONFIG[rarity];
     const dur = def.duration > 0 ? Math.floor(def.duration * rc.durationMul * 1.3) : 0;
     buffs[def.type] = dur || def.duration;
@@ -1678,13 +1721,17 @@ function openChest(chest) {
   sfxAchievement();
 }
 
+function getExplosionRadius() {
+  return 60 * explosionRadiusMul * (1 + ((player && player._tankDef && player._tankDef.explosionRadiusBonus) || 0));
+}
+
 function getEffectiveSpeed() {
   return player.speed * (buffs.speed > 0 ? 1.2 : 1) * playerSpeedMul;
 }
 
 function getEffectiveShootDelay() {
   const base = buffs.rapid > 0 ? Math.floor(player.shootDelay / 2) : player.shootDelay;
-  return Math.max(8, Math.floor(base * (1 + playerShootDelayMul)));
+  return Math.max(8, Math.floor(base * playerShootDelayMul));
 }
 
 function renderAchievements() {
@@ -2052,7 +2099,7 @@ class Tank {
 
 class PlayerTank extends Tank {
   constructor(tankType) {
-    const type = tankTypes[tankType || 'spread'];
+    const type = getPlayerTankDefinition(tankType || 'spread');
     const baseHp = difficultySettings[currentDifficulty].playerHp;
     super(W/2, H - 70, type.color, type.turret, type.speed, Math.max(3, baseHp + type.hpBonus));
     this.tankType = tankType || 'spread';
@@ -2120,7 +2167,7 @@ class PlayerTank extends Tank {
     let homingStr = 0;
 
     // Power-up overrides
-    if (buffs.railgun > 0) { baseSpeed = 4.0; baseColor = '#a4f'; baseRadius = 5; isRailgun = true; }
+    if (buffs.railgun > 0) { baseSpeed = 4.0 + (def.railgunSpeedBonus || 0); baseColor = '#a4f'; baseRadius = 5; isRailgun = true; }
     else if (buffs.freeze > 0) { baseColor = '#8cf'; isFreeze = true; }
     else if (buffs.explosive > 0) { baseColor = '#f84'; isExplosive = true; }
     if (buffs.big_bullet > 0) baseRadius = 6;
@@ -2137,7 +2184,7 @@ class PlayerTank extends Tank {
           if (!buffs.pierce && !buffs.railgun) { isPierce = true; baseColor = '#ff8'; }
           break;
         case 'railgun':
-          if (!buffs.railgun) { isRailgun = true; baseSpeed = 4.0; baseColor = '#a4f'; baseRadius = 5; }
+          if (!buffs.railgun) { isRailgun = true; baseSpeed = 4.0 + (def.railgunSpeedBonus || 0); baseColor = '#a4f'; baseRadius = 5; }
           break;
         case 'freeze':
           if (!buffs.freeze) { isFreeze = true; baseColor = '#8cf'; }
@@ -2146,12 +2193,21 @@ class PlayerTank extends Tank {
           if (!buffs.explosive) { isExplosive = true; baseColor = '#f84'; }
           break;
         case 'super_pierce':
-          isRailgun = true; isPierce = true; baseSpeed = 5.5; baseColor = '#e8f'; baseRadius = 5;
+          isRailgun = true; isPierce = true; baseSpeed = 5.5 + (def.railgunSpeedBonus || 0); baseColor = '#e8f'; baseRadius = 5;
+          if (def.sniperSpecialHoming) {
+            isHoming = true;
+            homingStr = Math.max(homingStr, 0.05);
+          }
           break;
         case 'homing_burst':
           isHoming = true; homingStr = 0.06; baseSpeed = 2.2; baseColor = '#f8f'; baseRadius = 4;
+          if (def.sniperSpecialHoming) homingStr = Math.max(homingStr, 0.08);
           break;
       }
+    }
+    if (def.baseHomingStrength) {
+      isHoming = true;
+      homingStr = Math.max(homingStr, def.baseHomingStrength);
     }
 
     const count = buffs.multishot > 0 ? def.bulletCount + 2 : def.bulletCount;
@@ -2463,11 +2519,11 @@ class PlayerTank extends Tank {
 class EnemyTank extends Tank {
   constructor(x, y, color, turretColor, speed, hp) {
     super(x, y, color, turretColor, speed, hp);
-    this.aiTimer = Math.random() * 60;
-    this.moveDir = Math.random() < 0.5 ? -1 : 1;
-    this.moveAxis = Math.random() < 0.5 ? 'x' : 'y';
-    this.aiChangeTime = 40 + Math.random() * 80;
-    this.shootDelay = 90 + Math.random() * 60;
+    this.aiTimer = rng() * 60;
+    this.moveDir = rng() < 0.5 ? -1 : 1;
+    this.moveAxis = rng() < 0.5 ? 'x' : 'y';
+    this.aiChangeTime = 40 + rng() * 80;
+    this.shootDelay = 90 + rng() * 60;
     this.frozen = 0;
     this._origSpeed = speed;
     this.armor = false;
@@ -2486,9 +2542,9 @@ class EnemyTank extends Tank {
 
     // Movement AI
     if (this.aiTimer % this.aiChangeTime < 2) {
-      this.moveDir = Math.random() < 0.5 ? -1 : 1;
-      this.moveAxis = Math.random() < 0.5 ? 'x' : 'y';
-      this.aiChangeTime = 40 + Math.random() * 80;
+      this.moveDir = rng() < 0.5 ? -1 : 1;
+      this.moveAxis = rng() < 0.5 ? 'x' : 'y';
+      this.aiChangeTime = 40 + rng() * 80;
     }
 
     // Chase player
@@ -2561,19 +2617,21 @@ class EnemyTank extends Tank {
   shoot() {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
     const by = this.y + Math.sin(this.turretAngle) * 18;
-    const spread = (Math.random() - 0.5) * 0.15;
+    const spread = (rng() - 0.5) * 0.15;
     const ebs = buffs.timewarp > 0 ? 0.85 : 1.7;
     enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, ebs, '#f44', false));
   }
   hit(bullet) {
-    if (this.armor && Math.random() < 0.4) {
+    if (this.armor && rng() < 0.4) {
       spawnExplosion(this.x, this.y, 3, '#888', '#aaa');
       return false;
     }
     const dmg = bullet && bullet.damage ? bullet.damage : 1;
     this.hp -= dmg;
     if (bullet && bullet.freeze && !this.frozen) {
-      this.frozen = 120;
+      const freezeBonus = player && player._tankDef ? (player._tankDef.freezeDurationBonus || 0) : 0;
+      const freezeMul = player && player._tankDef ? (player._tankDef.freezeDurationMul || 1) : 1;
+      this.frozen = Math.floor((120 + freezeBonus) * freezeMul);
       this._origSpeed = this.speed;
       spawnExplosion(this.x, this.y, 8, '#8cf', '#fff');
     }
@@ -2584,7 +2642,7 @@ class EnemyTank extends Tank {
       this.alive = false;
       spawnExplosion(this.x, this.y, 20, '#f80', '#f44');
       onEnemyKilled(this.isElite);
-      if (this.isElite && rng() < 0.7 * (1 + eliteDropMul)) {
+      if (this.isElite && rng() < Math.min(1, 0.7 + eliteDropMul)) {
         spawnPowerUp(this.x, this.y);
       }
     }
@@ -2618,15 +2676,15 @@ class EliteEnemy extends EnemyTank {
     this.special = eliteDef.special;
     this.eliteIcon = eliteDef.icon;
     this.eliteName = eliteDef.name;
-    this.shootDelay = 60 + Math.random() * 40;
+    this.shootDelay = 60 + rng() * 40;
     if (eliteDef.special === 'sniper') {
-      this.shootDelay = 40 + Math.random() * 30;
+      this.shootDelay = 40 + rng() * 30;
     }
     if (eliteDef.special === 'fast') {
-      this.shootDelay = 30 + Math.random() * 20;
+      this.shootDelay = 30 + rng() * 20;
     }
     if (eliteDef.special === 'summoner') {
-      this.summonCooldown = 100 + Math.random() * 80;
+      this.summonCooldown = 100 + rng() * 80;
     }
     if (eliteDef.special === 'stealth') {
       this.stealthPhase = 0;
@@ -2636,10 +2694,10 @@ class EliteEnemy extends EnemyTank {
       this.regenTimer = 0;
     }
     if (eliteDef.special === 'miner') {
-      this.mineCooldown = 50 + Math.random() * 60;
+      this.mineCooldown = 50 + rng() * 60;
     }
     if (eliteDef.special === 'splitter') {
-      this.splitTimer = 300 + Math.random() * 200;
+      this.splitTimer = 300 + rng() * 200;
     }
     if (eliteDef.special === 'barrier') {
       this.barrierHP = 3; this.barrierTimer = 0;
@@ -2654,7 +2712,7 @@ class EliteEnemy extends EnemyTank {
     if (this.special === 'summoner' && this.summonCooldown > 0) {
       this.summonCooldown--;
       if (this.summonCooldown <= 0) {
-        this.summonCooldown = 150 + Math.random() * 100;
+        this.summonCooldown = 150 + rng() * 100;
         spawnEnemy();
       }
     }
@@ -2675,16 +2733,16 @@ class EliteEnemy extends EnemyTank {
     if (this.special === 'miner') {
       this.mineCooldown--;
       if (this.mineCooldown <= 0) {
-        this.mineCooldown = 60 + Math.random() * 60;
+        this.mineCooldown = 60 + rng() * 60;
         mines.push({ x: this.x, y: this.y, life: 450, armed: true });
       }
     }
     if (this.special === 'splitter' && enemies.length < 12) {
       this.splitTimer--;
       if (this.splitTimer <= 0) {
-        this.splitTimer = 400 + Math.random() * 250;
-        const sx = this.x + (Math.random() - 0.5) * 80;
-        const sy = this.y + (Math.random() - 0.5) * 80;
+        this.splitTimer = 400 + rng() * 250;
+        const sx = this.x + (rng() - 0.5) * 80;
+        const sy = this.y + (rng() - 0.5) * 80;
         const nx = Math.max(30, Math.min(W - 30, sx));
         const ny = Math.max(30, Math.min(H - 30, sy));
         enemies.push(new EliteEnemy(nx, ny, eliteTypes[6])); // spawn another splitter
@@ -2728,7 +2786,7 @@ class EliteEnemy extends EnemyTank {
         enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, 1.8, '#4af', false));
       }
     } else if (this.special === 'missile' && this.missileCooldown <= 0) {
-      this.missileCooldown = 40 + Math.random() * 30;
+      this.missileCooldown = 40 + rng() * 30;
       const b = new Bullet(this.x, this.y, this.turretAngle, 1.6, '#f84', false, 1);
       b.homing = true; b.homingStrength = 0.04; b.radius = 4;
       enemyBullets.push(b);
@@ -3056,7 +3114,7 @@ class EliteEnemy extends EnemyTank {
       spawnExplosion(this.x, this.y, 6, '#4ff', '#fff');
       return false;
     }
-    if (this.special === 'stealth' && this.stealthPhase === 1 && Math.random() < 0.35) {
+    if (this.special === 'stealth' && this.stealthPhase === 1 && rng() < 0.35) {
       spawnExplosion(this.x, this.y, 3, '#888', '#aaa');
       return false;
     }
@@ -3382,10 +3440,10 @@ const TANK_UNLOCK_CONDITIONS = {
 const TANK_EVOLUTION = {
   spread: { name:'夢想散華', icon:'🌸', bonus:'弹幕+2发', effect: function(t){ t.bulletCount+=2; t.spreadAngle*=0.8; } },
   focus:  { name:'極限火花', icon:'💫', bonus:'穿甲+50%伤害', effect: function(t){ t.bulletDamage+=1; } },
-  wide:   { name:'永恆凍土', icon:'❄️', bonus:'冰冻时间翻倍', effect: function(t){ /* handled in shoot() */ } },
-  burst:  { name:'終焉爆碎', icon:'💥', bonus:'爆炸范围+50%', effect: function(){ explosionRadiusMul+=0.5; } },
-  sniper: { name:'神域狙擊', icon:'🎯', bonus:'特殊弹追踪', effect: function(t){ /* handled in shoot() */ } },
-  homing: { name:'命運導引', icon:'🔮', bonus:'常驻微追踪', effect: function(){ /* handled in shoot() */ } },
+  wide:   { name:'永恆凍土', icon:'❄️', bonus:'冰冻时间翻倍', effect: function(t){ t.freezeDurationMul = (t.freezeDurationMul || 1) * 2; } },
+  burst:  { name:'終焉爆碎', icon:'💥', bonus:'爆炸范围+50%', effect: function(t){ t.explosionRadiusBonus = (t.explosionRadiusBonus || 0) + 0.5; } },
+  sniper: { name:'神域狙擊', icon:'🎯', bonus:'特殊弹追踪', effect: function(t){ t.sniperSpecialHoming = true; } },
+  homing: { name:'命運導引', icon:'🔮', bonus:'常驻微追踪', effect: function(t){ t.baseHomingStrength = Math.max(t.baseHomingStrength || 0, 0.03); } },
 };
 
 // --- Per-Tank Unique Upgrades ---
@@ -3398,15 +3456,15 @@ const TANK_UPGRADE_DEFS = {
   focus: [
     { id:'dmg', name:'火力强化', icon:'💥', desc:'伤害+1', max:3, costBase:40, effect(t){ t.bulletDamage+=1; } },
     { id:'firerate', name:'射速提升', icon:'🔥', desc:'冷却-3帧', max:3, costBase:40, effect(t){ t.shootDelay=Math.max(8,t.shootDelay-3); } },
-    { id:'railgun', name:'穿透强化', icon:'🔫', desc:'电磁炮+0.5速', max:3, costBase:35, effect(t){ /* boost railgun speed in shoot */ } },
+    { id:'railgun', name:'穿透强化', icon:'🔫', desc:'电磁炮+0.5速', max:3, costBase:35, effect(t){ t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + 0.5; } },
   ],
   wide: [
     { id:'bullets', name:'弹幕扩充', icon:'🔵', desc:'子弹+2', max:3, costBase:35, effect(t){ t.bulletCount+=2; } },
-    { id:'freeze', name:'冰冻延长', icon:'❄️', desc:'冰冻+1秒', max:3, costBase:35, effect(t){ /* handled in freeze apply */ } },
+    { id:'freeze', name:'冰冻延长', icon:'❄️', desc:'冰冻+1秒', max:3, costBase:35, effect(t){ t.freezeDurationBonus = (t.freezeDurationBonus || 0) + 60; } },
     { id:'hp', name:'装甲强化', icon:'❤️', desc:'HP+2', max:3, costBase:30, effect(t){ t.hpBonus+=2; } },
   ],
   burst: [
-    { id:'explosion', name:'爆炸扩大', icon:'💢', desc:'爆炸+25%', max:3, costBase:35, effect(){ explosionRadiusMul+=0.25; } },
+    { id:'explosion', name:'爆炸扩大', icon:'💢', desc:'爆炸+25%', max:3, costBase:35, effect(t){ t.explosionRadiusBonus = (t.explosionRadiusBonus || 0) + 0.25; } },
     { id:'dmg', name:'伤害强化', icon:'💥', desc:'伤害+1', max:3, costBase:35, effect(t){ t.bulletDamage+=1; } },
     { id:'bullets', name:'弹幕扩充', icon:'🟠', desc:'子弹+2', max:3, costBase:35, effect(t){ t.bulletCount+=2; } },
   ],
@@ -3416,7 +3474,7 @@ const TANK_UPGRADE_DEFS = {
     { id:'special', name:'冷却缩短', icon:'⚡', desc:'特殊弹-1', max:3, costBase:40, effect(t){ t.specialInterval=Math.max(1,(t.specialInterval||3)-1); } },
   ],
   homing: [
-    { id:'tracking', name:'追踪强化', icon:'🎯', desc:'追踪+0.02', max:3, costBase:35, effect(){ /* homingStr handled in shoot */ } },
+    { id:'tracking', name:'追踪强化', icon:'🎯', desc:'追踪+0.02', max:3, costBase:35, effect(t){ t.baseHomingStrength = (t.baseHomingStrength || 0) + 0.02; } },
     { id:'speed', name:'弹速提升', icon:'🚀', desc:'弹速+0.3', max:3, costBase:35, effect(t){ t.bulletSpeed+=0.3; } },
     { id:'bullets', name:'三连追踪', icon:'🟣', desc:'子弹+1', max:3, costBase:40, effect(t){ t.bulletCount+=1; } },
   ],
@@ -3536,27 +3594,41 @@ function tryEvolveTank(tank) {
   return true;
 }
 
-function applyTankUpgrades(tankType) {
-  const ug = tankUpgrades[tankType];
-  if (!ug || !player._tankDef) return;
+function getPlayerTankDefinition(tankType) {
+  const baseDef = tankTypes[tankType] || tankTypes.spread;
+  const ug = tankUpgrades[tankType] || {};
+  const t = {
+    ...baseDef,
+    explosionRadiusBonus: 0,
+    freezeDurationBonus: 0,
+    freezeDurationMul: 1,
+    baseHomingStrength: 0,
+    sniperSpecialHoming: false,
+    railgunSpeedBonus: 0,
+  };
   const defs = TANK_UPGRADE_DEFS[tankType] || [];
-  // Create a temp copy of tankDef to apply upgrades
-  const t = player._tankDef;
   defs.forEach(d => {
     const lvl = ug[d.id] || 0;
     for (let i = 0; i < lvl; i++) {
       try { d.effect(t); } catch(e) {}
     }
   });
-  // Recalculate max HP based on upgraded hpBonus
-  const baseHp = difficultySettings[currentDifficulty].playerHp;
-  player.maxHp = Math.max(3, baseHp + t.hpBonus);
-  player.hp = Math.min(player.hp, player.maxHp);
-  // Evolution bonuses
   if (evolvedTanks.has(tankType)) {
     const evo = TANK_EVOLUTION[tankType];
     if (evo && evo.effect) evo.effect(t);
   }
+  return t;
+}
+
+function applyTankUpgrades(tankType) {
+  if (!player) return;
+  const t = getPlayerTankDefinition(tankType);
+  player._tankDef = t;
+  player.speed = t.speed;
+  player.shootDelay = t.shootDelay;
+  const baseHp = difficultySettings[currentDifficulty].playerHp;
+  player.maxHp = Math.max(3, baseHp + t.hpBonus);
+  if (player.hp > player.maxHp) player.hp = player.maxHp;
 }
 
 // Tank Lab UI (replaces old upgrade screen)
@@ -3646,14 +3718,15 @@ function renderLabUI() {
 }
 function selectLabTank(tank) {
   labSelectedTank = tank;
-  currentTankType = tank;
-  saveProgression();
   renderLabUI();
 }
 function tryUnlockFromLab(tank) {
   if (tryUnlockTank(tank)) renderLabUI();
 }
 function confirmActiveTank(tank) {
+  if (!unlockedTanks.has(tank)) return;
+  currentTankType = tank;
+  saveProgression();
   hideLabScreen();
 }
 function setActiveTank(tank) {
@@ -3944,7 +4017,7 @@ function spawnEnemy() {
   }
 
   const maxIdx = Math.min(3, Math.floor(level / 2));
-  const idx = Math.floor(Math.random() * (maxIdx + 1));
+  const idx = Math.floor(rng() * (maxIdx + 1));
   const type = enemyTypes[idx];
   const diff = difficultySettings[currentDifficulty];
   const hp = Math.max(1, type.hp + Math.floor(level / 3) + diff.enemyHpBonus);
@@ -3964,11 +4037,12 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         if (!bullet.railgun && !bullet.pierce) bullet.alive = false;
         const destroyed = tank.hit(bullet);
         if (bullet.explosive && fromPlayer) {
+          const explosionRadius = getExplosionRadius();
           for (const other of tanks) {
             if (other !== tank && other.alive) {
               const odx = bullet.x - other.x;
               const ody = bullet.y - other.y;
-              if (Math.sqrt(odx * odx + ody * ody) < 60) {
+              if (Math.sqrt(odx * odx + ody * ody) < explosionRadius) {
                 other.hit(bullet);
               }
             }
@@ -4037,6 +4111,8 @@ function update() {
     }
     // Respawn
     player = new PlayerTank(currentTankType);
+    applyTankUpgrades(currentTankType);
+    player.hp = player.maxHp;
     player.invincible = 120;
   }
 
@@ -4114,9 +4190,18 @@ function update() {
   powerUpSpawnTimer++;
   if (powerUpSpawnTimer >= 900 && powerUps.length < 3) {
     powerUpSpawnTimer = 0;
-    const px = 40 + Math.random() * (W - 80);
-    const py = 40 + Math.random() * (H - 80);
-    spawnPowerUp(px, py);
+    const guaranteed = Math.max(1, Math.floor(powerUpDropMul));
+    const extraChance = Math.max(0, powerUpDropMul - guaranteed);
+    for (let i = 0; i < guaranteed; i++) {
+      const px = 40 + rng() * (W - 80);
+      const py = 40 + rng() * (H - 80);
+      spawnPowerUp(px, py);
+    }
+    if (rng() < extraChance) {
+      const px = 40 + rng() * (W - 80);
+      const py = 40 + rng() * (H - 80);
+      spawnPowerUp(px, py);
+    }
   }
 
   // Pickup power-ups
@@ -4180,7 +4265,11 @@ function update() {
   document.getElementById('lives').textContent = lives;
   document.getElementById('level').textContent = level;
   checkChestMilestone();
-  if (isDailyChallenge) checkDailyTarget();
+  if (isDailyChallenge) {
+    saveDailyBest(score);
+    renderDailyTarget();
+    checkDailyTarget();
+  }
 
   // Update particles
   for (const p of particles) p.update();
@@ -4364,9 +4453,13 @@ function endGame() {
   gameOverFlag = true;
   gameRunning = false;
   stopMusic();
+  if (isDailyChallenge) {
+    saveDailyBest(score);
+    renderDailyTarget();
+  }
   if (!isDailyChallenge) addToLeaderboard(currentDifficulty, score, currentTankType, wave);
   document.getElementById('final-score').textContent = score;
-  document.getElementById('daily-target').style.display = 'none';
+  if (!isDailyChallenge) document.getElementById('daily-target').style.display = 'none';
   document.getElementById('game-over').classList.add('visible');
   // Show quick restart hint
   const hint = document.getElementById('game-over');
@@ -4386,7 +4479,43 @@ function quickRestart() {
   if (hint) hint.remove();
   const savedDiff = currentDifficulty;
   const savedTank = currentTankType;
-  startGame(savedDiff, savedTank);
+  if (isDailyChallenge) {
+    const seed = getDailySeed();
+    loadDailyChallengeStatus();
+    startGame(savedDiff, savedTank, {
+      dailyChallenge: true,
+      seededRandom: mulberry32(seed),
+      dailyTarget: getDailyTarget(seed),
+    });
+  } else {
+    startGame(savedDiff, savedTank);
+  }
+}
+
+function resetRunState() {
+  wave = 0;
+  waveEnemiesRemaining = 0;
+  waveEnemiesTotal = 0;
+  wavePause = 0;
+  waveNotificationTimer = 0;
+  comboCount = 0;
+  comboTimer = 0;
+  enemies = [];
+  playerBullets = [];
+  enemyBullets = [];
+  mines.length = 0;
+  powerUps.length = 0;
+  chests.length = 0;
+  powerUpSpawnTimer = 0;
+  lastChestMilestone = 0;
+  spawnTimer = 0;
+  difficultyTimer = 0;
+  particles.length = 0;
+  dmgNumbers.length = 0;
+  buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0, magnet:0, pierce:0, vampire:0, double_score:0, big_bullet:0, explosive:0, invisible:0, thorns:0, overdrive:0, timewarp:0, goldrush:0 };
+  isBossWave = false;
+  bossRef = null;
+  resetModifiers();
 }
 
 function restartGame() {
@@ -4396,23 +4525,14 @@ function restartGame() {
   gameRunning = false;
   gameOverFlag = false;
   stopMusic();
-  wave = 1; waveEnemiesRemaining = 0; waveEnemiesTotal = 0; wavePause = 0; waveNotificationTimer = 0;
-  comboCount = 0; comboTimer = 0;
+  resetRunState();
+  isDailyChallenge = false;
+  seededRandom = null;
+  dailyTarget = null;
+  dailyTargetAchieved = false;
+  dailyCompletedToday = false;
+  dailyBestScore = 0;
   player = new PlayerTank(currentTankType);
-  enemies = [];
-  playerBullets = [];
-  enemyBullets = [];
-  mines.length = 0;
-  powerUps.length = 0;
-  powerUpSpawnTimer = 0;
-  buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0, magnet:0, pierce:0, vampire:0, double_score:0, big_bullet:0, explosive:0, invisible:0, thorns:0 };
-  particles.length = 0;
-  dmgNumbers.length = 0;
-  chests.length = 0; lastChestMilestone = 0;
-  spawnTimer = 0;
-  difficultyTimer = 0;
-  resetModifiers();
-  isDailyChallenge = false; seededRandom = null;
   document.getElementById('wave-notify').classList.remove('show');
   document.getElementById('combo-display').classList.remove('active');
   document.getElementById('daily-target').style.display = 'none';
@@ -4427,6 +4547,7 @@ function init() {
   loadUnlocks();
   loadProgression();
   loadLeaderboard();
+  loadDailyChallengeStatus();
   renderDifficultyButtons();
   player = new PlayerTank(currentTankType);
   gameRunning = false;
@@ -4443,7 +4564,7 @@ function scaleToFit() {
   container.style.transform = 'scale(' + scale + ')';
 }
 
-function startGame(difficulty, tankType) {
+function startGame(difficulty, tankType, options = {}) {
   currentDifficulty = difficulty;
   if (tankType) currentTankType = tankType;
   // Ensure selected tank is unlocked
@@ -4456,27 +4577,28 @@ function startGame(difficulty, tankType) {
   gameOverFlag = false;
   initAudio();
   startMusic();
-  wave = 0; waveEnemiesRemaining = 0; waveEnemiesTotal = 0; wavePause = 0; waveNotificationTimer = 0;
-  comboCount = 0; comboTimer = 0;
+  resetRunState();
+  if (options.dailyChallenge) {
+    isDailyChallenge = true;
+    seededRandom = options.seededRandom || mulberry32(getDailySeed());
+    dailyTarget = options.dailyTarget || getDailyTarget(getDailySeed());
+    dailyTargetAchieved = false;
+    loadDailyChallengeStatus();
+  } else {
+    isDailyChallenge = false;
+    seededRandom = null;
+    dailyTarget = null;
+    dailyTargetAchieved = false;
+    dailyCompletedToday = false;
+    dailyBestScore = 0;
+  }
   player = new PlayerTank(currentTankType);
   applyTankUpgrades(currentTankType);
-  enemies = [];
-  playerBullets = [];
-  enemyBullets = [];
-  mines.length = 0;
-  powerUps.length = 0;
-  powerUpSpawnTimer = 0;
-  buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0, magnet:0, pierce:0, vampire:0, double_score:0, big_bullet:0, explosive:0, invisible:0, thorns:0 };
-  particles.length = 0;
-  dmgNumbers.length = 0;
-  spawnTimer = 0;
-  difficultyTimer = 0;
   resetAchievementTracking();
-  resetModifiers();
-  isDailyChallenge = false; seededRandom = null;
   generateObstacles();
   document.getElementById('wave-notify').classList.remove('show');
   document.getElementById('combo-display').classList.remove('active');
+  renderDailyTarget();
   startNextWave();
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('tank-select-screen').style.display = 'none';
