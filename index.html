@@ -127,6 +127,29 @@ canvas {
   text-align: center;
   line-height: 1.6;
 }
+#start-screen .diff-btn.locked {
+  border-color: #444;
+  color: #555;
+  background: rgba(20,20,20,0.3);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+#start-screen .diff-btn.locked:hover {
+  background: rgba(20,20,20,0.3);
+  box-shadow: none;
+  transform: none;
+}
+#start-screen .diff-btn .lock-hint {
+  font-size: 9px;
+  color: #555;
+  letter-spacing: 0;
+  font-weight: normal;
+}
+#start-screen .locked-info { color: #444; }
+#start-screen .diff-btn.extreme { border-color: #a4f; color: #c8f; }
+#start-screen .diff-btn.extreme:hover { box-shadow: 0 0 20px rgba(160,64,255,0.4); }
+#start-screen .diff-btn.nightmare { border-color: #f44; color: #f88; }
+#start-screen .diff-btn.nightmare:hover { box-shadow: 0 0 20px rgba(255,0,0,0.5); }
 #instructions {
   position: absolute;
   bottom: 12px;
@@ -255,6 +278,104 @@ canvas {
   transition: color 0.2s;
 }
 #start-screen .achieve-link:hover { color: #da0; border-color: #da0; }
+#tank-select-screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  background: rgba(0,0,0,0.88);
+  z-index: 11;
+}
+#tank-select-screen h2 {
+  color: #0f0;
+  font-size: 28px;
+  letter-spacing: 4px;
+  text-shadow: 0 0 15px rgba(0,255,0,0.6);
+}
+#tank-select-screen .tank-cards {
+  display: flex;
+  gap: 20px;
+}
+#tank-select-screen .tank-card {
+  width: 180px;
+  padding: 20px 16px;
+  border: 2px solid #444;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  color: #aaa;
+  background: rgba(20,20,20,0.7);
+  transition: all 0.25s;
+}
+#tank-select-screen .tank-card:hover {
+  border-color: #0f0;
+  background: rgba(0,60,0,0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+}
+#tank-select-screen .tank-card .tank-icon {
+  font-size: 42px;
+  display: block;
+  margin-bottom: 8px;
+}
+#tank-select-screen .tank-card .tank-name {
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  color: #fff;
+}
+#tank-select-screen .tank-card .tank-subtitle {
+  font-size: 11px;
+  color: #888;
+  margin: 4px 0 10px;
+  letter-spacing: 2px;
+}
+#tank-select-screen .tank-card .tank-desc {
+  font-size: 13px;
+  color: #aaa;
+}
+#tank-select-screen .tank-card .tank-detail {
+  font-size: 10px;
+  color: #666;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+#tank-select-screen .tank-card.spread { border-color: #c44; }
+#tank-select-screen .tank-card.spread:hover { border-color: #f66; background: rgba(60,10,10,0.3); box-shadow: 0 8px 25px rgba(200,50,50,0.3); }
+#tank-select-screen .tank-card.spread .tank-name { color: #f66; }
+#tank-select-screen .tank-card.focus { border-color: #ca4; }
+#tank-select-screen .tank-card.focus:hover { border-color: #ff4; background: rgba(50,40,10,0.3); box-shadow: 0 8px 25px rgba(200,170,50,0.3); }
+#tank-select-screen .tank-card.focus .tank-name { color: #ff4; }
+#tank-select-screen .tank-card.wide { border-color: #48c; }
+#tank-select-screen .tank-card.wide:hover { border-color: #6af; background: rgba(10,20,50,0.3); box-shadow: 0 8px 25px rgba(50,100,200,0.3); }
+#tank-select-screen .tank-card.wide .tank-name { color: #6af; }
+#tank-select-screen .tank-card.burst { border-color: #d62; }
+#tank-select-screen .tank-card.burst:hover { border-color: #f84; background: rgba(60,20,10,0.3); box-shadow: 0 8px 25px rgba(255,130,50,0.3); }
+#tank-select-screen .tank-card.burst .tank-name { color: #f84; }
+#tank-select-screen .tank-card.sniper { border-color: #82d; }
+#tank-select-screen .tank-card.sniper:hover { border-color: #a4f; background: rgba(20,10,50,0.3); box-shadow: 0 8px 25px rgba(160,64,255,0.3); }
+#tank-select-screen .tank-card.sniper .tank-name { color: #a4f; }
+#tank-select-screen .tank-back-btn {
+  margin-top: 8px;
+  padding: 10px 30px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  border: 2px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #888;
+  background: rgba(30,30,30,0.5);
+  transition: all 0.2s;
+}
+#tank-select-screen .tank-back-btn:hover {
+  border-color: #888;
+  color: #ccc;
+  background: rgba(50,50,50,0.5);
+}
 #bestiary-screen {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -383,14 +504,51 @@ canvas {
   <div id="start-screen">
     <h1>坦 克 大 战</h1>
     <p class="subtitle">T A N K &nbsp; B A T T L E</p>
-    <div class="difficulty-buttons">
-      <button class="diff-btn easy" onclick="startGame('easy')">简单</button>
-      <button class="diff-btn normal" onclick="startGame('normal')">普通</button>
-      <button class="diff-btn hard" onclick="startGame('hard')">困难</button>
-    </div>
-    <p class="diff-info">简单: 5条命 · 敌人较弱<br>普通: 3条命 · 标准难度<br>困难: 2条命 · 敌人更强</p>
+    <div class="difficulty-buttons" id="difficulty-buttons"></div>
+    <p class="diff-info" id="diff-info"></p>
     <p class="achieve-link" onclick="showAchievements()">🏆 查看成就</p>
     <p class="achieve-link" onclick="showBestiary()" style="margin-top:4px;">📖 查看图鉴</p>
+  </div>
+  <div id="tank-select-screen">
+    <h2>选 择 机 体</h2>
+    <div class="tank-cards">
+      <div class="tank-card spread" onclick="startGame(currentDifficulty, 'spread')">
+        <span class="tank-icon">☆</span>
+        <div class="tank-name">扩散型</div>
+        <div class="tank-subtitle">博丽灵梦式</div>
+        <div class="tank-desc">3方向扩散弹幕</div>
+        <div class="tank-detail">中等速度 · 标准血量<br>3发扩散 · 均衡型</div>
+      </div>
+      <div class="tank-card focus" onclick="startGame(currentDifficulty, 'focus')">
+        <span class="tank-icon">★</span>
+        <div class="tank-name">集中型</div>
+        <div class="tank-subtitle">雾雨魔理沙式</div>
+        <div class="tank-desc">高速集中火力</div>
+        <div class="tank-detail">快速移动 · 较低血量<br>强力单发 · 高射速</div>
+      </div>
+      <div class="tank-card wide" onclick="startGame(currentDifficulty, 'wide')">
+        <span class="tank-icon">❋</span>
+        <div class="tank-name">广域型</div>
+        <div class="tank-subtitle">十六夜咲夜式</div>
+        <div class="tank-desc">5方向广域压制</div>
+        <div class="tank-detail">低速移动 · 较高血量<br>5发广域 · 压制型</div>
+      </div>
+      <div class="tank-card burst" onclick="startGame(currentDifficulty, 'burst')">
+        <span class="tank-icon">✦</span>
+        <div class="tank-name">爆裂型</div>
+        <div class="tank-subtitle">芙兰朵露式</div>
+        <div class="tank-desc">7方向爆裂弹幕</div>
+        <div class="tank-detail">标准速度 · 标准血量<br>7发爆裂 · 慢射速</div>
+      </div>
+      <div class="tank-card sniper" onclick="startGame(currentDifficulty, 'sniper')">
+        <span class="tank-icon">◈</span>
+        <div class="tank-name">狙击型</div>
+        <div class="tank-subtitle">八意永琳式</div>
+        <div class="tank-desc">超远程高伤狙击</div>
+        <div class="tank-detail">极慢移动 · 较低血量<br>单发高伤 · 穿透力强</div>
+      </div>
+    </div>
+    <button class="tank-back-btn" onclick="hideTankSelect()">返回</button>
   </div>
   <div id="achievements-screen">
     <h1>🏆 成 就</h1>
@@ -428,10 +586,59 @@ let currentDifficulty = 'normal';
 
 // --- Difficulty Settings ---
 const difficultySettings = {
-  easy:   { lives: 5, spawnRate: 400, enemyHpBonus: 0,  playerHp: 10, enemySpeedMul: 0.7,  label: '简单' },
-  normal: { lives: 3, spawnRate: 350, enemyHpBonus: 1,  playerHp: 8,  enemySpeedMul: 0.9,  label: '普通' },
-  hard:   { lives: 2, spawnRate: 280, enemyHpBonus: 2,  playerHp: 6,  enemySpeedMul: 1.2,  label: '困难' },
+  easy:     { lives: 5, spawnRate: 400, enemyHpBonus: 0,  playerHp: 10, enemySpeedMul: 0.7,  label: '简单', unlockScore: 0 },
+  normal:   { lives: 3, spawnRate: 350, enemyHpBonus: 1,  playerHp: 8,  enemySpeedMul: 0.9,  label: '普通', unlockScore: 5000 },
+  hard:     { lives: 2, spawnRate: 280, enemyHpBonus: 2,  playerHp: 6,  enemySpeedMul: 1.2,  label: '困难', unlockScore: 5000 },
+  extreme:  { lives: 2, spawnRate: 220, enemyHpBonus: 3,  playerHp: 5,  enemySpeedMul: 1.4,  label: '极限', unlockScore: 5000 },
+  nightmare:{ lives: 1, spawnRate: 170, enemyHpBonus: 5,  playerHp: 4,  enemySpeedMul: 1.6,  label: '梦魇', unlockScore: 5000 },
 };
+const DIFFICULTY_ORDER = ['easy','normal','hard','extreme','nightmare'];
+
+// --- Tank Types ---
+const tankTypes = {
+  spread: { name:'扩散型', color:'#e44', turret:'#c33', speed:1.1, hpBonus:0,  shootDelay:28, bulletCount:3, spreadAngle:0.13, bulletSpeed:2.5, bulletDamage:1, desc:'3方向扩散弹幕' },
+  focus:  { name:'集中型', color:'#ed4', turret:'#cb3', speed:1.4, hpBonus:-2, shootDelay:20, bulletCount:1, spreadAngle:0,    bulletSpeed:5.0, bulletDamage:2, desc:'高速集中火力' },
+  wide:   { name:'广域型', color:'#4af', turret:'#38c', speed:0.85,hpBonus:2,  shootDelay:44, bulletCount:5, spreadAngle:0.18, bulletSpeed:2.0, bulletDamage:1, desc:'5方向广域压制' },
+  burst:  { name:'爆裂型', color:'#f84', turret:'#d62', speed:1.0, hpBonus:0,  shootDelay:55, bulletCount:7, spreadAngle:0.16, bulletSpeed:2.8, bulletDamage:1, desc:'7方向爆裂弹幕' },
+  sniper: { name:'狙击型', color:'#a4f', turret:'#82d', speed:0.7, hpBonus:-1, shootDelay:52, bulletCount:1, spreadAngle:0,    bulletSpeed:7.5, bulletDamage:3, desc:'超远程高伤狙击' },
+};
+let currentTankType = 'spread';
+
+function renderDifficultyButtons() {
+  const container = document.getElementById('difficulty-buttons');
+  const classes = ['easy','normal','hard','extreme','nightmare'];
+  container.innerHTML = DIFFICULTY_ORDER.map((key, idx) => {
+    const diff = difficultySettings[key];
+    const unlocked = unlockedDifficulties.has(key);
+    const cls = classes[idx] || '';
+    if (unlocked) {
+      return `<button class="diff-btn ${cls}" onclick="showTankSelect('${key}')">${diff.label}</button>`;
+    } else {
+      return `<button class="diff-btn ${cls} locked" disabled>🔒 ${diff.label}<br><span class="lock-hint">${diff.label}模式获得${diff.unlockScore}分解锁</span></button>`;
+    }
+  }).join('');
+  // Update info text
+  const info = document.getElementById('diff-info');
+  info.innerHTML = DIFFICULTY_ORDER.map((key) => {
+    const d = difficultySettings[key];
+    const unlocked = unlockedDifficulties.has(key);
+    return unlocked
+      ? `${d.label}: ${d.lives}条命 · 敌HP+${d.enemyHpBonus} · 速度×${d.enemySpeedMul}`
+      : `<span class="locked-info">${d.label}: 🔒 需分数${d.unlockScore}解锁</span>`;
+  }).join('<br>');
+}
+
+function showTankSelect(difficulty) {
+  currentDifficulty = difficulty;
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('tank-select-screen').style.display = 'flex';
+}
+
+function hideTankSelect() {
+  document.getElementById('tank-select-screen').style.display = 'none';
+  document.getElementById('start-screen').style.display = 'flex';
+  renderDifficultyButtons();
+}
 
 // --- Achievements ---
 const achievementsDef = [
@@ -449,7 +656,9 @@ const achievementsDef = [
 ];
 
 const STORAGE_KEY = 'tankbattle_achievements';
+const UNLOCK_KEY = 'tankbattle_unlocks';
 let unlockedAchievements = new Set();
+let unlockedDifficulties = new Set(['easy']);
 
 function loadAchievements() {
   try {
@@ -462,6 +671,49 @@ function saveAchievements() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...unlockedAchievements]));
   } catch(e) {}
+}
+
+function loadUnlocks() {
+  try {
+    const raw = localStorage.getItem(UNLOCK_KEY);
+    if (raw) unlockedDifficulties = new Set(JSON.parse(raw));
+    else unlockedDifficulties = new Set(['easy']);
+  } catch(e) { unlockedDifficulties = new Set(['easy']); }
+}
+
+function saveUnlocks() {
+  try {
+    localStorage.setItem(UNLOCK_KEY, JSON.stringify([...unlockedDifficulties]));
+  } catch(e) {}
+}
+
+function checkDifficultyUnlock() {
+  const currentIdx = DIFFICULTY_ORDER.indexOf(currentDifficulty);
+  if (currentIdx >= 0 && currentIdx < DIFFICULTY_ORDER.length - 1) {
+    const nextDiff = DIFFICULTY_ORDER[currentIdx + 1];
+    if (!unlockedDifficulties.has(nextDiff) && score >= difficultySettings[nextDiff].unlockScore) {
+      unlockedDifficulties.add(nextDiff);
+      saveUnlocks();
+      const toast = document.getElementById('achieve-toast');
+      toast.querySelector('.achieve-icon').textContent = '🔓';
+      toast.querySelector('.achieve-name').textContent = '新难度解锁!';
+      toast.querySelector('.achieve-label').textContent = difficultySettings[nextDiff].label + ' 模式已解锁';
+      toast.style.display = 'block';
+      toast.style.animation = 'none';
+      toast.offsetHeight;
+      toast.style.animation = 'toastIn 0.4s ease-out';
+      clearTimeout(toast._timeout);
+      toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+  }
+  // Cascade unlock: also unlock all lower difficulties
+  for (let i = 1; i < DIFFICULTY_ORDER.length; i++) {
+    const prev = DIFFICULTY_ORDER[i - 1];
+    const curr = DIFFICULTY_ORDER[i];
+    if (unlockedDifficulties.has(prev) && !unlockedDifficulties.has(curr)) {
+      // Don't auto-unlock; requires reaching the score threshold
+    }
+  }
 }
 
 function unlockAchievement(id) {
@@ -496,6 +748,7 @@ function checkAchievements() {
   if (score >= 2000) unlockAchievement('score_2000');
   if (score >= 5000) unlockAchievement('score_5000');
   if (currentDifficulty === 'hard' && level >= 5) unlockAchievement('hardcore');
+  checkDifficultyUnlock();
 }
 
 function onLevelUp() {
@@ -518,6 +771,14 @@ const powerUpDefs = [
   { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复2HP', duration: 0 },
   { type: 'freeze',   name: '冰冻弹',   icon: '❄️', color: '#8cf', desc: '减缓敌人', duration: 360 },
   { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '三发散射', duration: 540 },
+  { type: 'magnet',   name: '磁铁',     icon: '🧲', color: '#c8f', desc: '自动吸取道具', duration: 480 },
+  { type: 'pierce',   name: '穿甲弹',   icon: '🗡️', color: '#ff8', desc: '子弹穿透敌人', duration: 420 },
+  { type: 'vampire',  name: '生命汲取', icon: '🩸', color: '#f66', desc: '击杀恢复1HP', duration: 480 },
+  { type: 'double_score', name: '双倍积分', icon: '✨', color: '#ff0', desc: '积分翻倍', duration: 480 },
+  { type: 'big_bullet', name: '巨型子弹', icon: '💣', color: '#f80', desc: '子弹判定扩大', duration: 420 },
+  { type: 'explosive',name: '爆炸弹',   icon: '💢', color: '#f84', desc: '子弹爆炸溅射', duration: 420 },
+  { type: 'invisible',name: '光学迷彩', icon: '👻', color: '#aaa', desc: '敌人索敌减半', duration: 480 },
+  { type: 'thorns',   name: '荆棘护甲', icon: '🌵', color: '#8f8', desc: '反弹接触伤害', duration: 360 },
 ];
 
 const powerUps = [];
@@ -527,6 +788,8 @@ let powerUpSpawnTimer = 0;
 let buffs = {
   speed: 0, railgun: 0, ricochet: 0, shield: 0,
   rapid: 0, freeze: 0, multishot: 0,
+  magnet: 0, pierce: 0, vampire: 0, double_score: 0,
+  big_bullet: 0, explosive: 0, invisible: 0, thorns: 0,
 };
 
 function spawnPowerUp(x, y) {
@@ -592,6 +855,7 @@ function showAchievements() {
 function hideAchievements() {
   document.getElementById('achievements-screen').style.display = 'none';
   document.getElementById('start-screen').style.display = 'flex';
+  renderDifficultyButtons();
 }
 
 // --- Bestiary ---
@@ -655,6 +919,7 @@ function showBestiary() {
 function hideBestiary() {
   document.getElementById('bestiary-screen').style.display = 'none';
   document.getElementById('start-screen').style.display = 'flex';
+  renderDifficultyButtons();
 }
 
 // --- Input ---
@@ -711,17 +976,20 @@ function spawnExplosion(x, y, count, color1, color2) {
 
 // --- Bullets ---
 class Bullet {
-  constructor(x, y, angle, speed, color, fromPlayer) {
+  constructor(x, y, angle, speed, color, fromPlayer, damage) {
     this.x = x; this.y = y;
     this.angle = angle;
     this.speed = speed;
     this.color = color;
     this.fromPlayer = fromPlayer;
+    this.damage = damage || 1;
     this.radius = 3;
     this.alive = true;
     this.ricochet = false;
     this.railgun = false;
     this.freeze = false;
+    this.pierce = false;
+    this.explosive = false;
     this.bounces = 0;
   }
   update() {
@@ -849,15 +1117,18 @@ class Tank {
 }
 
 class PlayerTank extends Tank {
-  constructor() {
-    super(W/2, H - 60, '#4a8', '#3c6', 1.1, difficultySettings[currentDifficulty].playerHp);
-    this.shootDelay = 25;
+  constructor(tankType) {
+    const type = tankTypes[tankType || 'spread'];
+    const baseHp = difficultySettings[currentDifficulty].playerHp;
+    super(W/2, H - 60, type.color, type.turret, type.speed, Math.max(3, baseHp + type.hpBonus));
+    this.tankType = tankType || 'spread';
+    this.shootDelay = type.shootDelay;
     this.invincible = 0;
+    this._tankDef = type;
   }
   update() {
     if (!this.alive) return;
     if (this.invincible > 0) this.invincible--;
-    if (buffs.shield > 0) this.invincible = Math.max(this.invincible, 2);
     if (this.shootCooldown > 0) this.shootCooldown--;
 
     let dx = 0, dy = 0;
@@ -889,25 +1160,22 @@ class PlayerTank extends Tank {
   shoot() {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
     const by = this.y + Math.sin(this.turretAngle) * 18;
-    const baseSpeed = buffs.railgun > 0 ? 8 : 4;
-    const baseColor = buffs.railgun > 0 ? '#a4f' : (buffs.freeze > 0 ? '#8cf' : '#ff0');
-    const baseRadius = buffs.railgun > 0 ? 5 : 3;
-    if (buffs.multishot > 0) {
-      for (let a = -0.12; a <= 0.12; a += 0.12) {
-        const b = new Bullet(bx, by, this.turretAngle + a, baseSpeed, baseColor, true);
-        b.radius = baseRadius;
-        b.ricochet = buffs.ricochet > 0;
-        b.railgun = buffs.railgun > 0;
-        b.freeze = buffs.freeze > 0;
-        b.bounces = buffs.ricochet > 0 ? 3 : 0;
-        playerBullets.push(b);
-      }
-    } else {
-      const b = new Bullet(bx, by, this.turretAngle, baseSpeed, baseColor, true);
+    const def = this._tankDef;
+    const baseSpeed = buffs.railgun > 0 ? 6 : def.bulletSpeed;
+    const baseColor = buffs.railgun > 0 ? '#a4f' : (buffs.freeze > 0 ? '#8cf' : (buffs.explosive > 0 ? '#f84' : '#ff0'));
+    const baseRadius = buffs.railgun > 0 ? 5 : (buffs.big_bullet > 0 ? 6 : 3);
+    const count = buffs.multishot > 0 ? 3 : def.bulletCount;
+    const spread = buffs.multishot > 0 ? 0.12 : def.spreadAngle;
+    const halfSpread = spread * (count - 1) / 2;
+    for (let i = 0; i < count; i++) {
+      const angleOffset = count === 1 ? 0 : -halfSpread + i * spread;
+      const b = new Bullet(bx, by, this.turretAngle + angleOffset, baseSpeed, baseColor, true, def.bulletDamage);
       b.radius = baseRadius;
       b.ricochet = buffs.ricochet > 0;
       b.railgun = buffs.railgun > 0;
       b.freeze = buffs.freeze > 0;
+      b.pierce = buffs.pierce > 0;
+      b.explosive = buffs.explosive > 0;
       b.bounces = buffs.ricochet > 0 ? 3 : 0;
       playerBullets.push(b);
     }
@@ -919,7 +1187,17 @@ class PlayerTank extends Tank {
       ctx.shadowColor = '#4ff';
       ctx.shadowBlur = 14;
     }
-    super.draw(ctx);
+    // Custom tank model per type
+    this.drawTankModel(ctx);
+    ctx.shadowBlur = 0;
+    // HP bar
+    if (this.hp < this.maxHp) {
+      const barW = 30, barH = 4;
+      ctx.fillStyle = '#400';
+      ctx.fillRect(this.x - barW/2, this.y - 28, barW, barH);
+      ctx.fillStyle = '#0f0';
+      ctx.fillRect(this.x - barW/2, this.y - 28, barW * (this.hp / this.maxHp), barH);
+    }
     // Buff indicator dots
     const activeBuffs = [];
     if (buffs.speed > 0) activeBuffs.push({icon:'⚡',c:'#4af'});
@@ -929,11 +1207,194 @@ class PlayerTank extends Tank {
     if (buffs.rapid > 0) activeBuffs.push({icon:'🔥',c:'#f44'});
     if (buffs.freeze > 0) activeBuffs.push({icon:'❄️',c:'#8cf'});
     if (buffs.multishot > 0) activeBuffs.push({icon:'💥',c:'#f8f'});
+    if (buffs.magnet > 0) activeBuffs.push({icon:'🧲',c:'#c8f'});
+    if (buffs.pierce > 0) activeBuffs.push({icon:'🗡️',c:'#ff8'});
+    if (buffs.vampire > 0) activeBuffs.push({icon:'🩸',c:'#f66'});
+    if (buffs.double_score > 0) activeBuffs.push({icon:'✨',c:'#ff0'});
+    if (buffs.big_bullet > 0) activeBuffs.push({icon:'💣',c:'#f80'});
+    if (buffs.explosive > 0) activeBuffs.push({icon:'💢',c:'#f84'});
+    if (buffs.invisible > 0) activeBuffs.push({icon:'👻',c:'#aaa'});
+    if (buffs.thorns > 0) activeBuffs.push({icon:'🌵',c:'#8f8'});
     for (let i = 0; i < activeBuffs.length; i++) {
-      ctx.font = '12px sans-serif';
+      ctx.font = '10px sans-serif';
       ctx.fillStyle = activeBuffs[i].c;
-      ctx.fillText(activeBuffs[i].icon, -18 + i * 14, -28);
+      const row = Math.floor(i / 8);
+      const col = i % 8;
+      ctx.fillText(activeBuffs[i].icon, this.x - 28 + col * 8, this.y - 28 + row * 10);
     }
+    ctx.restore();
+  }
+  drawTankModel(ctx) {
+    const { x, y, color, turretColor, turretAngle, tankType } = this;
+    ctx.save();
+    ctx.translate(x, y);
+    const body = color, turretC = turretColor;
+
+    switch(tankType) {
+
+    case 'spread': { // 扩散型 - classic wide tank with triple barrel hints
+      // Tracks
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-19, -13, 7, 26); ctx.fillRect(12, -13, 7, 26);
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+      for (let i = -11; i < 13; i += 5) {
+        ctx.beginPath(); ctx.moveTo(-18, i); ctx.lineTo(-14, i); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(13, i); ctx.lineTo(17, i); ctx.stroke();
+      }
+      // Body
+      ctx.fillStyle = body; ctx.fillRect(-15, -11, 30, 22);
+      ctx.strokeStyle = '#600'; ctx.lineWidth = 2; ctx.strokeRect(-15, -11, 30, 22);
+      ctx.fillStyle = '#a33'; ctx.fillRect(-10, -7, 20, 14);
+      // Turret base
+      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#600'; ctx.lineWidth = 1.5; ctx.stroke();
+      // Triple barrel hint
+      ctx.save(); ctx.rotate(turretAngle);
+      ctx.fillStyle = turretC;
+      ctx.fillRect(2, -4, 7, 3); ctx.fillRect(2, -1, 7, 3); ctx.fillRect(2, 2, 7, 3);
+      ctx.strokeStyle = '#600'; ctx.lineWidth = 1;
+      ctx.strokeRect(2, -4, 7, 3); ctx.strokeRect(2, -1, 7, 3); ctx.strokeRect(2, 2, 7, 3);
+      ctx.restore();
+      break;
+    }
+
+    case 'focus': { // 集中型 - sleek aerodynamic, single powerful barrel with energy glow
+      // Tracks - narrow, swept
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-14, -10, 4, 20); ctx.fillRect(10, -10, 4, 20);
+      // Body - diamond/arrow shape
+      ctx.fillStyle = body; ctx.beginPath();
+      ctx.moveTo(16, 0); ctx.lineTo(0, -11); ctx.lineTo(-14, -4); ctx.lineTo(-14, 4); ctx.lineTo(0, 11); ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#540'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#da4'; ctx.beginPath(); ctx.arc(2, 0, 5, 0, Math.PI*2); ctx.fill();
+      // Energy core
+      const fpulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+      ctx.fillStyle = '#ff0'; ctx.shadowColor = '#ff0'; ctx.shadowBlur = 6 * fpulse;
+      ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+      // Long powerful barrel
+      ctx.save(); ctx.rotate(turretAngle);
+      ctx.fillStyle = turretC;
+      ctx.fillRect(3, -2.5, 20, 5);
+      ctx.strokeStyle = '#540'; ctx.lineWidth = 1.5; ctx.strokeRect(3, -2.5, 20, 5);
+      ctx.fillStyle = '#fe0'; ctx.fillRect(20, -1.5, 4, 3);
+      ctx.restore();
+      break;
+    }
+
+    case 'wide': { // 广域型 - wide body, fan-shaped barrel array
+      // Wide tracks
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-21, -12, 6, 24); ctx.fillRect(15, -12, 6, 24);
+      for (let i = -10; i < 12; i += 5) {
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(-20, i); ctx.lineTo(-16, i); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(16, i); ctx.lineTo(20, i); ctx.stroke();
+      }
+      // Wide body
+      ctx.fillStyle = body; ctx.fillRect(-17, -10, 34, 20);
+      ctx.strokeStyle = '#148'; ctx.lineWidth = 2; ctx.strokeRect(-17, -10, 34, 20);
+      ctx.fillStyle = '#5bf'; ctx.fillRect(-12, -6, 24, 12);
+      // Turret with fan vents
+      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#148'; ctx.lineWidth = 1.5; ctx.stroke();
+      // 5 barrel fan
+      ctx.save(); ctx.rotate(turretAngle);
+      for (let i = -2; i <= 2; i++) {
+        const ba = i * 0.16;
+        ctx.save(); ctx.rotate(ba);
+        ctx.fillStyle = turretC; ctx.fillRect(4, -1.5, 9, 3);
+        ctx.strokeStyle = '#148'; ctx.lineWidth = 0.8; ctx.strokeRect(4, -1.5, 9, 3);
+        ctx.restore();
+      }
+      ctx.restore();
+      break;
+    }
+
+    case 'burst': { // 爆裂型 - heavy armored, 7-barrel cluster, bulky
+      // Heavy wide tracks with armor plates
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-22, -14, 8, 28); ctx.fillRect(14, -14, 8, 28);
+      for (let i = -12; i < 14; i += 4) {
+        ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(-21, i); ctx.lineTo(-16, i); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(15, i); ctx.lineTo(20, i); ctx.stroke();
+      }
+      // Armored body - angular
+      ctx.fillStyle = body; ctx.fillRect(-18, -12, 36, 24);
+      ctx.strokeStyle = '#520'; ctx.lineWidth = 3; ctx.strokeRect(-18, -12, 36, 24);
+      ctx.fillStyle = '#c52'; ctx.fillRect(-14, -8, 28, 16);
+      // Armor rivets
+      for (let rx = -16; rx <= 14; rx += 7) {
+        for (let ry = -10; ry <= 8; ry += 6) {
+          ctx.fillStyle = '#630'; ctx.beginPath(); ctx.arc(rx, ry, 1.2, 0, Math.PI*2); ctx.fill();
+        }
+      }
+      // Large turret
+      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#520'; ctx.lineWidth = 2; ctx.stroke();
+      // 7-barrel cluster
+      ctx.save(); ctx.rotate(turretAngle);
+      for (let i = -3; i <= 3; i++) {
+        ctx.fillStyle = turretC; ctx.fillRect(5, -6 + i * 3.5, 8, 2.5);
+        ctx.strokeStyle = '#520'; ctx.lineWidth = 0.6; ctx.strokeRect(5, -6 + i * 3.5, 8, 2.5);
+      }
+      ctx.fillStyle = '#f80'; ctx.fillRect(12, -8, 4, 16);
+      ctx.restore();
+      // Heat vents
+      ctx.strokeStyle = '#f84'; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
+      for (let v = -1; v <= 1; v += 2) {
+        ctx.beginPath(); ctx.moveTo(v * 15, -10); ctx.lineTo(v * 18, -14); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      break;
+    }
+
+    case 'sniper': { // 狙击型 - elongated thin hull, very long barrel, scope
+      // Thin narrow tracks
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-12, -9, 3, 18); ctx.fillRect(9, -9, 3, 18);
+      // Elongated body
+      ctx.fillStyle = body; ctx.fillRect(-10, -8, 12, 16);
+      ctx.fillStyle = '#c8f'; ctx.fillRect(2, -6, 8, 12);
+      ctx.strokeStyle = '#428'; ctx.lineWidth = 2; ctx.strokeRect(-10, -8, 12, 16);
+      // Scope/sensor dome
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-2, -3, 3, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#428'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = '#a4f'; ctx.beginPath(); ctx.arc(-2, -3, 1.5, 0, Math.PI*2); ctx.fill();
+      // Turret
+      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(3, 0, 6, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#428'; ctx.lineWidth = 1.5; ctx.stroke();
+      // Very long sniper barrel
+      ctx.save(); ctx.rotate(turretAngle);
+      const grad = ctx.createLinearGradient(6, 0, 30, 0);
+      grad.addColorStop(0, turretC); grad.addColorStop(1, '#e8d');
+      ctx.fillStyle = grad;
+      ctx.fillRect(6, -2, 24, 4);
+      ctx.strokeStyle = '#428'; ctx.lineWidth = 1; ctx.strokeRect(6, -2, 24, 4);
+      // Barrel tip glow
+      const spulse = Math.sin(Date.now() / 150) * 0.3 + 0.7;
+      ctx.fillStyle = '#fff'; ctx.shadowColor = '#a4f'; ctx.shadowBlur = 4 * spulse;
+      ctx.fillRect(28, -2.5, 4, 5);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      break;
+    }
+
+    default: // fallback to basic drawing
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-19, -14, 6, 28); ctx.fillRect(13, -14, 6, 28);
+      ctx.fillStyle = body; ctx.fillRect(-15, -12, 30, 24);
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(-15, -12, 30, 24);
+      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.save(); ctx.rotate(turretAngle);
+      ctx.fillStyle = turretC; ctx.fillRect(3, -3, 16, 6);
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.strokeRect(3, -3, 16, 6);
+      ctx.restore();
+    }
+
     ctx.restore();
   }
   hit() {
@@ -992,7 +1453,7 @@ class EnemyTank extends Tank {
 
     // Move
     let moveX = 0, moveY = 0;
-    const chaseThreshold = 200;
+    const chaseThreshold = buffs.invisible > 0 ? 100 : 200;
     if (dist < chaseThreshold) {
       moveX = (dx / dist) * 0.5;
       moveY = (dy / dist) * 0.5;
@@ -1015,12 +1476,25 @@ class EnemyTank extends Tank {
 
     // Collision with player
     if (dist < 32) {
-      this.hp = 0;
-      this.alive = false;
-      spawnExplosion(this.x, this.y, 20, '#f80', '#ff0');
-      if (!player.hit()) {
-        player.hp = 0;
-        player.alive = false;
+      if (buffs.thorns > 0) {
+        this.hp = 0;
+        this.alive = false;
+        spawnExplosion(this.x, this.y, 20, '#8f8', '#0f0');
+        const basePoints = this.isElite ? 300 : 100;
+        score += buffs.double_score > 0 ? basePoints * 2 : basePoints;
+        sessionKills++;
+        checkAchievements();
+        if (buffs.vampire > 0 && player.alive) {
+          player.hp = Math.min(player.hp + 1, player.maxHp);
+        }
+      } else {
+        this.hp = 0;
+        this.alive = false;
+        spawnExplosion(this.x, this.y, 20, '#f80', '#ff0');
+        if (!player.hit()) {
+          player.hp = 0;
+          player.alive = false;
+        }
       }
     }
   }
@@ -1044,7 +1518,8 @@ class EnemyTank extends Tank {
       spawnExplosion(this.x, this.y, 3, '#888', '#aaa');
       return false;
     }
-    this.hp--;
+    const dmg = bullet && bullet.damage ? bullet.damage : 1;
+    this.hp -= dmg;
     if (bullet && bullet.freeze && !this.frozen) {
       this.frozen = 120;
       this._origSpeed = this.speed;
@@ -1054,10 +1529,14 @@ class EnemyTank extends Tank {
     if (this.hp <= 0) {
       this.alive = false;
       spawnExplosion(this.x, this.y, 20, '#f80', '#f44');
-      const points = this.isElite ? 300 : 100;
+      const basePoints = this.isElite ? 300 : 100;
+      const points = buffs.double_score > 0 ? basePoints * 2 : basePoints;
       score += points;
       sessionKills++;
       checkAchievements();
+      if (buffs.vampire > 0 && player.alive) {
+        player.hp = Math.min(player.hp + 1, player.maxHp);
+      }
       if (this.isElite && Math.random() < 0.7) {
         spawnPowerUp(this.x, this.y);
       }
@@ -1167,13 +1646,265 @@ class EliteEnemy extends EnemyTank {
       ctx.globalAlpha = 0.25;
     }
     ctx.save();
-    ctx.shadowColor = '#ff0';
+    ctx.translate(this.x, this.y);
+
+    let glowColor = '#ff0';
+    if (this.special === 'heavy') glowColor = '#f44';
+    else if (this.special === 'sniper') glowColor = '#6f6';
+    else if (this.special === 'fast') glowColor = '#4af';
+    else if (this.special === 'flame') glowColor = '#f80';
+    else if (this.special === 'summoner') glowColor = '#6cf';
+    else if (this.special === 'stealth') glowColor = '#999';
+    else if (this.special === 'splitter') glowColor = '#c84';
+    else if (this.special === 'regen') glowColor = '#4f4';
+    else if (this.special === 'laser') glowColor = '#88f';
+    else if (this.special === 'miner') glowColor = '#ca4';
+
+    ctx.shadowColor = glowColor;
     ctx.shadowBlur = 8 + Math.sin(Date.now() / 200) * 3;
-    super.draw(ctx);
-    ctx.font = '14px sans-serif';
-    ctx.fillStyle = '#ff0';
+
+    const t = Date.now() / 300;
+    const body = this.color, turretC = this.turretColor;
+
+    ctx.save();
+    switch(this.special) {
+
+      case 'heavy':
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-24, -14, 8, 28); ctx.fillRect(16, -14, 8, 28);
+        for (let i = -12; i < 14; i += 5) {
+          ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-23, i); ctx.lineTo(-18, i); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(17, i); ctx.lineTo(22, i); ctx.stroke();
+        }
+        ctx.fillStyle = body; ctx.fillRect(-20, -12, 40, 24);
+        ctx.strokeStyle = '#300'; ctx.lineWidth = 3; ctx.strokeRect(-20, -12, 40, 24);
+        ctx.fillStyle = '#a44'; ctx.fillRect(-16, -8, 32, 16);
+        ctx.fillStyle = '#522'; ctx.fillRect(-23, -10, 6, 20); ctx.fillRect(17, -10, 6, 20);
+        ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#400'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = turretC; ctx.fillRect(5, -4, 14, 8);
+        ctx.strokeStyle = '#400'; ctx.lineWidth = 2; ctx.strokeRect(5, -4, 14, 8);
+        ctx.restore();
+        break;
+
+      case 'sniper':
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-16, -10, 5, 20); ctx.fillRect(11, -10, 5, 20);
+        ctx.fillStyle = body; ctx.fillRect(-13, -10, 26, 20);
+        ctx.strokeStyle = '#1a1'; ctx.lineWidth = 2; ctx.strokeRect(-13, -10, 26, 20);
+        ctx.fillStyle = '#4a4'; ctx.fillRect(-9, -7, 18, 14);
+        ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#1a1'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -3, 2, 0, Math.PI*2); ctx.fill();
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = turretC; ctx.fillRect(4, -2, 28, 4);
+        ctx.strokeStyle = '#1a1'; ctx.lineWidth = 1; ctx.strokeRect(4, -2, 28, 4);
+        ctx.fillStyle = '#8f8'; ctx.fillRect(28, -3, 4, 6);
+        ctx.restore();
+        break;
+
+      case 'fast':
+        for (let s = -1; s <= 1; s += 2) {
+          for (let wy = -8; wy <= 8; wy += 8) {
+            ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(s * 14, wy, 4, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#444'; ctx.lineWidth = 1; ctx.stroke();
+          }
+        }
+        ctx.fillStyle = body; ctx.beginPath();
+        ctx.moveTo(18, 0); ctx.lineTo(-10, -12); ctx.lineTo(-6, 0); ctx.lineTo(-10, 12); ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#226'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#6af'; ctx.beginPath(); ctx.arc(6, 0, 6, 0, Math.PI*2); ctx.fill();
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = turretC; ctx.fillRect(2, -2, 10, 4);
+        ctx.strokeStyle = '#226'; ctx.lineWidth = 1; ctx.strokeRect(2, -2, 10, 4);
+        ctx.restore();
+        for (let i = 1; i <= 2; i++) {
+          ctx.strokeStyle = '#4af'; ctx.globalAlpha = 0.3 - i * 0.1; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-20 - i * 6, -3); ctx.lineTo(-12 - i * 6, 0); ctx.lineTo(-20 - i * 6, 3); ctx.stroke();
+        }
+        ctx.globalAlpha = this.special === 'stealth' && this.stealthPhase === 1 ? 0.25 : 1;
+        break;
+
+      case 'flame':
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-19, -12, 6, 24); ctx.fillRect(13, -12, 6, 24);
+        ctx.fillStyle = body; ctx.fillRect(-16, -10, 32, 20);
+        ctx.strokeStyle = '#420'; ctx.lineWidth = 2; ctx.strokeRect(-16, -10, 32, 20);
+        ctx.fillStyle = '#a53'; ctx.fillRect(-12, -7, 24, 14);
+        ctx.fillStyle = '#632'; ctx.fillRect(15, -8, 5, 16);
+        ctx.strokeStyle = '#420'; ctx.lineWidth = 1; ctx.strokeRect(15, -8, 5, 16);
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = '#854'; ctx.fillRect(3, -5, 8, 10); ctx.fillRect(11, -3, 6, 6);
+        ctx.strokeStyle = '#420'; ctx.lineWidth = 1; ctx.strokeRect(3, -5, 8, 10);
+        for (let i = 0; i < 3; i++) {
+          ctx.fillStyle = ['#f80','#f60','#ff0'][i];
+          ctx.beginPath(); ctx.arc(14 + Math.random()*6, (Math.random()-0.5)*8, 2+Math.random()*3, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+        break;
+
+      case 'summoner':
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-18, -12, 6, 24); ctx.fillRect(12, -12, 6, 24);
+        ctx.fillStyle = body; ctx.beginPath();
+        const hexR = 14;
+        for (let i = 0; i < 6; i++) {
+          const a = Math.PI/6 + i * Math.PI/3;
+          const hx = Math.cos(a) * hexR, hy = Math.sin(a) * hexR;
+          i === 0 ? ctx.moveTo(hx, hy) : ctx.lineTo(hx, hy);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#266'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = '#6cf'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, -2, 16, -Math.PI*0.7, -Math.PI*0.3); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, -2, 12, -Math.PI*0.65, -Math.PI*0.35); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, -2, 8, -Math.PI*0.6, -Math.PI*0.4); ctx.stroke();
+        ctx.fillStyle = '#6cf'; ctx.fillRect(-1, -20, 2, 8);
+        ctx.beginPath(); ctx.arc(0, -20, 3, 0, Math.PI*2); ctx.fill();
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = turretC; ctx.fillRect(2, -2, 8, 4);
+        ctx.restore();
+        break;
+
+      case 'stealth':
+        ctx.fillStyle = body; ctx.beginPath();
+        ctx.moveTo(16, 0); ctx.lineTo(8, -10); ctx.lineTo(-12, -8);
+        ctx.lineTo(-16, -2); ctx.lineTo(-12, 6); ctx.lineTo(8, 10); ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#666'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(2, -6); ctx.lineTo(-8, -1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-2, 6); ctx.lineTo(-10, 2); ctx.stroke();
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = turretC; ctx.beginPath();
+        ctx.moveTo(10, 0); ctx.lineTo(4, -4); ctx.lineTo(-2, -3); ctx.lineTo(-2, 3); ctx.lineTo(4, 4); ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.restore();
+        ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(8, -10); ctx.lineTo(-12, -8);
+        ctx.lineTo(-16, -2); ctx.lineTo(-12, 6); ctx.lineTo(8, 10); ctx.closePath(); ctx.stroke();
+        ctx.setLineDash([]);
+        break;
+
+      case 'splitter':
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-18, -12, 5, 24); ctx.fillRect(13, -12, 5, 24);
+        ctx.fillStyle = body; ctx.fillRect(-15, -10, 14, 20);
+        ctx.strokeStyle = '#532'; ctx.lineWidth = 2; ctx.strokeRect(-15, -10, 14, 20);
+        ctx.fillStyle = '#764'; ctx.fillRect(1, -8, 14, 18);
+        ctx.strokeStyle = '#532'; ctx.lineWidth = 2; ctx.strokeRect(1, -8, 14, 18);
+        ctx.strokeStyle = '#fb0'; ctx.lineWidth = 2; ctx.shadowColor = '#fb0'; ctx.shadowBlur = 6;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(0, 12); ctx.stroke();
+        ctx.setLineDash([]); ctx.shadowBlur = 0;
+        for (let s = -1; s <= 1; s += 2) {
+          ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(s * 7, -2, 5, 0, Math.PI*2); ctx.fill();
+          ctx.strokeStyle = '#532'; ctx.lineWidth = 1; ctx.stroke();
+          ctx.save(); ctx.rotate(this.turretAngle + s * 0.1);
+          ctx.fillStyle = turretC; ctx.fillRect(s * 7 + 2, -4, 8, 3);
+          ctx.restore();
+        }
+        break;
+
+      case 'regen':
+        ctx.fillStyle = '#1a2a1a';
+        ctx.fillRect(-17, -11, 5, 22); ctx.fillRect(12, -11, 5, 22);
+        ctx.fillStyle = body; ctx.beginPath();
+        ctx.ellipse(0, 0, 15, 11, 0, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#1a3a1a'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = '#4f4'; ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath(); ctx.moveTo(-8 + i*5, -8); ctx.lineTo(-4 + i*4, 6); ctx.stroke();
+        }
+        ctx.fillStyle = turretC; ctx.beginPath();
+        ctx.ellipse(2, -1, 8, 6, 0.3, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#1a3a1a'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = turretC; ctx.fillRect(4, -3, 12, 5);
+        ctx.restore();
+        ctx.fillStyle = '#4f4'; ctx.globalAlpha = 0.15 + Math.sin(t * 2) * 0.1;
+        ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = this.special === 'stealth' && this.stealthPhase === 1 ? 0.25 : 1;
+        ctx.fillStyle = '#4f4';
+        ctx.fillRect(-2, -16, 4, 1.5); ctx.fillRect(-0.75, -18, 1.5, 5.5);
+        break;
+
+      case 'laser':
+        ctx.fillStyle = '#1a1a2a';
+        ctx.fillRect(-16, -10, 4, 20); ctx.fillRect(12, -10, 4, 20);
+        ctx.fillStyle = body; ctx.fillRect(-13, -9, 26, 18);
+        ctx.strokeStyle = '#448'; ctx.lineWidth = 2; ctx.strokeRect(-13, -9, 26, 18);
+        const corePulse = Math.sin(t * 3) * 0.3 + 0.7;
+        ctx.fillStyle = '#aaf'; ctx.shadowColor = '#aaf'; ctx.shadowBlur = 10 * corePulse;
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#88f'; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+        ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI*2); ctx.stroke();
+        ctx.globalAlpha = this.special === 'stealth' && this.stealthPhase === 1 ? 0.25 : 1;
+        ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
+        ctx.save(); ctx.rotate(this.turretAngle);
+        const grad = ctx.createLinearGradient(3, 0, 18, 0);
+        grad.addColorStop(0, '#88f'); grad.addColorStop(1, '#fff');
+        ctx.fillStyle = grad; ctx.fillRect(3, -2.5, 15, 5);
+        ctx.strokeStyle = '#448'; ctx.lineWidth = 1; ctx.strokeRect(3, -2.5, 15, 5);
+        ctx.strokeStyle = '#aaf'; ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath(); ctx.arc(6 + i * 4, 0, 3, -Math.PI/2, Math.PI/2); ctx.stroke();
+        }
+        ctx.restore();
+        break;
+
+      case 'miner':
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-20, -12, 7, 24); ctx.fillRect(13, -12, 7, 24);
+        for (let i = -10; i < 12; i += 5) {
+          ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-19, i); ctx.lineTo(-15, i); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(14, i); ctx.lineTo(18, i); ctx.stroke();
+        }
+        ctx.fillStyle = body; ctx.fillRect(-17, -10, 34, 20);
+        ctx.strokeStyle = '#430'; ctx.lineWidth = 2; ctx.strokeRect(-17, -10, 34, 20);
+        ctx.fillStyle = '#a85'; ctx.fillRect(-13, -7, 26, 14);
+        ctx.fillStyle = '#630'; ctx.fillRect(-14, 8, 8, 5); ctx.fillRect(6, 8, 8, 5);
+        for (let s = -1; s <= 1; s += 2) {
+          ctx.fillStyle = '#420'; ctx.beginPath(); ctx.arc(s * 15, 2, 6, 0, Math.PI*2); ctx.fill();
+          ctx.strokeStyle = '#630'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#f80'; ctx.beginPath(); ctx.arc(s * 15, 2, 2.5, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, -1, 8, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#430'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = turretC; ctx.fillRect(3, -3, 10, 6);
+        ctx.strokeStyle = '#430'; ctx.lineWidth = 1; ctx.strokeRect(3, -3, 10, 6);
+        ctx.restore();
+        break;
+
+    }
+    ctx.restore();
+
     ctx.shadowBlur = 0;
-    ctx.fillText(this.eliteIcon, -7, -28);
+    if (this.hp < this.maxHp) {
+      const barW = 30, barH = 4;
+      ctx.fillStyle = '#400'; ctx.fillRect(-barW/2, -26, barW, barH);
+      ctx.fillStyle = '#0f0'; ctx.fillRect(-barW/2, -26, barW * (this.hp / this.maxHp), barH);
+    }
+
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = glowColor;
+    ctx.textAlign = 'center';
+    ctx.fillText(this.eliteIcon + ' ' + this.eliteName, 0, -32);
+
+    if (this.frozen > 0) {
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = '#8cf';
+      ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = this.special === 'stealth' && this.stealthPhase === 1 ? 0.25 : 1;
+    }
+
     ctx.restore();
     if (this.special === 'stealth' && this.stealthPhase === 1) {
       ctx.globalAlpha = 1;
@@ -1328,13 +2059,26 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
       if (!tank.alive) continue;
       const dx = bullet.x - tank.x;
       const dy = bullet.y - tank.y;
-      if (Math.sqrt(dx * dx + dy * dy) < (bullet.railgun ? 24 : 20)) {
-        if (!bullet.railgun) bullet.alive = false;
+      const hitRadius = bullet.railgun ? 24 : (fromPlayer && buffs.big_bullet > 0 ? 28 : 20);
+      if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+        if (!bullet.railgun && !bullet.pierce) bullet.alive = false;
         const destroyed = tank.hit(bullet);
-        if (destroyed && !fromPlayer) {
-          // enemy killed by player bullet
+        if (bullet.explosive && fromPlayer) {
+          for (const other of tanks) {
+            if (other !== tank && other.alive) {
+              const odx = bullet.x - other.x;
+              const ody = bullet.y - other.y;
+              if (Math.sqrt(odx * odx + ody * ody) < 60) {
+                other.hit(bullet);
+              }
+            }
+          }
+          spawnExplosion(bullet.x, bullet.y, 12, '#f84', '#ff0');
+          bullet.alive = false;
         }
-        if (!bullet.railgun) break;
+        if (destroyed && !fromPlayer) {
+        }
+        if (!bullet.railgun && !bullet.pierce) break;
       }
     }
     if (bullet.alive && bulletHitsObstacle(bullet)) {
@@ -1371,7 +2115,7 @@ function update() {
       return;
     }
     // Respawn
-    player = new PlayerTank();
+    player = new PlayerTank(currentTankType);
     player.invincible = 120;
   }
 
@@ -1413,7 +2157,7 @@ function update() {
 
   // Power-up spawn on map
   powerUpSpawnTimer++;
-  if (powerUpSpawnTimer >= 600 && powerUps.length < 4) {
+  if (powerUpSpawnTimer >= 900 && powerUps.length < 3) {
     powerUpSpawnTimer = 0;
     const px = 40 + Math.random() * (W - 80);
     const py = 40 + Math.random() * (H - 80);
@@ -1426,7 +2170,8 @@ function update() {
     if (powerUps[i].life <= 0) { powerUps.splice(i, 1); continue; }
     const dx = player.x - powerUps[i].x;
     const dy = player.y - powerUps[i].y;
-    if (dx * dx + dy * dy < 30 * 30) {
+    const pickupRange = buffs.magnet > 0 ? 80 : 30;
+    if (dx * dx + dy * dy < pickupRange * pickupRange) {
       applyPowerUp(powerUps[i]);
       powerUps.splice(i, 1);
     }
@@ -1561,45 +2306,49 @@ function restartGame() {
   level = 1;
   gameRunning = false;
   gameOverFlag = false;
-  player = new PlayerTank();
+  player = new PlayerTank(currentTankType);
   enemies = [];
   playerBullets = [];
   enemyBullets = [];
   mines.length = 0;
   powerUps.length = 0;
   powerUpSpawnTimer = 0;
-  buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0 };
+  buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0, magnet:0, pierce:0, vampire:0, double_score:0, big_bullet:0, explosive:0, invisible:0, thorns:0 };
   particles.length = 0;
   spawnTimer = 0;
   difficultyTimer = 0;
   document.getElementById('game-over').classList.remove('visible');
   document.getElementById('start-screen').style.display = 'flex';
+  renderDifficultyButtons();
 }
 
 // --- Init ---
 function init() {
   loadAchievements();
-  player = new PlayerTank();
+  loadUnlocks();
+  renderDifficultyButtons();
+  player = new PlayerTank(currentTankType);
   gameRunning = false;
   document.getElementById('start-screen').style.display = 'flex';
 }
 
-function startGame(difficulty) {
+function startGame(difficulty, tankType) {
   currentDifficulty = difficulty;
+  if (tankType) currentTankType = tankType;
   const diff = difficultySettings[difficulty];
   lives = diff.lives;
   score = 0;
   level = 1;
   gameRunning = true;
   gameOverFlag = false;
-  player = new PlayerTank();
+  player = new PlayerTank(currentTankType);
   enemies = [];
   playerBullets = [];
   enemyBullets = [];
   mines.length = 0;
   powerUps.length = 0;
   powerUpSpawnTimer = 0;
-  buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0 };
+  buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0, magnet:0, pierce:0, vampire:0, double_score:0, big_bullet:0, explosive:0, invisible:0, thorns:0 };
   particles.length = 0;
   spawnTimer = 0;
   difficultyTimer = 0;
@@ -1607,6 +2356,7 @@ function startGame(difficulty) {
   generateObstacles();
   for (let i = 0; i < 2; i++) spawnEnemy();
   document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('tank-select-screen').style.display = 'none';
   document.getElementById('game-over').classList.remove('visible');
   document.getElementById('lives').textContent = lives;
   document.getElementById('score').textContent = score;
