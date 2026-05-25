@@ -3493,6 +3493,41 @@ const TANK_EVOLUTION = {
   homing: { name:'命運導引', icon:'🔮', bonus:'常驻微追踪', effect: function(){ /* handled in shoot() */ } },
 };
 
+// --- Per-Tank Unique Upgrades ---
+const TANK_UPGRADE_DEFS = {
+  spread: [
+    { id:'bullets', name:'弹幕扩充', icon:'🔴', desc:'子弹+1', max:3, costBase:30, effect(t){ t.bulletCount+=1; } },
+    { id:'spread', name:'扩散优化', icon:'📐', desc:'扩散角-20%', max:3, costBase:30, effect(t){ t.spreadAngle*=0.8; } },
+    { id:'speed', name:'机动强化', icon:'💨', desc:'移速+0.1', max:3, costBase:30, effect(t){ t.speed+=0.1; } },
+  ],
+  focus: [
+    { id:'dmg', name:'火力强化', icon:'💥', desc:'伤害+1', max:3, costBase:40, effect(t){ t.bulletDamage+=1; } },
+    { id:'firerate', name:'射速提升', icon:'🔥', desc:'冷却-3帧', max:3, costBase:40, effect(t){ t.shootDelay=Math.max(8,t.shootDelay-3); } },
+    { id:'railgun', name:'穿透强化', icon:'🔫', desc:'电磁炮+0.5速', max:3, costBase:35, effect(t){ /* boost railgun speed in shoot */ } },
+  ],
+  wide: [
+    { id:'bullets', name:'弹幕扩充', icon:'🔵', desc:'子弹+2', max:3, costBase:35, effect(t){ t.bulletCount+=2; } },
+    { id:'freeze', name:'冰冻延长', icon:'❄️', desc:'冰冻+1秒', max:3, costBase:35, effect(t){ /* handled in freeze apply */ } },
+    { id:'hp', name:'装甲强化', icon:'❤️', desc:'HP+2', max:3, costBase:30, effect(t){ t.hpBonus+=2; } },
+  ],
+  burst: [
+    { id:'explosion', name:'爆炸扩大', icon:'💢', desc:'爆炸+25%', max:3, costBase:35, effect(){ explosionRadiusMul+=0.25; } },
+    { id:'dmg', name:'伤害强化', icon:'💥', desc:'伤害+1', max:3, costBase:35, effect(t){ t.bulletDamage+=1; } },
+    { id:'bullets', name:'弹幕扩充', icon:'🟠', desc:'子弹+2', max:3, costBase:35, effect(t){ t.bulletCount+=2; } },
+  ],
+  sniper: [
+    { id:'dmg', name:'致命一击', icon:'💀', desc:'伤害+2', max:3, costBase:50, effect(t){ t.bulletDamage+=2; } },
+    { id:'speed', name:'弹速提升', icon:'🚀', desc:'弹速+1', max:3, costBase:40, effect(t){ t.bulletSpeed+=1; } },
+    { id:'special', name:'冷却缩短', icon:'⚡', desc:'特殊弹-1', max:3, costBase:40, effect(t){ t.specialInterval=Math.max(1,(t.specialInterval||3)-1); } },
+  ],
+  homing: [
+    { id:'tracking', name:'追踪强化', icon:'🎯', desc:'追踪+0.02', max:3, costBase:35, effect(){ /* homingStr handled in shoot */ } },
+    { id:'speed', name:'弹速提升', icon:'🚀', desc:'弹速+0.3', max:3, costBase:35, effect(t){ t.bulletSpeed+=0.3; } },
+    { id:'bullets', name:'三连追踪', icon:'🟣', desc:'子弹+1', max:3, costBase:40, effect(t){ t.bulletCount+=1; } },
+  ],
+};
+const TANK_UPGRADE_CAPS = { spread:3, focus:3, wide:3, burst:3, sniper:3, homing:3 };
+
 function loadProgression() {
   try {
     coreFragments = parseInt(localStorage.getItem(FRAGMENT_KEY)) || 0;
@@ -3504,7 +3539,11 @@ function loadProgression() {
     const ev = localStorage.getItem(TANK_EVOLVE_KEY);
     evolvedTanks = ev ? new Set(JSON.parse(ev)) : new Set();
     // Ensure all tanks have upgrade entries
-    Object.keys(tankTypes).forEach(k => { if (!tankUpgrades[k]) tankUpgrades[k] = {hp:0,dmg:0,spd:0,special:0}; });
+    Object.keys(tankTypes).forEach(k => {
+      const defs = TANK_UPGRADE_DEFS[k] || [];
+      if (!tankUpgrades[k]) tankUpgrades[k] = {};
+      defs.forEach(d => { if (tankUpgrades[k][d.id] === undefined) tankUpgrades[k][d.id] = 0; });
+    });
   } catch(e) { resetProgression(); }
 }
 function saveProgression() {
@@ -3520,7 +3559,10 @@ function resetProgression() {
   unlockedTanks = new Set(['spread']);
   tankUpgrades = {};
   evolvedTanks = new Set();
-  Object.keys(tankTypes).forEach(k => { tankUpgrades[k] = {hp:0,dmg:0,spd:0,special:0}; });
+  Object.keys(tankTypes).forEach(k => {
+    tankUpgrades[k] = {};
+    (TANK_UPGRADE_DEFS[k]||[]).forEach(d => { tankUpgrades[k][d.id] = 0; });
+  });
 }
 
 function earnFragments(amount) {
@@ -3555,19 +3597,23 @@ function tryUnlockTank(tankType) {
   return false;
 }
 
-function getTankUpgradeCost(tank, stat) {
-  const lvl = (tankUpgrades[tank] && tankUpgrades[tank][stat]) || 0;
-  return (lvl + 1) * 30;
+function getTankUpgradeCost(tank, statId) {
+  const def = (TANK_UPGRADE_DEFS[tank] || []).find(d => d.id === statId);
+  if (!def) return 999;
+  const lvl = (tankUpgrades[tank] && tankUpgrades[tank][statId]) || 0;
+  return (lvl + 1) * def.costBase;
 }
-function purchaseTankUpgrade(tank, stat) {
+function purchaseTankUpgrade(tank, statId) {
   if (!unlockedTanks.has(tank)) return;
-  const lvl = (tankUpgrades[tank] && tankUpgrades[tank][stat]) || 0;
-  if (lvl >= 3) return;
-  const cost = getTankUpgradeCost(tank, stat);
+  const def = (TANK_UPGRADE_DEFS[tank] || []).find(d => d.id === statId);
+  if (!def) return;
+  const lvl = (tankUpgrades[tank] && tankUpgrades[tank][statId]) || 0;
+  if (lvl >= def.max) return;
+  const cost = getTankUpgradeCost(tank, statId);
   if (coreFragments < cost) return;
   coreFragments -= cost;
-  if (!tankUpgrades[tank]) tankUpgrades[tank] = {hp:0,dmg:0,spd:0,special:0};
-  tankUpgrades[tank][stat]++;
+  if (!tankUpgrades[tank]) tankUpgrades[tank] = {};
+  tankUpgrades[tank][statId] = (tankUpgrades[tank][statId] || 0) + 1;
   saveProgression();
   renderLabUI();
   sfxPowerUp();
@@ -3575,9 +3621,9 @@ function purchaseTankUpgrade(tank, stat) {
 
 function canEvolve(tank) {
   if (evolvedTanks.has(tank)) return false;
-  const ug = tankUpgrades[tank];
-  if (!ug) return false;
-  return ug.hp >= 3 && ug.dmg >= 3 && ug.spd >= 3 && ug.special >= 3;
+  const defs = TANK_UPGRADE_DEFS[tank] || [];
+  if (defs.length === 0) return false;
+  return defs.every(d => (tankUpgrades[tank] && tankUpgrades[tank][d.id] || 0) >= d.max);
 }
 function tryEvolveTank(tank) {
   if (!canEvolve(tank)) return false;
@@ -3592,20 +3638,24 @@ function tryEvolveTank(tank) {
 
 function applyTankUpgrades(tankType) {
   const ug = tankUpgrades[tankType];
-  if (!ug) return;
-  playerBulletDmgMul += ug.dmg * 0.1;
-  playerSpeedMul += ug.spd * 0.05;
-  if (player.alive) {
-    player.maxHp += ug.hp;
-    player.hp += ug.hp;
-  }
-  if (ug.special > 0 && player._tankDef) {
-    player._tankDef.specialInterval = Math.max(1, (player._tankDef.specialInterval || 4) - ug.special);
-  }
+  if (!ug || !player._tankDef) return;
+  const defs = TANK_UPGRADE_DEFS[tankType] || [];
+  // Create a temp copy of tankDef to apply upgrades
+  const t = player._tankDef;
+  defs.forEach(d => {
+    const lvl = ug[d.id] || 0;
+    for (let i = 0; i < lvl; i++) {
+      try { d.effect(t); } catch(e) {}
+    }
+  });
+  // Recalculate max HP based on upgraded hpBonus
+  const baseHp = difficultySettings[currentDifficulty].playerHp;
+  player.maxHp = Math.max(3, baseHp + t.hpBonus);
+  player.hp = Math.min(player.hp, player.maxHp);
   // Evolution bonuses
   if (evolvedTanks.has(tankType)) {
     const evo = TANK_EVOLUTION[tankType];
-    if (evo && evo.effect) evo.effect(player._tankDef || tankTypes[tankType]);
+    if (evo && evo.effect) evo.effect(t);
   }
 }
 
@@ -3617,8 +3667,9 @@ function renderLabUI() {
   const icons = {spread:'☆',focus:'★',wide:'❋',burst:'✦',sniper:'◈',homing:'◎'};
   grid.innerHTML = tankKeys.map(k => {
     const unlocked = unlockedTanks.has(k);
-    const ug = tankUpgrades[k] || {hp:0,dmg:0,spd:0,special:0};
-    const totalUpg = ug.hp + ug.dmg + ug.spd + ug.special;
+    const defs = TANK_UPGRADE_DEFS[k] || [];
+    const maxUpg = defs.reduce((s,d) => s + d.max, 0);
+    const totalUpg = defs.reduce((s,d) => s + ((tankUpgrades[k] && tankUpgrades[k][d.id]) || 0), 0);
     const evolved = evolvedTanks.has(k);
     const evoName = evolved ? TANK_EVOLUTION[k].name : '';
     const selected = labSelectedTank === k;
@@ -3627,7 +3678,7 @@ function renderLabUI() {
     return `<div class="lab-tank-card ${unlocked?'':'locked'} ${selected?'selected':''} ${evolved?'evolved':''}" onclick="${unlocked?'selectLabTank(\''+k+'\')':'tryUnlockFromLab(\''+k+'\')'}">
       <span class="lab-tank-icon">${unlocked ? (evolved ? TANK_EVOLUTION[k].icon : icons[k]) : '🔒'}</span>
       <div class="lab-tank-name">${unlocked ? tankTypes[k].name : '???'}</div>
-      <div class="lab-tank-dots">${unlocked ? '★'.repeat(totalUpg)+'☆'.repeat(12-totalUpg) : label}</div>
+      <div class="lab-tank-dots">${unlocked ? '★'.repeat(totalUpg)+'☆'.repeat(maxUpg-totalUpg) : label}</div>
       ${evolved ? '<div class="lab-evo-badge">進化</div>' : ''}
       ${selected ? '<div style="font-size:8px;color:#da0;margin-top:1px;">▼ 当前</div>' : ''}
     </div>`;
@@ -3637,7 +3688,7 @@ function renderLabUI() {
   if (!detail) return;
   const k = labSelectedTank;
   const unlocked = unlockedTanks.has(k);
-  const ug = tankUpgrades[k] || {hp:0,dmg:0,spd:0,special:0};
+  const ug = tankUpgrades[k] || {};
   const evolved = evolvedTanks.has(k);
   const evoDef = TANK_EVOLUTION[k];
   const fragDisplay = document.getElementById('lab-fragments');
@@ -3651,29 +3702,27 @@ function renderLabUI() {
       <div class="lab-detail-desc">${cond.desc}</div>
       ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">💎 解锁 (${cond.cost})</button>` : ''}`;
   } else {
-    const statNames = {hp:'耐久',dmg:'火力',spd:'机动',special:'充能'};
-    const statIcons = {hp:'❤️',dmg:'💥',spd:'💨',special:'⚡'};
-    const nextUpg = Object.values(ug).some(v => v < 3);
-    const totalUpg = ug.hp + ug.dmg + ug.spd + ug.special;
+    const defs = TANK_UPGRADE_DEFS[k] || [];
+    const allMaxed = defs.every(d => (ug[d.id]||0) >= d.max);
     let evoHTML = '';
     if (evolved) evoHTML = `<div style="color:#f8d;font-size:11px;">${evoDef.icon} ${evoDef.name} · ${evoDef.bonus} ✅</div>`;
-    else if (canEvolve(k)) evoHTML = `<button class="lab-btn" style="border-color:#f8d;color:#f8d;" onclick="tryEvolveTank('${k}');renderLabUI();">✨ 进化 → ${evoDef.name} (200💎)</button>`;
+    else if (allMaxed && defs.length > 0) evoHTML = `<button class="lab-btn" style="border-color:#f8d;color:#f8d;" onclick="tryEvolveTank('${k}');renderLabUI();">✨ 进化 → ${evoDef.name} (200💎)</button>`;
     detail.innerHTML = `
-      <div class="lab-detail-name">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${selected ? '✅' : ''}</div>
+      <div class="lab-detail-name">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${selected ? '✅ 出战中' : ''}</div>
       ${evoHTML}
-      <div class="lab-stats">${Object.keys(statNames).map(s => {
-        const lvl = ug[s] || 0;
-        const capped = lvl >= 3;
-        const cost = capped ? '-' : getTankUpgradeCost(k, s) + '💎';
+      <div class="lab-stats">${defs.map(d => {
+        const lvl = (ug[d.id]||0);
+        const capped = lvl >= d.max;
+        const cost = capped ? 'MAX' : getTankUpgradeCost(k, d.id) + '💎';
         return `<div class="lab-stat-row">
-          <span style="width:55px;">${statIcons[s]} ${statNames[s]}</span>
-          <span class="lab-stat-dots">${'●'.repeat(lvl)}${'○'.repeat(3-lvl)}</span>
-          <button class="lab-upg-btn ${capped?'capped':''}" onclick="event.stopPropagation();purchaseTankUpgrade('${k}','${s}');" ${capped?'disabled':''}>${cost}</button>
+          <span style="width:90px;">${d.icon} ${d.name}</span>
+          <span class="lab-stat-dots">${'●'.repeat(lvl)}${'○'.repeat(d.max-lvl)}</span>
+          <button class="lab-upg-btn ${capped?'capped':''}" onclick="event.stopPropagation();purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}>${cost}</button>
         </div>`;
       }).join('')}</div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <button class="lab-btn sortie-btn" onclick="setActiveTank('${k}')">🚀 出撃</button>
-        <span style="font-size:10px;color:#666;">${nextUpg ? '升级强化后更强' : evolved ? '已达最终形态' : '可进化!'}</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        ${!selected ? `<button class="lab-btn sortie-btn" onclick="confirmActiveTank('${k}')">✅ 确认出战</button>` : `<span style="color:#da0;font-size:13px;">✅ 当前出战机体</span>`}
+        <span style="font-size:10px;color:#666;">${defs.some(d=>(ug[d.id]||0)<d.max) ? defs.length+'项可升级' : evolved ? '已达最终形态' : '满级可进化'}</span>
       </div>`;
   }
 }
@@ -3684,9 +3733,14 @@ function selectLabTank(tank) {
 function tryUnlockFromLab(tank) {
   if (tryUnlockTank(tank)) renderLabUI();
 }
-function setActiveTank(tank) {
+function confirmActiveTank(tank) {
   currentTankType = tank;
   hideLabScreen();
+  sfxAchievement();
+}
+function setActiveTank(tank) {
+  labSelectedTank = tank;
+  renderLabUI();
 }
 function showLabScreen() {
   labSelectedTank = currentTankType;
