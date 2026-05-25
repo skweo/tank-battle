@@ -1506,16 +1506,27 @@ function startNextWave() {
   // Boss wave every 4 waves (starting from wave 4)
   if (wave >= 4 && wave % 4 === 0) {
     isBossWave = true;
-    waveEnemiesTotal = 3; waveEnemiesRemaining = 3; // boss + 2 small adds
+    const bossSupportCount = wave >= 12 ? 4 : 3;
+    waveEnemiesTotal = 1 + bossSupportCount;
+    waveEnemiesRemaining = 1 + bossSupportCount;
     wavePause = 0;
     const bossIdx = (Math.floor(wave / 4) - 1) % BOSS_TYPES.length;
     const bossDef = BOSS_TYPES[bossIdx];
-    const bx = W/2, by = H/3;
-    bossRef = new BossEnemy(bx, by, bossDef);
+    const bossSpawn = findSafeTankSpawn({
+      w: 54,
+      h: 54,
+      minPlayerDist: 210,
+      preferred: [
+        { x: W / 2, y: H / 3 },
+        { x: W / 2, y: H * 0.26 },
+        { x: W * 0.33, y: H * 0.28 },
+        { x: W * 0.67, y: H * 0.28 },
+      ],
+    });
+    bossRef = new BossEnemy(bossSpawn.x, bossSpawn.y, bossDef);
     enemies.push(bossRef);
-    // Spawn 2 smaller enemies alongside boss
-    for (let i = 0; i < 2; i++) spawnEnemy();
-    showWaveNotification('BOSS: ' + bossDef.name, '第 ' + wave + ' 波 - 击破Boss!');
+    for (let i = 0; i < bossSupportCount; i++) spawnEnemy();
+    showWaveNotification('BOSS: ' + bossDef.name, '第 ' + wave + ' 波 - 首领已进入战场');
     return;
   }
 
@@ -3594,43 +3605,43 @@ let isBossWave = false;
 let bossRef = null;
 
 const BOSS_TYPES = [
-  { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.25, hp:35, icon:'🦾',
-    desc:'重型装甲Boss，旋转弹幕+狂暴模式',
+  { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.34, hp:70, icon:'🦾',
+    desc:'重型压制Boss，装甲轰杀+过载冲击',
     phases:[
-      { name:'螺旋炮击', hpPct:1.0, attack:'spiral', shootDelay:28, bulletCount:16, bulletSpeed:1.4 },
-      { name:'狂暴连射', hpPct:0.5, attack:'enrage', shootDelay:16, bulletCount:22, bulletSpeed:1.9 },
+      { name:'装甲镇压', hpPct:1.0, attack:'spiral', shootDelay:26, bulletCount:20, bulletSpeed:1.85, pressure:0.86 },
+      { name:'过载破城', hpPct:0.58, attack:'enrage', shootDelay:14, bulletCount:28, bulletSpeed:2.55, pressure:1.28 },
     ]},
-  { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.55, hp:22, icon:'👻',
-    desc:'高速瞬移Boss，相位穿梭+全屏弹幕',
+  { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.78, hp:52, icon:'👻',
+    desc:'高速相位Boss，折跃猎杀+镜像围杀',
     phases:[
-      { name:'相位穿梭', hpPct:1.0, attack:'teleport', shootDelay:38, bulletCount:8, bulletSpeed:1.8 },
-      { name:'全屏弹幕', hpPct:0.5, attack:'clone_barrage', shootDelay:22, bulletCount:14, bulletSpeed:2.3 },
+      { name:'折跃猎杀', hpPct:1.0, attack:'teleport', shootDelay:30, bulletCount:12, bulletSpeed:2.25, pressure:0.92 },
+      { name:'镜像歼灭', hpPct:0.6, attack:'clone_barrage', shootDelay:17, bulletCount:20, bulletSpeed:2.85, pressure:1.35 },
     ]},
-  { name:'要塞坦克', color:'#664', turret:'#ca4', speed:0, hp:45, icon:'🏰',
-    desc:'固定炮台Boss，多炮塔齐射+地雷风暴',
+  { name:'要塞坦克', color:'#664', turret:'#ca4', speed:0.08, hp:84, icon:'🏰',
+    desc:'堡垒压场Boss，多炮塔火网+雷区封锁',
     phases:[
-      { name:'三炮齐射', hpPct:1.0, attack:'turret_salvo', shootDelay:45, bulletCount:10, bulletSpeed:1.7 },
-      { name:'地雷风暴', hpPct:0.5, attack:'mine_storm', shootDelay:30, bulletCount:18, bulletSpeed:2.1 },
+      { name:'重炮幕墙', hpPct:1.0, attack:'turret_salvo', shootDelay:34, bulletCount:14, bulletSpeed:2.05, pressure:0.98 },
+      { name:'湮灭雷暴', hpPct:0.57, attack:'mine_storm', shootDelay:20, bulletCount:24, bulletSpeed:2.55, pressure:1.4 },
     ]},
-  { name:'虚空坦克', color:'#424', turret:'#a4f', speed:0.3, hp:28, icon:'🕳️',
-    desc:'引力操控Boss，发射引力弹幕+黑洞吸引',
+  { name:'虚空坦克', color:'#424', turret:'#a4f', speed:0.44, hp:60, icon:'🕳️',
+    desc:'奇点操控Boss，引力洪流+黑洞撕裂',
     phases:[
-      { name:'引力弹幕', hpPct:1.0, attack:'gravity_wave', shootDelay:35, bulletCount:10, bulletSpeed:1.5 },
-      { name:'黑洞奇点', hpPct:0.5, attack:'black_hole', shootDelay:25, bulletCount:20, bulletSpeed:1.8 },
+      { name:'引力洪流', hpPct:1.0, attack:'gravity_wave', shootDelay:29, bulletCount:14, bulletSpeed:1.95, pressure:0.95 },
+      { name:'黑洞撕裂', hpPct:0.6, attack:'black_hole', shootDelay:19, bulletCount:26, bulletSpeed:2.4, pressure:1.38 },
     ]},
-  { name:'风暴坦克', color:'#446', turret:'#4ff', speed:0.4, hp:25, icon:'🌪️',
-    desc:'雷电风暴Boss，连锁闪电+雷暴轰炸',
+  { name:'风暴坦克', color:'#446', turret:'#4ff', speed:0.56, hp:56, icon:'🌪️',
+    desc:'天候支配Boss，电弧锁链+雷暴空袭',
     phases:[
-      { name:'连锁闪电', hpPct:1.0, attack:'lightning_chain', shootDelay:32, bulletCount:8, bulletSpeed:2.2 },
-      { name:'雷暴轰炸', hpPct:0.5, attack:'thunder_storm', shootDelay:20, bulletCount:24, bulletSpeed:2.5 },
+      { name:'电弧狩猎', hpPct:1.0, attack:'lightning_chain', shootDelay:26, bulletCount:10, bulletSpeed:2.75, pressure:0.94 },
+      { name:'雷霆天幕', hpPct:0.58, attack:'thunder_storm', shootDelay:15, bulletCount:28, bulletSpeed:3.05, pressure:1.42 },
     ]},
 ];
 
 class BossEnemy extends EliteEnemy {
   constructor(x, y, bossDef) {
     const diff = difficultySettings[currentDifficulty];
-    const hp = bossDef.hp + level * 3 + diff.enemyHpBonus * 3;
-    super(x, y, {name:bossDef.name, color:bossDef.color, turret:bossDef.turret, speed:bossDef.speed, hp:Math.max(20,hp), special:'boss', icon:bossDef.icon});
+    const hp = bossDef.hp + level * 5 + diff.enemyHpBonus * 7 + Math.floor(wave * 0.75);
+    super(x, y, {name:bossDef.name, color:bossDef.color, turret:bossDef.turret, speed:bossDef.speed, hp:Math.max(34,hp), special:'boss', icon:bossDef.icon});
     this.bossDef = bossDef;
     this.maxHp = this.hp;
     this.currentPhase = 0;
@@ -3638,112 +3649,407 @@ class BossEnemy extends EliteEnemy {
     this.eliteName = bossDef.name;
     this.eliteIcon = bossDef.icon;
     this.shootDelay = bossDef.phases[0].shootDelay;
+    this.baseSpeed = bossDef.speed * diff.enemySpeedMul;
+    this.speed = this.baseSpeed;
+    this.pressure = bossDef.phases[0].pressure || 1;
+    this.phaseFlash = 0;
+    this.uiPulse = 0;
+    this.transitionLock = 0;
+    this.phaseBurstCooldown = 90;
+    this.summonCooldown = 240;
+    this.zoneTimer = 0;
+    this.auraRadius = 88;
+    this.ramTimer = 0;
+    this.telegraphTimer = 0;
+    this.threatRating = 6.8;
+    this.hitFlash = 0;
+  }
+  pushPlayer(amountX, amountY) {
+    if (!player || !player.alive) return;
+    const targetX = Math.max(25, Math.min(W - 25, player.x + amountX));
+    const targetY = Math.max(25, Math.min(H - 25, player.y + amountY));
+    if (!tankCollidesObstacle(targetX, player.y, 36, 36)) player.x = targetX;
+    if (!tankCollidesObstacle(player.x, targetY, 36, 36)) player.y = targetY;
   }
   update() {
-    super.update();
     if (!this.alive) return;
+    if (this.shootCooldown > 0) this.shootCooldown--;
+    if (this.frozen > 0) {
+      this.frozen--;
+      this.speed = this.baseSpeed * 0.5;
+      if (this.frozen <= 0) this.speed = this.baseSpeed;
+    } else {
+      this.speed = this.baseSpeed;
+    }
     this.phaseTimer++;
+    if (this.phaseFlash > 0) this.phaseFlash--;
+    if (this.transitionLock > 0) this.transitionLock--;
+    if (this.phaseBurstCooldown > 0) this.phaseBurstCooldown--;
+    if (this.hitFlash > 0) this.hitFlash--;
+    this.uiPulse = (this.uiPulse + 1) % 9999;
+    this.zoneTimer++;
+    this.ramTimer++;
+
+    const dx = player.x - this.x;
+    const dy = player.y - this.y;
+    const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+    this.turretAngle = Math.atan2(dy, dx);
+
+    const phase = this.bossDef.phases[Math.max(0, this.currentPhase)] || this.bossDef.phases[0];
+    const hpRatio = this.hp / this.maxHp;
+    this.pressure = phase.pressure || 1;
+
     // Phase transition
     const phases = this.bossDef.phases;
     for (let i = phases.length - 1; i >= 0; i--) {
       if (this.hp / this.maxHp <= phases[i].hpPct && i > this.currentPhase) {
         this.currentPhase = i;
         this.shootDelay = phases[i].shootDelay;
-        spawnExplosion(this.x, this.y, 40, '#fff', '#ff0');
-        showWaveNotification('', this.bossDef.name + ' 进入第' + (i+1) + '阶段!');
+        this.pressure = phases[i].pressure || this.pressure;
+        this.phaseFlash = 180;
+        this.transitionLock = 40;
+        this.phaseBurstCooldown = 45;
+        this.shootCooldown = Math.min(this.shootCooldown, 14);
+        this.baseSpeed *= 1.08;
+        triggerShake(12, 18);
+        spawnExplosion(this.x, this.y, 60, '#fff', this.bossDef.turret || '#ff0');
+        showWaveNotification('PHASE ' + (i + 1), this.bossDef.name + ' 进入第二阶段压制');
+        this.emitPhaseBurst(true);
       }
+    }
+
+    this.auraRadius = 90 + Math.sin(Date.now() / 180 + this.uiPulse * 0.02) * 6 + this.currentPhase * 16;
+    this.threatRating = Math.min(10, 6.2 + wave * 0.08 + level * 0.06 + this.currentPhase * 1.45 + (1 - hpRatio) * 1.2);
+
+    let moveX = 0;
+    let moveY = 0;
+    const strafeDir = Math.sin(this.phaseTimer / (this.currentPhase > 0 ? 18 : 26)) >= 0 ? 1 : -1;
+    if (this.bossDef.name === '巨兽坦克') {
+      if (dist > 170) {
+        moveX += dx / dist * 0.95;
+        moveY += dy / dist * 0.95;
+      } else if (dist < 110) {
+        moveX -= dx / dist * 0.6;
+        moveY -= dy / dist * 0.6;
+      }
+      if (this.currentPhase > 0 && this.ramTimer > 105) {
+        moveX += dx / dist * 0.85;
+        moveY += dy / dist * 0.85;
+        this.ramTimer = 0;
+      }
+    } else if (this.bossDef.name === '幻影坦克') {
+      moveX += -dy / dist * strafeDir * 0.9;
+      moveY += dx / dist * strafeDir * 0.9;
+      if (dist > 210) {
+        moveX += dx / dist * 0.55;
+        moveY += dy / dist * 0.55;
+      }
+      if (this.currentPhase > 0 && this.zoneTimer % 72 === 0) {
+        this.teleportToSafePoint(190);
+      }
+    } else if (this.bossDef.name === '要塞坦克') {
+      if (dist < 150) {
+        moveX -= dx / dist * 0.35;
+        moveY -= dy / dist * 0.35;
+      }
+      if (this.currentPhase > 0 && this.zoneTimer % 120 === 0) {
+        this.deployMines(3, 160);
+      }
+    } else if (this.bossDef.name === '虚空坦克') {
+      moveX += -dy / dist * strafeDir * 0.45;
+      moveY += dx / dist * strafeDir * 0.45;
+      if (dist > 210) {
+        moveX += dx / dist * 0.42;
+        moveY += dy / dist * 0.42;
+      }
+      if (this.zoneTimer % (this.currentPhase > 0 ? 18 : 28) === 0 && dist < 320) {
+        const pull = this.currentPhase > 0 ? 2.2 : 1.15;
+        this.pushPlayer(-(dx / dist) * pull, -(dy / dist) * pull);
+      }
+    } else if (this.bossDef.name === '风暴坦克') {
+      moveX += -dy / dist * strafeDir * 0.72;
+      moveY += dx / dist * strafeDir * 0.72;
+      if (dist > 180) {
+        moveX += dx / dist * 0.36;
+        moveY += dy / dist * 0.36;
+      }
+      if (this.currentPhase > 0 && this.zoneTimer % 85 === 0) {
+        this.spawnStormLances(4);
+      }
+    }
+
+    const slowMul = this.currentPhase > 0 ? 1.18 : 1;
+    const newX = this.x + moveX * this.speed * slowMul;
+    const newY = this.y + moveY * this.speed * slowMul;
+    if (newX > 34 && newX < W - 34 && !tankCollidesObstacle(newX, this.y, 54, 54)) this.x = newX;
+    if (newY > 34 && newY < H - 34 && !tankCollidesObstacle(this.x, newY, 54, 54)) this.y = newY;
+
+    if (this.currentPhase > 0 && this.summonCooldown > 0) this.summonCooldown--;
+    if (this.currentPhase > 0 && this.summonCooldown <= 0) {
+      this.spawnBossEscort();
+      this.summonCooldown = this.bossDef.name === '幻影坦克' ? 150 : 210;
+    }
+
+    const effectiveShootDelay = Math.max(9, this.shootDelay - Math.floor(this.currentPhase > 0 ? 2 : 0));
+    if (this.shootCooldown <= 0 && this.transitionLock <= 0) {
+      this.shoot();
+      this.shootCooldown = effectiveShootDelay;
+    }
+
+    if (dist < 40) {
+      triggerShake(8, 10);
+      if (!player.hit()) {
+        player.hp = 0;
+        player.alive = false;
+      }
+      const knock = 18;
+      this.pushPlayer((dx / dist) * knock, (dy / dist) * knock);
     }
   }
   shoot() {
     const phase = this.bossDef.phases[Math.max(0, this.currentPhase)] || this.bossDef.phases[0];
     const bx = this.x + Math.cos(this.turretAngle) * 22;
     const by = this.y + Math.sin(this.turretAngle) * 22;
+    const hpRatio = this.hp / this.maxHp;
+    const rageSpeed = this.currentPhase > 0 ? 0.22 : 0;
+    const bonusBullets = this.currentPhase > 0 ? 4 : 0;
     if (phase.attack === 'spiral') {
-      for (let i = 0; i < phase.bulletCount; i++) {
-        const a = this.turretAngle + (i / phase.bulletCount) * Math.PI * 2;
-        enemyBullets.push(new Bullet(bx, by, a, phase.bulletSpeed, '#f44', false));
-      }
-    } else if (phase.attack === 'enrage') {
-      for (let i = 0; i < phase.bulletCount; i++) {
-        const a = this.turretAngle + (i - phase.bulletCount/2) * 0.15;
-        enemyBullets.push(new Bullet(bx, by, a, phase.bulletSpeed, '#f80', false));
-      }
-    } else if (phase.attack === 'teleport') {
-      this.x = 50 + rng() * (W - 100); this.y = 50 + rng() * (H - 100);
-      for (let i = 0; i < phase.bulletCount; i++) {
-        const a = (i / phase.bulletCount) * Math.PI * 2;
-        enemyBullets.push(new Bullet(this.x, this.y, a, phase.bulletSpeed, '#88f', false));
-      }
-    } else if (phase.attack === 'clone_barrage') {
-      for (let j = 0; j < 3; j++) {
-        const cx = this.x + (rng() - 0.5) * 120, cy = this.y + (rng() - 0.5) * 120;
-        for (let i = 0; i < 4; i++) {
-          const a = (i / 4) * Math.PI * 2;
-          enemyBullets.push(new Bullet(cx, cy, a, phase.bulletSpeed, '#aaf', false));
-        }
-      }
-    } else if (phase.attack === 'turret_salvo') {
-      for (let t = -1; t <= 1; t += 2) {
-        const tx = this.x + t * 30;
-        for (let i = 0; i < phase.bulletCount / 2; i++) {
-          const a = Math.atan2(player.y - this.y, player.x - tx) + (i - 3) * 0.12;
-          enemyBullets.push(new Bullet(tx, this.y, a, phase.bulletSpeed, '#ca4', false));
-        }
-      }
-    } else if (phase.attack === 'mine_storm') {
-      for (let i = 0; i < 4; i++) {
-        mines.push({x:this.x+(rng()-0.5)*250, y:this.y+(rng()-0.5)*250, life:700, armed:true});
-      }
-      for (let i = 0; i < phase.bulletCount; i++) {
-        const a = this.turretAngle + (i - phase.bulletCount/2) * 0.1;
-        enemyBullets.push(new Bullet(bx, by, a, phase.bulletSpeed, '#ff0', false));
-      }
-    } else if (phase.attack === 'gravity_wave') {
-      for (let i = 0; i < phase.bulletCount; i++) {
-        const a = this.turretAngle + (i - phase.bulletCount/2) * 0.2;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#c4f', false, 1);
-        b.radius = 4;
+      const total = phase.bulletCount + bonusBullets;
+      const spinOffset = this.phaseTimer * 0.12;
+      for (let i = 0; i < total; i++) {
+        const a = spinOffset + this.turretAngle + (i / total) * Math.PI * 2;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + rageSpeed, '#f44', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = this.currentPhase > 0 ? 4 : 3.2;
         enemyBullets.push(b);
       }
+      if (this.currentPhase > 0) {
+        for (let i = -1; i <= 1; i++) {
+          const a = this.turretAngle + i * 0.12;
+          const b = new Bullet(bx, by, a, 3.1, '#ffd27a', false, 1);
+          b.radius = 2.4;
+          enemyBullets.push(b);
+        }
+      }
+    } else if (phase.attack === 'enrage') {
+      const total = phase.bulletCount + 2;
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total / 2) * 0.12;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + 0.2, '#f80', false, 2);
+        b.radius = 4.2;
+        enemyBullets.push(b);
+      }
+      for (let ring = 0; ring < 2; ring++) {
+        for (let i = 0; i < 10; i++) {
+          const a = this.phaseTimer * 0.08 + ring * 0.15 + (i / 10) * Math.PI * 2;
+          const b = new Bullet(this.x, this.y, a, 1.9 + ring * 0.35, '#ffb25d', false, 1);
+          b.radius = 3;
+          enemyBullets.push(b);
+        }
+      }
+    } else if (phase.attack === 'teleport') {
+      this.teleportToSafePoint(this.currentPhase > 0 ? 220 : 180);
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = (i / total) * Math.PI * 2 + this.phaseTimer * 0.04;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + rageSpeed, '#88f', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = this.currentPhase > 0 ? 3.8 : 3;
+        enemyBullets.push(b);
+      }
+      if (this.currentPhase > 0) {
+        for (let i = 0; i < 6; i++) {
+          const a = this.turretAngle + (i - 2.5) * 0.09;
+          const b = new Bullet(this.x, this.y, a, 3.4, '#d9e6ff', false, 1);
+          b.radius = 2.6;
+          enemyBullets.push(b);
+        }
+      }
+    } else if (phase.attack === 'clone_barrage') {
+      const clusters = this.currentPhase > 0 ? 5 : 3;
+      for (let j = 0; j < clusters; j++) {
+        const angle = (j / clusters) * Math.PI * 2 + this.phaseTimer * 0.05;
+        const cx = player.x + Math.cos(angle) * (this.currentPhase > 0 ? 120 : 90);
+        const cy = player.y + Math.sin(angle) * (this.currentPhase > 0 ? 100 : 70);
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2 + angle * 0.4;
+          const b = new Bullet(cx, cy, a, phase.bulletSpeed + 0.15, '#aaf', false, 1);
+          b.radius = 3.2;
+          enemyBullets.push(b);
+        }
+      }
+      this.teleportToSafePoint(210);
+    } else if (phase.attack === 'turret_salvo') {
+      const offsets = [-30, 0, 30];
+      for (const offset of offsets) {
+        const tx = this.x + offset;
+        for (let i = 0; i < Math.max(4, Math.floor((phase.bulletCount + bonusBullets) / 3)); i++) {
+          const a = Math.atan2(player.y - this.y, player.x - tx) + (i - 2) * 0.12;
+          const b = new Bullet(tx, this.y, a, phase.bulletSpeed + rageSpeed, '#ca4', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = offset === 0 ? 4 : 3.2;
+          enemyBullets.push(b);
+        }
+      }
+      if (this.currentPhase > 0) this.deployMines(2, 180);
+    } else if (phase.attack === 'mine_storm') {
+      this.deployMines(this.currentPhase > 0 ? 6 : 4, this.currentPhase > 0 ? 240 : 190);
+      for (let i = 0; i < phase.bulletCount + bonusBullets; i++) {
+        const a = this.turretAngle + (i - (phase.bulletCount + bonusBullets) / 2) * 0.085;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + 0.1, '#ff0', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = this.currentPhase > 0 ? 3.8 : 3;
+        enemyBullets.push(b);
+      }
+    } else if (phase.attack === 'gravity_wave') {
+      for (let i = 0; i < phase.bulletCount + bonusBullets; i++) {
+        const a = this.turretAngle + (i - (phase.bulletCount + bonusBullets) / 2) * 0.16;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + rageSpeed, '#c4f', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = this.currentPhase > 0 ? 5 : 4;
+        enemyBullets.push(b);
+      }
+      if (this.currentPhase > 0 && hpRatio < 0.4 && this.phaseBurstCooldown <= 0) {
+        this.phaseBurstCooldown = 70;
+        this.emitPhaseBurst(false);
+      }
     } else if (phase.attack === 'black_hole') {
-      // Pull player toward boss
       const pdx = player.x - this.x, pdy = player.y - this.y;
-      const pdist = Math.sqrt(pdx*pdx + pdy*pdy);
+      const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
       if (pdist > 30 && pdist < 350) {
-        player.x -= (pdx / pdist) * 1.5;
-        player.y -= (pdy / pdist) * 1.5;
+        this.pushPlayer(-(pdx / pdist) * (this.currentPhase > 0 ? 2.8 : 1.8), -(pdy / pdist) * (this.currentPhase > 0 ? 2.8 : 1.8));
       }
-      // Spiral bullets outward
-      for (let i = 0; i < phase.bulletCount; i++) {
-        const a = (i / phase.bulletCount) * Math.PI * 2;
-        enemyBullets.push(new Bullet(this.x, this.y, a, phase.bulletSpeed, '#a4f', false));
+      for (let i = 0; i < phase.bulletCount + bonusBullets; i++) {
+        const a = this.phaseTimer * 0.06 + (i / (phase.bulletCount + bonusBullets)) * Math.PI * 2;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + 0.25, '#a4f', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = this.currentPhase > 0 ? 4.2 : 3.4;
+        enemyBullets.push(b);
       }
-      spawnExplosion(this.x, this.y, 10, '#a4f', '#fff');
+      spawnExplosion(this.x, this.y, this.currentPhase > 0 ? 18 : 12, '#a4f', '#fff');
+      triggerShake(this.currentPhase > 0 ? 10 : 6, 10);
     } else if (phase.attack === 'lightning_chain') {
-      for (let i = 0; i < phase.bulletCount; i++) {
-        const a = this.turretAngle + (i - phase.bulletCount/2) * 0.1;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#4ff', false, 1);
+      for (let i = 0; i < phase.bulletCount + bonusBullets; i++) {
+        const a = this.turretAngle + (i - (phase.bulletCount + bonusBullets) / 2) * 0.085;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + rageSpeed, '#4ff', false, this.currentPhase > 0 ? 2 : 1);
         b.radius = 2;
         b.railgun = true; // piercing lightning bolts
         enemyBullets.push(b);
       }
+      if (this.currentPhase > 0) this.spawnStormLances(2);
     } else if (phase.attack === 'thunder_storm') {
-      // Scatter from random positions around boss
-      for (let j = 0; j < 5; j++) {
-        const sx = this.x + (rng() - 0.5) * 300;
-        const sy = this.y + (rng() - 0.5) * 200;
+      const strikes = this.currentPhase > 0 ? 7 : 5;
+      for (let j = 0; j < strikes; j++) {
+        const angle = (j / strikes) * Math.PI * 2 + this.phaseTimer * 0.03;
+        const sx = player.x + Math.cos(angle) * (120 + rng() * 80);
+        const sy = player.y + Math.sin(angle) * (80 + rng() * 60);
         for (let i = 0; i < 4; i++) {
           const a = (i / 4) * Math.PI * 2;
-          enemyBullets.push(new Bullet(sx, sy, a, phase.bulletSpeed, '#4ff', false));
+          const b = new Bullet(sx, sy, a, phase.bulletSpeed + 0.1, '#4ff', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = this.currentPhase > 0 ? 3.2 : 2.8;
+          enemyBullets.push(b);
         }
       }
-      spawnExplosion(this.x, this.y, 20, '#4ff', '#fff');
+      spawnExplosion(this.x, this.y, this.currentPhase > 0 ? 28 : 20, '#4ff', '#fff');
+      triggerShake(this.currentPhase > 0 ? 8 : 5, 8);
     }
   }
+  emitPhaseBurst(isTransition) {
+    const count = isTransition ? 24 : (this.currentPhase > 0 ? 18 : 12);
+    const speed = isTransition ? 2.8 : 2.2;
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + this.phaseTimer * 0.05;
+      const b = new Bullet(this.x, this.y, a, speed + (i % 2) * 0.45, this.bossDef.turret || '#ff9f4a', false, isTransition ? 2 : 1);
+      b.radius = isTransition ? 3.6 : 2.8;
+      enemyBullets.push(b);
+    }
+  }
+  teleportToSafePoint(minPlayerDist) {
+    const safe = findSafeTankSpawn({
+      w: 54,
+      h: 54,
+      minEnemyDist: 90,
+      minPlayerDist: minPlayerDist || 180,
+      preferred: [
+        { x: player.x + 180, y: player.y - 90 },
+        { x: player.x - 180, y: player.y - 90 },
+        { x: player.x + 180, y: player.y + 90 },
+        { x: player.x - 180, y: player.y + 90 },
+        { x: W / 2, y: H * 0.25 },
+      ].map(p => ({
+        x: Math.max(48, Math.min(W - 48, p.x)),
+        y: Math.max(48, Math.min(H - 48, p.y)),
+      })),
+    });
+    spawnExplosion(this.x, this.y, 18, '#88f', '#fff');
+    this.x = safe.x;
+    this.y = safe.y;
+    spawnExplosion(this.x, this.y, 22, '#dfe8ff', this.bossDef.turret || '#88f');
+    triggerShake(6, 8);
+  }
+  deployMines(count, spread) {
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + rng() * 0.4;
+      const radius = 65 + rng() * (spread || 180);
+      const mx = Math.max(36, Math.min(W - 36, this.x + Math.cos(angle) * radius));
+      const my = Math.max(36, Math.min(H - 36, this.y + Math.sin(angle) * radius));
+      if (!tankCollidesObstacle(mx, my, 18, 18)) {
+        mines.push({ x: mx, y: my, life: 820, armed: true });
+      }
+    }
+  }
+  spawnStormLances(count) {
+    for (let i = 0; i < count; i++) {
+      const angle = this.turretAngle + (i - (count - 1) / 2) * 0.28;
+      const b = new Bullet(this.x, this.y, angle, 4.1 + i * 0.15, '#8fffff', false, 1);
+      b.railgun = true;
+      b.radius = 2.2;
+      enemyBullets.push(b);
+    }
+  }
+  spawnBossEscort() {
+    if (enemies.length >= 13) return;
+    let escortDef = eliteTypes[0];
+    if (this.bossDef.name === '巨兽坦克') escortDef = eliteTypes[0];
+    else if (this.bossDef.name === '幻影坦克') escortDef = eliteTypes[2];
+    else if (this.bossDef.name === '要塞坦克') escortDef = eliteTypes[9];
+    else if (this.bossDef.name === '虚空坦克') escortDef = eliteTypes[6];
+    else if (this.bossDef.name === '风暴坦克') escortDef = eliteTypes[8];
+    const spawn = findSafeTankSpawn({
+      w: 36,
+      h: 36,
+      minEnemyDist: 50,
+      minPlayerDist: 130,
+      preferred: [
+        { x: this.x + 90, y: this.y + 70 },
+        { x: this.x - 90, y: this.y + 70 },
+        { x: this.x + 70, y: this.y - 80 },
+        { x: this.x - 70, y: this.y - 80 },
+      ].map(p => ({
+        x: Math.max(36, Math.min(W - 36, p.x)),
+        y: Math.max(36, Math.min(H - 36, p.y)),
+      })),
+    });
+    enemies.push(new EliteEnemy(spawn.x, spawn.y, escortDef));
+    waveEnemiesRemaining++;
+    waveEnemiesTotal++;
+    spawnExplosion(spawn.x, spawn.y, 12, escortDef.turret, '#fff');
+  }
   draw(ctx) {
-    const t = Date.now() / 300; const bpulse = Math.sin(Date.now()/200)*0.3+0.7;
-    ctx.save(); ctx.translate(this.x, this.y);
-    ctx.shadowColor = '#ff0'; ctx.shadowBlur = 15 + bpulse * 8;
+    const t = Date.now() / 300;
+    const bpulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+    const hpRatio = this.hp / this.maxHp;
+    const phaseRatio = this.currentPhase > 0 ? 1 : 0;
+    const accent = this.bossDef.turret || '#ffd36f';
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = 15 + bpulse * 8 + phaseRatio * 10;
+
+    if (this.currentPhase > 0) {
+      ctx.strokeStyle = 'rgba(255,125,70,0.22)';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.auraRadius, -Math.PI * 0.2 + t * 0.3, Math.PI * 1.25 + t * 0.3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, this.auraRadius + 10, Math.PI * 0.15 - t * 0.25, Math.PI * 1.1 - t * 0.25);
+      ctx.stroke();
+    }
 
     // Type-specific visual
     const btype = this.bossDef.name;
@@ -3846,42 +4152,118 @@ class BossEnemy extends EliteEnemy {
     }
 
     ctx.shadowBlur = 0;
+    if (this.hitFlash > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,' + (this.hitFlash / 10 * 0.18) + ')';
+      ctx.beginPath();
+      ctx.arc(0, 0, 32 + this.hitFlash * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // Phase indicator
     const p = this.bossDef.phases[Math.max(0,this.currentPhase)];
     if (p) {
-      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
-      ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
-      ctx.fillText(p.name, 0, -32);
+      drawArmorPanel(ctx, -62, -50, 124, 16, 'rgba(8,12,18,0.82)', 'rgba(255,255,255,0.14)', 4);
+      ctx.fillStyle = this.currentPhase > 0 ? '#ffd27a' : '#ffffff';
+      ctx.font = 'bold 10px "Segoe UI","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 4;
+      ctx.fillText(p.name, 0, -38);
     }
     ctx.restore();
-    // Boss HP bar at top of screen
+
+    if (this.phaseFlash > 0) {
+      const overlayAlpha = Math.min(0.22, this.phaseFlash / 180 * 0.22);
+      const gradient = ctx.createRadialGradient(this.x, this.y, 30, this.x, this.y, Math.max(W, H) * 0.75);
+      gradient.addColorStop(0, 'rgba(255,120,60,0)');
+      gradient.addColorStop(0.55, 'rgba(120,16,10,' + (overlayAlpha * 0.55) + ')');
+      gradient.addColorStop(1, 'rgba(18,0,0,' + overlayAlpha + ')');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, W, H);
+    }
+
     if (this.alive) {
-      const bhpW = Math.min(500, W - 100), bfpH = 16;
-      const accent = this.bossDef.turret || '#ffd36f';
-      drawArmorPanel(ctx, W/2 - bhpW/2 - 8, 4, bhpW + 16, bfpH + 14, 'rgba(8,12,18,0.82)', 'rgba(220,235,255,0.14)', 5);
-      ctx.fillStyle = accent;
-      ctx.fillRect(W/2 - bhpW/2 - 4, 8, 4, bfpH + 6);
-      drawEnemyMarker(ctx, W/2 - bhpW/2 - 20, 18, 'boss', 8, accent);
-      ctx.fillStyle = 'rgba(45,12,12,0.9)';
-      ctx.fillRect(W/2 - bhpW/2, 14, bhpW, bfpH);
-      const hpr = this.hp / this.maxHp;
-      const hpGrad = ctx.createLinearGradient(W/2 - bhpW/2, 0, W/2 + bhpW/2, 0);
-      hpGrad.addColorStop(0, accent);
-      hpGrad.addColorStop(0.55, hpr > 0.35 ? '#ff9d52' : '#ff5a5a');
-      hpGrad.addColorStop(1, '#ff4a4a');
-      ctx.fillStyle = hpGrad;
-      ctx.fillRect(W/2 - bhpW/2, 14, bhpW * hpr, bfpH);
-      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      const bhpW = Math.min(560, W - 88);
+      const panelX = W / 2 - bhpW / 2 - 22;
+      const panelY = 4;
+      const panelH = 58;
+      const dangerPulse = Math.sin(Date.now() / 130) * 0.5 + 0.5;
+      const warningAlpha = this.currentPhase > 0 ? 0.16 + dangerPulse * 0.08 : 0.08 + dangerPulse * 0.04;
+      drawArmorPanel(ctx, panelX, panelY, bhpW + 44, panelH, 'rgba(6,10,16,0.92)', 'rgba(255,212,122,0.16)', 6);
+      ctx.fillStyle = 'rgba(255,120,60,' + warningAlpha + ')';
+      for (let i = 0; i < 8; i++) {
+        const stripeX = panelX + 12 + i * ((bhpW + 12) / 8);
+        ctx.beginPath();
+        ctx.moveTo(stripeX, panelY + 8);
+        ctx.lineTo(stripeX + 10, panelY + 8);
+        ctx.lineTo(stripeX - 4, panelY + 20);
+        ctx.lineTo(stripeX - 14, panelY + 20);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      drawEnemyMarker(ctx, panelX + 16, panelY + 31, 'boss', 10, accent);
+      ctx.fillStyle = '#f7c774';
       ctx.font = 'bold 10px "Courier New",monospace';
       ctx.textAlign = 'left';
-      ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
-      ctx.fillText('BOSS LOCK', W/2 - bhpW/2 + 8, 11);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 13px "Segoe UI","Microsoft YaHei",sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(this.bossDef.name + '  ' + Math.ceil(this.hp) + '/' + this.maxHp, W/2, 12 + bfpH/2 + 6);
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 4;
+      ctx.fillText('BOSS ALERT / THREAT ' + this.threatRating.toFixed(1), panelX + 34, panelY + 18);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px "Segoe UI","Microsoft YaHei",sans-serif';
+      ctx.fillText(this.bossDef.name, panelX + 34, panelY + 37);
+      ctx.font = 'bold 10px "Segoe UI","Microsoft YaHei",sans-serif';
+      ctx.fillStyle = hpRatio > 0.5 ? '#a8f4c0' : (hpRatio > 0.24 ? '#ffd36f' : '#ff7676');
+      ctx.fillText('PHASE ' + (this.currentPhase + 1) + '  /  ' + p.name + '  /  ' + Math.ceil(this.hp) + ' HP', panelX + 34, panelY + 51);
+
+      const barX = panelX + 200;
+      const barY = panelY + 24;
+      const barW = bhpW - 210;
+      const barH = 14;
+      ctx.fillStyle = 'rgba(45,12,12,0.88)';
+      ctx.fillRect(barX, barY, barW, barH);
+      const hpGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+      hpGrad.addColorStop(0, accent);
+      hpGrad.addColorStop(0.5, this.currentPhase > 0 ? '#ff9448' : '#ffb45c');
+      hpGrad.addColorStop(1, hpRatio > 0.3 ? '#ff5a5a' : '#ff2f4f');
+      ctx.fillStyle = hpGrad;
+      ctx.fillRect(barX, barY, barW * hpRatio, barH);
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, barY, barW, barH);
+      for (let i = 1; i < 8; i++) {
+        const gx = barX + barW * i / 8;
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.beginPath();
+        ctx.moveTo(gx, barY + 1);
+        ctx.lineTo(gx, barY + barH - 1);
+        ctx.stroke();
+      }
+
+      const sidePulse = this.currentPhase > 0 ? 1 : 0.6;
+      ctx.strokeStyle = 'rgba(255,196,112,' + (0.32 + dangerPulse * 0.2 * sidePulse) + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(panelX - 6, panelY + 18);
+      ctx.lineTo(panelX + 4, panelY + 18);
+      ctx.lineTo(panelX + 4, panelY + panelH - 10);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(panelX + bhpW + 50, panelY + 18);
+      ctx.lineTo(panelX + bhpW + 40, panelY + 18);
+      ctx.lineTo(panelX + bhpW + 40, panelY + panelH - 10);
+      ctx.stroke();
       ctx.shadowBlur = 0;
     }
+  }
+  hit(bullet) {
+    if (this.transitionLock > 0) return false;
+    const dead = super.hit(bullet);
+    this.hitFlash = 6;
+    if (!dead && this.currentPhase > 0 && this.phaseBurstCooldown <= 0 && rng() < 0.18) {
+      this.phaseBurstCooldown = 75;
+      this.emitPhaseBurst(false);
+    }
+    return dead;
   }
 }
 
@@ -4576,10 +4958,14 @@ function distanceToNearestEnemy(x, y) {
   return nearest;
 }
 
-function isSafeTankPosition(x, y, w, h, minEnemyDist) {
+function isSafeTankPosition(x, y, w, h, minEnemyDist, minPlayerDist) {
   if (x < 30 || x > W - 30 || y < 30 || y > H - 30) return false;
   if (tankCollidesObstacle(x, y, w, h)) return false;
   if (Number.isFinite(minEnemyDist) && distanceToNearestEnemy(x, y) < minEnemyDist) return false;
+  if (player && Number.isFinite(minPlayerDist) && minPlayerDist > 0) {
+    const pdx = player.x - x, pdy = player.y - y;
+    if (Math.sqrt(pdx * pdx + pdy * pdy) < minPlayerDist) return false;
+  }
   return true;
 }
 
@@ -4587,6 +4973,7 @@ function findSafeTankSpawn(options = {}) {
   const w = options.w || 36;
   const h = options.h || 36;
   const minEnemyDist = options.minEnemyDist || 0;
+  const minPlayerDist = options.minPlayerDist || 0;
   const preferred = options.preferred || [
     { x: W / 2, y: H - 70 },
     { x: W / 2, y: H - 120 },
@@ -4597,7 +4984,7 @@ function findSafeTankSpawn(options = {}) {
   ];
 
   for (const p of preferred) {
-    if (isSafeTankPosition(p.x, p.y, w, h, minEnemyDist)) return { x: p.x, y: p.y };
+    if (isSafeTankPosition(p.x, p.y, w, h, minEnemyDist, minPlayerDist)) return { x: p.x, y: p.y };
   }
 
   let best = null;
@@ -4606,9 +4993,14 @@ function findSafeTankSpawn(options = {}) {
     const x = 40 + rng() * (W - 80);
     const y = 40 + rng() * (H - 80);
     if (tankCollidesObstacle(x, y, w, h)) continue;
+    if (player && minPlayerDist > 0) {
+      const pdx = player.x - x, pdy = player.y - y;
+      if (Math.sqrt(pdx * pdx + pdy * pdy) < minPlayerDist) continue;
+    }
     const edgePenalty = Math.min(x, W - x, y, H - y);
-    const enemyDist = distanceToNearestEnemy(x, y);
-    const score = edgePenalty + enemyDist * 1.6;
+    const enemyDist = Math.min(999, distanceToNearestEnemy(x, y));
+    const playerDist = player ? Math.min(600, Math.sqrt((player.x - x) * (player.x - x) + (player.y - y) * (player.y - y))) : 160;
+    const score = edgePenalty + enemyDist * 1.6 + playerDist * 0.75;
     if (enemyDist >= minEnemyDist && score > bestScore) {
       best = { x, y };
       bestScore = score;
@@ -4619,7 +5011,9 @@ function findSafeTankSpawn(options = {}) {
   for (let i = 0; i < 180; i++) {
     const x = 40 + rng() * (W - 80);
     const y = 40 + rng() * (H - 80);
-    if (!tankCollidesObstacle(x, y, w, h)) return { x, y };
+    if (!tankCollidesObstacle(x, y, w, h) && (!player || minPlayerDist <= 0 || Math.sqrt((player.x - x) * (player.x - x) + (player.y - y) * (player.y - y)) >= minPlayerDist)) {
+      return { x, y };
+    }
   }
   return { x: W / 2, y: H - 70 };
 }
