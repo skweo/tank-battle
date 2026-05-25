@@ -18,8 +18,9 @@ body {
 }
 #game-container {
   position: relative;
-  border: 3px solid #444;
-  box-shadow: 0 0 30px rgba(0,150,0,0.3);
+  border: 3px solid rgba(200,160,80,0.3);
+  box-shadow: 0 0 30px rgba(200,150,40,0.2);
+  overflow: hidden;
 }
 canvas {
   display: block;
@@ -196,6 +197,10 @@ canvas {
   transition: all 0.3s;
 }
 #start-screen .achieve-link:hover { color: #da0; border-color: rgba(220,170,0,0.5); text-shadow: 0 0 8px rgba(200,150,40,0.3); }
+.currency-display {
+  color: #da0; font-size: 14px; letter-spacing: 2px; text-align: center;
+  font-family: 'STKaiti','KaiTi',serif; text-shadow: 0 0 8px rgba(200,150,40,0.4);
+}
 .daily-challenge-btn { color: #c8a860 !important; border-color: rgba(200,160,80,0.5) !important; }
 #tank-select-screen .tank-card.locked-card { opacity: 0.5; cursor: pointer; border-color: rgba(80,70,60,0.4); }
 #tank-select-screen .tank-card.locked-card:hover { border-color: rgba(200,160,80,0.5); background: rgba(30,20,10,0.3); box-shadow: none; }
@@ -722,6 +727,7 @@ canvas {
     <h1>幻 月 战 记</h1>
     <p class="subtitle">G E N G E T S U &nbsp; S E N K I</p>
     <div class="ornament"></div>
+    <p class="currency-display" id="currency-display">💎 0</p>
     <div class="difficulty-buttons" id="difficulty-buttons"></div>
     <p class="diff-info" id="diff-info"></p>
     <div class="ornament" style="width:160px;"></div>
@@ -1149,11 +1155,7 @@ function startDailyChallenge() {
     targetEl.textContent = '🎯 今日目标: ' + dailyTarget.desc + ' (奖励' + dailyTarget.reward + '💎)';
     targetEl.style.display = 'block';
   }
-  showTankSelect(currentDifficulty);
-  setTimeout(() => {
-    const card = document.querySelector('.tank-card.' + currentTankType);
-    if (card && !card.classList.contains('locked-card')) card.click();
-  }, 100);
+  startGame(currentDifficulty, currentTankType);
 }
 
 // --- Wave Modifier System ---
@@ -1262,7 +1264,7 @@ function renderDifficultyButtons() {
     const unlocked = unlockedDifficulties.has(key);
     const cls = classes[idx] || '';
     if (unlocked) {
-      return `<button class="diff-btn ${cls}" onclick="showTankSelect('${key}')">${diff.label}</button>`;
+      return `<button class="diff-btn ${cls}" onclick="startGame('${key}')">${diff.label}</button>`;
     } else {
       return `<button class="diff-btn ${cls} locked" disabled>🔒 ${diff.label}<br><span class="lock-hint">${diff.label}模式获得${diff.unlockScore}分解锁</span></button>`;
     }
@@ -1276,6 +1278,9 @@ function renderDifficultyButtons() {
       ? `${d.label}: ${d.lives}条命 · 敌HP+${d.enemyHpBonus} · 速度×${d.enemySpeedMul}`
       : `<span class="locked-info">${d.label}: 🔒 需分数${d.unlockScore}解锁</span>`;
   }).join('<br>');
+  // Update currency + active tank
+  const curEl = document.getElementById('currency-display');
+  if (curEl) curEl.textContent = '💎 ' + coreFragments + '  |  🚀 ' + (tankTypes[currentTankType]?.name || '??');
 }
 
 function showTankSelect(difficulty) {
@@ -1567,22 +1572,22 @@ const RARITY_CONFIG = {
   legendary: { weight: 10, durationMul: 2.5, descSuffix: ' [传说]', glowColor: '#fd0', size: 16 },
 };
 const powerUpDefs = [
-  { type: 'speed',    name: '加强履带', icon: '⚡', color: '#4af', desc: '移速×1.2', duration: 600 },
-  { type: 'railgun',  name: '电磁炮',   icon: '🔫', color: '#a4f', desc: '穿透脉冲', duration: 480 },
-  { type: 'ricochet', name: '反弹弹',   icon: '💫', color: '#fa4', desc: '子弹弹射', duration: 600 },
-  { type: 'shield',   name: '能量护盾', icon: '🛡️', color: '#4ff', desc: '临时无敌', duration: 300 },
-  { type: 'rapid',    name: '急速连射', icon: '🔥', color: '#f44', desc: '射速翻倍', duration: 420 },
-  { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复2HP', duration: 0 },
-  { type: 'freeze',   name: '冰冻弹',   icon: '❄️', color: '#8cf', desc: '减缓敌人', duration: 360 },
-  { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '三发散射', duration: 540 },
-  { type: 'magnet',   name: '磁铁',     icon: '🧲', color: '#c8f', desc: '自动吸取道具', duration: 480 },
-  { type: 'pierce',   name: '穿甲弹',   icon: '🗡️', color: '#ff8', desc: '子弹穿透敌人', duration: 420 },
-  { type: 'vampire',  name: '生命汲取', icon: '🩸', color: '#f66', desc: '击杀恢复1HP', duration: 480 },
-  { type: 'double_score', name: '双倍积分', icon: '✨', color: '#ff0', desc: '积分翻倍', duration: 480 },
-  { type: 'big_bullet', name: '巨型子弹', icon: '💣', color: '#f80', desc: '子弹判定扩大', duration: 420 },
-  { type: 'explosive',name: '爆炸弹',   icon: '💢', color: '#f84', desc: '子弹爆炸溅射', duration: 420 },
-  { type: 'invisible',name: '光学迷彩', icon: '👻', color: '#aaa', desc: '敌人索敌减半', duration: 480 },
-  { type: 'thorns',   name: '荆棘护甲', icon: '🌵', color: '#8f8', desc: '反弹接触伤害', duration: 360 },
+  { type: 'speed',    name: '加强履带', icon: '⚡', color: '#4af', desc: '移速×1.2', duration: 900 },
+  { type: 'railgun',  name: '电磁炮',   icon: '🔫', color: '#a4f', desc: '穿透脉冲', duration: 720 },
+  { type: 'ricochet', name: '反弹弹',   icon: '💫', color: '#fa4', desc: '子弹弹射', duration: 900 },
+  { type: 'shield',   name: '能量护盾', icon: '🛡️', color: '#4ff', desc: '临时无敌', duration: 420 },
+  { type: 'rapid',    name: '急速连射', icon: '🔥', color: '#f44', desc: '射速翻倍', duration: 660 },
+  { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复3HP', duration: 0 },
+  { type: 'freeze',   name: '冰冻弹',   icon: '❄️', color: '#8cf', desc: '减缓敌人', duration: 540 },
+  { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '三发散射', duration: 780 },
+  { type: 'magnet',   name: '磁铁',     icon: '🧲', color: '#c8f', desc: '自动吸取道具', duration: 720 },
+  { type: 'pierce',   name: '穿甲弹',   icon: '🗡️', color: '#ff8', desc: '子弹穿透敌人', duration: 660 },
+  { type: 'vampire',  name: '生命汲取', icon: '🩸', color: '#f66', desc: '击杀恢复1HP', duration: 720 },
+  { type: 'double_score', name: '双倍积分', icon: '✨', color: '#ff0', desc: '积分翻倍', duration: 720 },
+  { type: 'big_bullet', name: '巨型子弹', icon: '💣', color: '#f80', desc: '子弹判定扩大', duration: 660 },
+  { type: 'explosive',name: '爆炸弹',   icon: '💢', color: '#f84', desc: '子弹爆炸溅射', duration: 660 },
+  { type: 'invisible',name: '光学迷彩', icon: '👻', color: '#aaa', desc: '敌人索敌减半', duration: 720 },
+  { type: 'thorns',   name: '荆棘护甲', icon: '🌵', color: '#8f8', desc: '反弹接触伤害', duration: 540 },
 ];
 function getRandomRarity() {
   const r = Math.random() * 100;
@@ -3432,10 +3437,13 @@ function renderLabUI() {
     const evolved = evolvedTanks.has(k);
     const evoName = evolved ? TANK_EVOLUTION[k].name : '';
     const selected = labSelectedTank === k;
+    const cond = TANK_UNLOCK_CONDITIONS[k];
     return `<div class="lab-tank-card ${unlocked?'':'locked'} ${selected?'selected':''} ${evolved?'evolved':''}" onclick="${unlocked?'selectLabTank(\''+k+'\')':'tryUnlockFromLab(\''+k+'\')'}">
-      <span class="lab-tank-icon">${evolved ? TANK_EVOLUTION[k].icon : icons[k]}</span>
-      <div class="lab-tank-name">${evolved ? evoName : tankTypes[k].name}</div>
-      <div class="lab-tank-dots">${unlocked ? '★'.repeat(totalUpg)+'☆'.repeat(12-totalUpg) : '🔒'}</div>
+      <span class="lab-tank-icon">${unlocked ? (evolved ? TANK_EVOLUTION[k].icon : icons[k]) : '🔒'}</span>
+      <div class="lab-tank-name">${unlocked ? (evolved ? evoName : tankTypes[k].name) : tankTypes[k].name}</div>
+      ${unlocked
+        ? `<div class="lab-tank-dots">${'★'.repeat(totalUpg)}${'☆'.repeat(12-totalUpg)}</div>`
+        : `<div class="lab-tank-dots" style="color:#887860;">${cond.cost > 0 ? cond.cost+'💎' : cond.desc}</div>`}
       ${evolved ? '<div class="lab-evo-badge">進化</div>' : ''}
     </div>`;
   }).join('');
@@ -3486,7 +3494,9 @@ function tryUnlockFromLab(tank) {
 function setActiveTank(tank) {
   currentTankType = tank;
   hideLabScreen();
-  showTankSelect(currentDifficulty);
+  // Auto-start with the currently set difficulty
+  if (currentDifficulty) startGame(currentDifficulty);
+  else showTankSelect('easy');
 }
 function showLabScreen() {
   labSelectedTank = currentTankType;
@@ -4149,6 +4159,8 @@ function init() {
 function startGame(difficulty, tankType) {
   currentDifficulty = difficulty;
   if (tankType) currentTankType = tankType;
+  // Ensure selected tank is unlocked
+  if (!unlockedTanks.has(currentTankType)) currentTankType = 'spread';
   const diff = difficultySettings[difficulty];
   lives = diff.lives;
   score = 0;
