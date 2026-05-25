@@ -1249,9 +1249,9 @@ function showTankSelect(difficulty) {
   const container = document.querySelector('#tank-select-screen .tank-cards');
   const tankKeys = ['spread','focus','wide','burst','sniper','homing'];
   const tankNamesExtra = ['博丽灵梦式','雾雨魔理沙式','十六夜咲夜式','芙兰朵露式','八意永琳式','东风谷早苗式'];
-  const tankDescs = ['3方向扩散弹幕','高速集中火力','5方向广域压制','7方向爆裂弹幕','超远程高伤狙击','追踪弹幕'];
-  const tankDetails = ['中等速度 · 标准血量','快速移动 · 较低血量','低速移动 · 较高血量','标准速度 · 标准血量','极慢移动 · 较低血量','双发弹幕 · 每4发追踪弹'];
-  const tankIcons = ['☆','★','❋','✦','◈','◎'];
+  const tankDescs = ['渐进式扩散压制','单点高能输出','控场型广域封锁','爆燃溅射火力','远程点杀贯穿','持续导引追猎'];
+  const tankDetails = ['均衡机体 · 依赖弹幕密度成长','机动优秀 · 依赖主炮精度成长','生存更稳 · 依赖控场扩展成长','节奏偏慢 · 依赖爆炸收益成长','脆但致命 · 依赖狙击校准成长','泛用灵活 · 依赖导引网络成长'];
+  const tankIcons = ['⬣','▸','◫','✹','⟐','◉'];
   container.innerHTML = tankKeys.map((key, i) => {
     const t = tankTypes[key];
     const unlocked = unlockedTanks.has(key);
@@ -1792,7 +1792,7 @@ function renderBestiary() {
   if (bestiaryTab === 'powerups') {
     items = powerUpDefs.map(p => ({
       glyph: getEnemyVisualProfile('powerup').glyph, color: p.color, classLabel: 'MODULE',
-      name: p.name, desc: p.desc,
+      name: p.name, desc: p.desc, powerType: p.type,
       tag: p.duration > 0 ? (p.duration/60).toFixed(0) + '秒' : '即时',
       subTag: '拾取强化',
     }));
@@ -1817,13 +1817,14 @@ function renderBestiary() {
   } else {
     items = FUSION_RECIPES.map(f => ({
       glyph: getEnemyVisualProfile('fusion').glyph, color: getEnemyVisualProfile('fusion').color, classLabel: 'FUSION',
-      name: f.name,
+      name: f.name, fusionId: f.id,
       desc: f.desc,
       tag: f.requires.map(r => powerUpDefs.find(p => p.type === r)?.name || r).join(' + '),
       subTag: '组合协议',
     }));
   }
   grid.innerHTML = items.map(buildBestiaryRow).join('');
+  renderBestiaryCanvases();
 }
 
 function switchBestiaryTab(tab) {
@@ -2150,6 +2151,69 @@ function drawPowerUpGlyph(ctx, p, size) {
   }
 }
 
+function drawFusionGlyph(ctx, fusionId, x, y, size) {
+  const s = size;
+  switch (fusionId) {
+    case 'gold_magnet':
+      drawPowerUpGlyph(ctx, { type:'magnet', x: x - s * 0.18, y }, s * 0.78);
+      drawPowerUpGlyph(ctx, { type:'double_score', x: x + s * 0.28, y }, s * 0.72);
+      break;
+    case 'railgun_plus':
+      drawPowerUpGlyph(ctx, { type:'railgun', x, y: y - s * 0.02 }, s * 0.84);
+      ctx.strokeStyle = '#fff1b0';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(x - s * 0.42, y + s * 0.34); ctx.lineTo(x + s * 0.42, y - s * 0.34); ctx.stroke();
+      break;
+    case 'frost_blast':
+      drawPowerUpGlyph(ctx, { type:'freeze', x, y }, s * 0.82);
+      ctx.strokeStyle = '#ffae7a';
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2 + Math.PI / 4;
+        ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * s * 0.1, y + Math.sin(a) * s * 0.1); ctx.lineTo(x + Math.cos(a) * s * 0.5, y + Math.sin(a) * s * 0.5); ctx.stroke();
+      }
+      break;
+    case 'undying_thorns':
+      drawPowerUpGlyph(ctx, { type:'vampire', x: x - s * 0.12, y: y + s * 0.04 }, s * 0.8);
+      drawPowerUpGlyph(ctx, { type:'thorns', x: x + s * 0.16, y: y - s * 0.04 }, s * 0.66);
+      break;
+    case 'bullet_storm':
+      drawPowerUpGlyph(ctx, { type:'big_bullet', x: x - s * 0.12, y }, s * 0.8);
+      drawPowerUpGlyph(ctx, { type:'multishot', x: x + s * 0.2, y }, s * 0.62);
+      break;
+    default:
+      drawTechCore(ctx, x, y, s * 0.28, '#fff0fb', '#f3a8ff');
+  }
+}
+
+function getBestiaryVisual(item) {
+  if (item.fusionId) return `<canvas class="bst-preview-canvas" width="36" height="36" data-kind="fusion" data-id="${escapeHtml(item.fusionId)}"></canvas>`;
+  if (item.powerType) return `<canvas class="bst-preview-canvas" width="36" height="36" data-kind="powerup" data-id="${escapeHtml(item.powerType)}"></canvas>`;
+  return `<div class="bst-emblem">${escapeHtml(item.glyph || '◇')}</div>`;
+}
+
+function renderBestiaryCanvases() {
+  const canvases = document.querySelectorAll('#bestiary-grid .bst-preview-canvas');
+  canvases.forEach(canvas => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    const kind = canvas.dataset.kind;
+    const id = canvas.dataset.id;
+    if (kind === 'powerup') {
+      const def = powerUpDefs.find(p => p.type === id);
+      const accent = def ? def.color : '#f49800';
+      drawTechModuleShell(ctx, 15, 9, accent, accent);
+      drawPowerUpGlyph(ctx, { type:id, x:0, y:0 }, 8.4);
+    } else if (kind === 'fusion') {
+      drawTechModuleShell(ctx, 15, 9, '#f3a8ff', '#f3a8ff');
+      drawFusionGlyph(ctx, id, 0, 0, 10);
+    }
+    ctx.restore();
+  });
+}
+
 function drawBuffBadge(ctx, type, x, y, size, color) {
   ctx.save();
   ctx.translate(x, y);
@@ -2315,7 +2379,7 @@ function escapeHtml(text) {
 
 function buildBestiaryRow(it) {
   return `<div class="best-row" style="--threat:${escapeHtml(it.color || '#f49800')}">
-    <div class="bst-icon"><div class="bst-emblem">${escapeHtml(it.glyph || '◇')}</div></div>
+    <div class="bst-icon">${getBestiaryVisual(it)}</div>
     <div class="bst-info">
       <div class="bst-head">
         <div class="bst-name">${escapeHtml(it.name)}</div>
@@ -2608,7 +2672,8 @@ class PlayerTank extends Tank {
     const halfSpread = spread * (count - 1) / 2;
     for (let i = 0; i < count; i++) {
       const angleOffset = count === 1 ? 0 : -halfSpread + i * spread;
-      const dmg = Math.ceil(def.bulletDamage * playerBulletDmgMul) + (buffs.overdrive > 0 ? 1 : 0);
+      let dmg = Math.ceil(def.bulletDamage * playerBulletDmgMul) + (buffs.overdrive > 0 ? 1 : 0);
+      if (spType === 'pierce' || spType === 'super_pierce' || buffs.pierce > 0) dmg += (def.pierceDamageBonus || 0);
       const b = new Bullet(bx, by, this.turretAngle + angleOffset, baseSpeed, baseColor, true, dmg);
       b.radius = baseRadius;
       b.ricochet = isRicochet;
@@ -2856,7 +2921,7 @@ class PlayerTank extends Tank {
 }
 
 class EnemyTank extends Tank {
-  constructor(x, y, color, turretColor, speed, hp) {
+  constructor(x, y, color, turretColor, speed, hp, kind) {
     super(x, y, color, turretColor, speed, hp);
     this.aiTimer = rng() * 60;
     this.moveDir = rng() < 0.5 ? -1 : 1;
@@ -2867,6 +2932,7 @@ class EnemyTank extends Tank {
     this._origSpeed = speed;
     this.armor = false;
     this.isElite = false;
+    this.kind = kind || 'scout';
   }
   update() {
     if (!this.alive) return;
@@ -2945,13 +3011,75 @@ class EnemyTank extends Tank {
     }
   }
   draw(ctx) {
-    if (this.frozen > 0) {
-      ctx.save();
-      ctx.shadowColor = '#8cf';
-      ctx.shadowBlur = 10;
+    const accentMap = { scout:'#ff7272', runner:'#ffbf72', brute:'#ca8cff', artillery:'#ff8bd4' };
+    const accent = accentMap[this.kind] || '#f49800';
+    ctx.save();
+    ctx.shadowColor = this.frozen > 0 ? '#8cf' : accent;
+    ctx.shadowBlur = this.frozen > 0 ? 10 : 7;
+    ctx.translate(this.x, this.y);
+
+    switch(this.kind) {
+      case 'runner':
+        drawTankTracks(ctx, -14, 10, -9, 18, 4, '#311912', '#6a3526');
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(18, 0); ctx.lineTo(0, -10); ctx.lineTo(-12, -4); ctx.lineTo(-12, 4); ctx.lineTo(0, 10); ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#7a3d2c'; ctx.lineWidth = 1.6; ctx.stroke();
+        drawTechCore(ctx, 1, 0, 3.4, '#ffe6c9', accent);
+        ctx.save(); ctx.rotate(this.turretAngle);
+        drawWeaponBarrel(ctx, 3, -2.2, 13, 4.4, this.turretColor, '#7a3d2c', '#fff2df');
+        ctx.restore();
+        break;
+      case 'brute':
+        drawTankTracks(ctx, -21, 15, -13, 26, 7, '#241533', '#513271');
+        drawArmorPanel(ctx, -18, -11, 36, 22, this.color, '#5a3790', 4);
+        drawArmorPanel(ctx, -13, -7, 26, 14, '#c18cff', '#efd9ff', 3);
+        ctx.fillStyle = '#5a3790';
+        ctx.fillRect(-20, -8, 4, 16);
+        ctx.fillRect(16, -8, 4, 16);
+        drawTechCore(ctx, 0, 0, 5.2, '#f5e7ff', accent);
+        ctx.save(); ctx.rotate(this.turretAngle);
+        drawWeaponBarrel(ctx, 4, -3.5, 14, 7, this.turretColor, '#54327e', '#fff7ff');
+        ctx.restore();
+        break;
+      case 'artillery':
+        drawTankTracks(ctx, -18, 12, -12, 24, 5, '#30142a', '#6e295f');
+        drawArmorPanel(ctx, -15, -10, 30, 20, this.color, '#6e295f', 4);
+        drawArmorPanel(ctx, -10, -6, 20, 12, '#ff9ad8', '#ffd8f0', 3);
+        ctx.strokeStyle = 'rgba(255,216,240,0.24)';
+        ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.stroke();
+        drawTechCore(ctx, 0, -1, 4.3, '#fff0fb', accent);
+        ctx.save(); ctx.rotate(this.turretAngle);
+        drawWeaponBarrel(ctx, 5, -2.5, 17, 5, this.turretColor, '#6e295f', '#fff0fb');
+        ctx.fillStyle = '#ffd2f1';
+        ctx.beginPath(); ctx.arc(17, 0, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        break;
+      case 'scout':
+      default:
+        drawTankTracks(ctx, -17, 11, -11, 22, 5, '#331111', '#7a2b2b');
+        drawArmorPanel(ctx, -14, -9, 28, 18, this.color, '#812a2a', 4);
+        drawArmorPanel(ctx, -9, -6, 18, 12, '#ff8f8f', '#ffd4d4', 3);
+        drawTechCore(ctx, 0, 0, 4.1, '#ffe5e5', accent);
+        ctx.save(); ctx.rotate(this.turretAngle);
+        drawWeaponBarrel(ctx, 4, -2.4, 12, 4.8, this.turretColor, '#812a2a', '#fff0f0');
+        ctx.restore();
+        break;
     }
-    super.draw(ctx);
-    if (this.frozen > 0) ctx.restore();
+
+    if (this.hp < this.maxHp) {
+      const hpColor = this.hp / this.maxHp > 0.5 ? '#79f48d' : (this.hp / this.maxHp > 0.25 ? '#ffd36f' : '#ff6a6a');
+      drawEnemyInfoPlate(ctx, 0, -25, 74, this.hp / this.maxHp, hpColor, this.kind.toUpperCase(), 'HOSTILE', 'HP');
+      drawEnemyMarker(ctx, -47, -25, 'normal', 6.2, accent);
+    }
+
+    if (this.frozen > 0) {
+      ctx.globalAlpha = 0.24;
+      ctx.fillStyle = '#8cf';
+      ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
   }
   shoot() {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
@@ -3782,48 +3910,79 @@ const TANK_UNLOCK_CONDITIONS = {
 };
 
 const TANK_EVOLUTION = {
-  spread: { name:'夢想散華', icon:'🌸', bonus:'弹幕+2发', effect: function(t){ t.bulletCount+=2; t.spreadAngle*=0.8; } },
-  focus:  { name:'極限火花', icon:'💫', bonus:'穿甲+50%伤害', effect: function(t){ t.bulletDamage+=1; } },
-  wide:   { name:'永恆凍土', icon:'❄️', bonus:'冰冻时间翻倍', effect: function(t){ t.freezeDurationMul = (t.freezeDurationMul || 1) * 2; } },
-  burst:  { name:'終焉爆碎', icon:'💥', bonus:'爆炸范围+50%', effect: function(t){ t.explosionRadiusBonus = (t.explosionRadiusBonus || 0) + 0.5; } },
-  sniper: { name:'神域狙擊', icon:'🎯', bonus:'特殊弹追踪', effect: function(t){ t.sniperSpecialHoming = true; } },
-  homing: { name:'命運導引', icon:'🔮', bonus:'常驻微追踪', effect: function(t){ t.baseHomingStrength = Math.max(t.baseHomingStrength || 0, 0.03); } },
+  spread: [
+    { name:'夢想散華', icon:'🌸', bonus:'扩散密度提升', cost:180, effect(t){ t.bulletCount += 1; t.spreadAngle *= 0.94; } },
+    { name:'結界弹阵', icon:'❖', bonus:'稳定穿刺阵列', cost:320, effect(t){ t.bulletCount += 1; t.pierceDamageBonus = (t.pierceDamageBonus || 0) + 1; } },
+  ],
+  focus: [
+    { name:'極限火花', icon:'💫', bonus:'主炮输出强化', cost:180, effect(t){ t.bulletDamage += 1; t.bulletSpeed += 0.2; } },
+    { name:'星脉贯穿', icon:'✦', bonus:'电磁压缩束', cost:320, effect(t){ t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + 0.3; t.shootDelay = Math.max(14, t.shootDelay - 1); } },
+  ],
+  wide: [
+    { name:'永恆凍土', icon:'❄️', bonus:'冰域滞留延长', cost:180, effect(t){ t.freezeDurationMul = (t.freezeDurationMul || 1) * 1.25; } },
+    { name:'霜华矩阵', icon:'✼', bonus:'广域压制稳定', cost:320, effect(t){ t.bulletCount += 1; t.spreadAngle *= 0.95; } },
+  ],
+  burst: [
+    { name:'終焉爆碎', icon:'💥', bonus:'爆燃半径提升', cost:180, effect(t){ t.explosionRadiusBonus = (t.explosionRadiusBonus || 0) + 0.18; } },
+    { name:'灼界轰芯', icon:'✹', bonus:'连爆节奏优化', cost:320, effect(t){ t.bulletDamage += 1; t.shootDelay = Math.max(34, t.shootDelay - 3); } },
+  ],
+  sniper: [
+    { name:'神域狙擊', icon:'🎯', bonus:'狙击校准增强', cost:180, effect(t){ t.bulletDamage += 1; t.bulletSpeed += 0.35; } },
+    { name:'天穹锁定', icon:'⟡', bonus:'终端追猎弹道', cost:320, effect(t){ t.sniperSpecialHoming = true; t.specialInterval = Math.max(2, (t.specialInterval || 3)); } },
+  ],
+  homing: [
+    { name:'命運導引', icon:'🔮', bonus:'导引回路强化', cost:180, effect(t){ t.baseHomingStrength = Math.max(t.baseHomingStrength || 0, 0.018); } },
+    { name:'星轨追猎', icon:'◉', bonus:'多目标锁定优化', cost:320, effect(t){ t.bulletCount += 1; t.baseHomingStrength = Math.max(t.baseHomingStrength || 0, 0.028); } },
+  ],
 };
 
 // --- Per-Tank Unique Upgrades ---
 const TANK_UPGRADE_DEFS = {
   spread: [
-    { id:'bullets', name:'弹幕扩充', icon:'🔴', desc:'子弹+1', max:3, costBase:30, effect(t){ t.bulletCount+=1; } },
-    { id:'spread', name:'扩散优化', icon:'📐', desc:'扩散角-20%', max:3, costBase:30, effect(t){ t.spreadAngle*=0.8; } },
-    { id:'speed', name:'机动强化', icon:'💨', desc:'移速+0.1', max:3, costBase:30, effect(t){ t.speed+=0.1; } },
+    { id:'bullets', name:'散华装填', icon:'⬣', desc:'子弹+1', max:4, costBase:26, effect(t){ t.bulletCount+=1; } },
+    { id:'spread', name:'扇面修正', icon:'⌯', desc:'扩散角-7%', max:4, costBase:24, effect(t){ t.spreadAngle*=0.93; } },
+    { id:'speed', name:'履带调校', icon:'⇢', desc:'移速+0.04', max:4, costBase:22, effect(t){ t.speed+=0.04; } },
+    { id:'core', name:'共鸣核心', icon:'◌', desc:'特殊弹伤+1', max:3, costBase:30, effect(t){ t.pierceDamageBonus = (t.pierceDamageBonus || 0) + 1; } },
+    { id:'armor', name:'机壳稳固', icon:'▣', desc:'HP+1', max:3, costBase:24, effect(t){ t.hpBonus+=1; } },
   ],
   focus: [
-    { id:'dmg', name:'火力强化', icon:'💥', desc:'伤害+1', max:3, costBase:40, effect(t){ t.bulletDamage+=1; } },
-    { id:'firerate', name:'射速提升', icon:'🔥', desc:'冷却-3帧', max:3, costBase:40, effect(t){ t.shootDelay=Math.max(8,t.shootDelay-3); } },
-    { id:'railgun', name:'穿透强化', icon:'🔫', desc:'电磁炮+0.5速', max:3, costBase:35, effect(t){ t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + 0.5; } },
+    { id:'dmg', name:'聚能炮芯', icon:'✦', desc:'伤害+1', max:4, costBase:30, effect(t){ t.bulletDamage+=1; } },
+    { id:'firerate', name:'冷却回路', icon:'▸', desc:'冷却-1帧', max:4, costBase:28, effect(t){ t.shootDelay=Math.max(14,t.shootDelay-1); } },
+    { id:'railgun', name:'磁轨整流', icon:'⟐', desc:'电磁炮+0.2速', max:4, costBase:28, effect(t){ t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + 0.2; } },
+    { id:'mobility', name:'姿态喷口', icon:'⇢', desc:'移速+0.03', max:3, costBase:24, effect(t){ t.speed+=0.03; } },
+    { id:'stability', name:'射控稳定', icon:'⌁', desc:'弹速+0.15', max:3, costBase:24, effect(t){ t.bulletSpeed+=0.15; } },
   ],
   wide: [
-    { id:'bullets', name:'弹幕扩充', icon:'🔵', desc:'子弹+2', max:3, costBase:35, effect(t){ t.bulletCount+=2; } },
-    { id:'freeze', name:'冰冻延长', icon:'❄️', desc:'冰冻+1秒', max:3, costBase:35, effect(t){ t.freezeDurationBonus = (t.freezeDurationBonus || 0) + 60; } },
-    { id:'hp', name:'装甲强化', icon:'❤️', desc:'HP+2', max:3, costBase:30, effect(t){ t.hpBonus+=2; } },
+    { id:'bullets', name:'扇区扩展', icon:'◫', desc:'子弹+1', max:4, costBase:28, effect(t){ t.bulletCount+=1; } },
+    { id:'freeze', name:'低温堆栈', icon:'❄', desc:'冰冻+0.35秒', max:4, costBase:26, effect(t){ t.freezeDurationBonus = (t.freezeDurationBonus || 0) + 21; } },
+    { id:'hp', name:'装甲层叠', icon:'▣', desc:'HP+1', max:4, costBase:24, effect(t){ t.hpBonus+=1; } },
+    { id:'spread', name:'覆盖修正', icon:'⌯', desc:'扩散角+3%', max:3, costBase:22, effect(t){ t.spreadAngle+=0.03; } },
+    { id:'speed', name:'悬挂减重', icon:'⇢', desc:'移速+0.03', max:3, costBase:22, effect(t){ t.speed+=0.03; } },
   ],
   burst: [
-    { id:'explosion', name:'爆炸扩大', icon:'💢', desc:'爆炸+25%', max:3, costBase:35, effect(t){ t.explosionRadiusBonus = (t.explosionRadiusBonus || 0) + 0.25; } },
-    { id:'dmg', name:'伤害强化', icon:'💥', desc:'伤害+1', max:3, costBase:35, effect(t){ t.bulletDamage+=1; } },
-    { id:'bullets', name:'弹幕扩充', icon:'🟠', desc:'子弹+2', max:3, costBase:35, effect(t){ t.bulletCount+=2; } },
+    { id:'explosion', name:'燃爆外壳', icon:'✹', desc:'爆炸+10%', max:4, costBase:28, effect(t){ t.explosionRadiusBonus = (t.explosionRadiusBonus || 0) + 0.1; } },
+    { id:'dmg', name:'战斗部装填', icon:'✦', desc:'伤害+1', max:4, costBase:28, effect(t){ t.bulletDamage+=1; } },
+    { id:'bullets', name:'散群火箭', icon:'⬢', desc:'子弹+1', max:4, costBase:26, effect(t){ t.bulletCount+=1; } },
+    { id:'firerate', name:'抛射节律', icon:'⇆', desc:'冷却-2帧', max:3, costBase:30, effect(t){ t.shootDelay=Math.max(36,t.shootDelay-2); } },
+    { id:'speed', name:'机体稳推', icon:'⇢', desc:'移速+0.03', max:3, costBase:22, effect(t){ t.speed+=0.03; } },
   ],
   sniper: [
-    { id:'dmg', name:'致命一击', icon:'💀', desc:'伤害+2', max:3, costBase:50, effect(t){ t.bulletDamage+=2; } },
-    { id:'speed', name:'弹速提升', icon:'🚀', desc:'弹速+1', max:3, costBase:40, effect(t){ t.bulletSpeed+=1; } },
-    { id:'special', name:'冷却缩短', icon:'⚡', desc:'特殊弹-1', max:3, costBase:40, effect(t){ t.specialInterval=Math.max(1,(t.specialInterval||3)-1); } },
+    { id:'dmg', name:'贯穿聚焦', icon:'⟐', desc:'伤害+1', max:4, costBase:34, effect(t){ t.bulletDamage+=1; } },
+    { id:'speed', name:'超音弹道', icon:'⇢', desc:'弹速+0.35', max:4, costBase:30, effect(t){ t.bulletSpeed+=0.35; } },
+    { id:'special', name:'特弹校准', icon:'⌁', desc:'特殊弹-1', max:2, costBase:42, effect(t){ t.specialInterval=Math.max(2,(t.specialInterval||3)-1); } },
+    { id:'firerate', name:'枪机回位', icon:'⇆', desc:'冷却-2帧', max:3, costBase:32, effect(t){ t.shootDelay=Math.max(40,t.shootDelay-2); } },
+    { id:'stability', name:'轻量底盘', icon:'▣', desc:'移速+0.03', max:3, costBase:22, effect(t){ t.speed+=0.03; } },
   ],
   homing: [
-    { id:'tracking', name:'追踪强化', icon:'🎯', desc:'追踪+0.02', max:3, costBase:35, effect(t){ t.baseHomingStrength = (t.baseHomingStrength || 0) + 0.02; } },
-    { id:'speed', name:'弹速提升', icon:'🚀', desc:'弹速+0.3', max:3, costBase:35, effect(t){ t.bulletSpeed+=0.3; } },
-    { id:'bullets', name:'三连追踪', icon:'🟣', desc:'子弹+1', max:3, costBase:40, effect(t){ t.bulletCount+=1; } },
+    { id:'tracking', name:'导引回路', icon:'◉', desc:'追踪+0.008', max:4, costBase:28, effect(t){ t.baseHomingStrength = (t.baseHomingStrength || 0) + 0.008; } },
+    { id:'speed', name:'矢量推进', icon:'⇢', desc:'弹速+0.18', max:4, costBase:24, effect(t){ t.bulletSpeed+=0.18; } },
+    { id:'bullets', name:'多锁蜂群', icon:'⬡', desc:'子弹+1', max:4, costBase:28, effect(t){ t.bulletCount+=1; } },
+    { id:'firerate', name:'联机校准', icon:'⇆', desc:'冷却-1帧', max:4, costBase:24, effect(t){ t.shootDelay=Math.max(28,t.shootDelay-1); } },
+    { id:'armor', name:'导航外壳', icon:'▣', desc:'HP+1', max:3, costBase:24, effect(t){ t.hpBonus+=1; } },
   ],
 };
-const TANK_UPGRADE_CAPS = { spread:3, focus:3, wide:3, burst:3, sniper:3, homing:3 };
+const PROGRESSION_VERSION = 2;
+const TANK_PROGRESS_KEY = 'tankbattle_progress_version';
 
 function loadProgression() {
   try {
@@ -3835,6 +3994,7 @@ function loadProgression() {
     tankUpgrades = ug ? JSON.parse(ug) : {};
     const ev = localStorage.getItem(TANK_EVOLVE_KEY);
     evolvedTanks = ev ? new Set(JSON.parse(ev)) : new Set();
+    migrateProgressionIfNeeded();
     // Ensure all tanks have upgrade entries
     Object.keys(tankTypes).forEach(k => {
       const defs = TANK_UPGRADE_DEFS[k] || [];
@@ -3849,6 +4009,7 @@ function saveProgression() {
     localStorage.setItem(TANK_UNLOCK_KEY, JSON.stringify([...unlockedTanks]));
     localStorage.setItem(TANK_UPGRADE_KEY, JSON.stringify(tankUpgrades));
     localStorage.setItem(TANK_EVOLVE_KEY, JSON.stringify([...evolvedTanks]));
+    localStorage.setItem(TANK_PROGRESS_KEY, String(PROGRESSION_VERSION));
   } catch(e) {}
 }
 function resetProgression() {
@@ -3859,6 +4020,40 @@ function resetProgression() {
   Object.keys(tankTypes).forEach(k => {
     tankUpgrades[k] = {};
     (TANK_UPGRADE_DEFS[k]||[]).forEach(d => { tankUpgrades[k][d.id] = 0; });
+  });
+}
+
+function getEvolutionLevel(tank) {
+  const evoEntries = TANK_EVOLUTION[tank] || [];
+  const marker = [...evolvedTanks].find(v => v === tank || v.startsWith(tank + ':'));
+  if (!marker) return 0;
+  if (marker === tank) return Math.min(1, evoEntries.length);
+  const parts = marker.split(':');
+  const lvl = parseInt(parts[1], 10);
+  return Number.isFinite(lvl) ? Math.max(0, Math.min(evoEntries.length, lvl)) : 0;
+}
+
+function setEvolutionLevel(tank, level) {
+  [...evolvedTanks].forEach(v => {
+    if (v === tank || v.startsWith(tank + ':')) evolvedTanks.delete(v);
+  });
+  if (level > 0) evolvedTanks.add(tank + ':' + level);
+}
+
+function migrateProgressionIfNeeded() {
+  const version = parseInt(localStorage.getItem(TANK_PROGRESS_KEY) || '1', 10);
+  if (version >= PROGRESSION_VERSION) return;
+  Object.keys(tankTypes).forEach(k => {
+    if (!tankUpgrades[k]) tankUpgrades[k] = {};
+    (TANK_UPGRADE_DEFS[k] || []).forEach(def => {
+      const current = tankUpgrades[k][def.id] || 0;
+      tankUpgrades[k][def.id] = Math.min(current, def.max);
+    });
+    const legacyEvolved = evolvedTanks.has(k);
+    if (legacyEvolved) setEvolutionLevel(k, 1);
+  });
+  [...evolvedTanks].forEach(v => {
+    if (!v.includes(':') && !tankTypes[v]) evolvedTanks.delete(v);
   });
 }
 
@@ -3898,7 +4093,7 @@ function getTankUpgradeCost(tank, statId) {
   const def = (TANK_UPGRADE_DEFS[tank] || []).find(d => d.id === statId);
   if (!def) return 999;
   const lvl = (tankUpgrades[tank] && tankUpgrades[tank][statId]) || 0;
-  return (lvl + 1) * def.costBase;
+  return Math.floor(def.costBase * Math.pow(1.32, lvl) + lvl * 8);
 }
 function purchaseTankUpgrade(tank, statId) {
   if (!unlockedTanks.has(tank)) return;
@@ -3922,16 +4117,24 @@ function purchaseTankUpgrade(tank, statId) {
 }
 
 function canEvolve(tank) {
-  if (evolvedTanks.has(tank)) return false;
+  const evoLevel = getEvolutionLevel(tank);
+  const evoEntries = TANK_EVOLUTION[tank] || [];
+  if (evoLevel >= evoEntries.length) return false;
   const defs = TANK_UPGRADE_DEFS[tank] || [];
   if (defs.length === 0) return false;
-  return defs.every(d => (tankUpgrades[tank] && tankUpgrades[tank][d.id] || 0) >= d.max);
+  const totalCurrent = defs.reduce((s, d) => s + ((tankUpgrades[tank] && tankUpgrades[tank][d.id]) || 0), 0);
+  const totalMax = defs.reduce((s, d) => s + d.max, 0);
+  if (evoLevel === 0) return totalCurrent >= Math.ceil(totalMax * 0.55);
+  return totalCurrent >= totalMax;
 }
 function tryEvolveTank(tank) {
   if (!canEvolve(tank)) return false;
-  if (coreFragments < 200) return false;
-  coreFragments -= 200;
-  evolvedTanks.add(tank);
+  const evoLevel = getEvolutionLevel(tank);
+  const evo = (TANK_EVOLUTION[tank] || [])[evoLevel];
+  if (!evo) return false;
+  if (coreFragments < evo.cost) return false;
+  coreFragments -= evo.cost;
+  setEvolutionLevel(tank, evoLevel + 1);
   saveProgression();
   sfxAchievement();
   renderLabUI();
@@ -3949,6 +4152,7 @@ function getPlayerTankDefinition(tankType) {
     baseHomingStrength: 0,
     sniperSpecialHoming: false,
     railgunSpeedBonus: 0,
+    pierceDamageBonus: 0,
   };
   const defs = TANK_UPGRADE_DEFS[tankType] || [];
   defs.forEach(d => {
@@ -3957,8 +4161,10 @@ function getPlayerTankDefinition(tankType) {
       try { d.effect(t); } catch(e) {}
     }
   });
-  if (evolvedTanks.has(tankType)) {
-    const evo = TANK_EVOLUTION[tankType];
+  const evoEntries = TANK_EVOLUTION[tankType] || [];
+  const evoLevel = getEvolutionLevel(tankType);
+  for (let i = 0; i < evoLevel; i++) {
+    const evo = evoEntries[i];
     if (evo && evo.effect) evo.effect(t);
   }
   return t;
@@ -3988,16 +4194,18 @@ function renderLabUI() {
     const defs = TANK_UPGRADE_DEFS[k] || [];
     const maxUpg = defs.reduce((s,d) => s + d.max, 0);
     const totalUpg = defs.reduce((s,d) => s + ((tankUpgrades[k] && tankUpgrades[k][d.id]) || 0), 0);
-    const evolved = evolvedTanks.has(k);
-    const evoName = evolved ? TANK_EVOLUTION[k].name : '';
+    const evoLevel = getEvolutionLevel(k);
+    const evoEntries = TANK_EVOLUTION[k] || [];
+    const evolved = evoLevel > 0;
+    const evoName = evolved ? evoEntries[evoLevel - 1].name : '';
     const isSelected = (selected === k);
     const cond = TANK_UNLOCK_CONDITIONS[k];
     const label = unlocked ? (evolved ? `✦${evoName}` : tankTypes[k].name) : (cond.cost+'💎');
     return `<div class="lab-tank-card ${unlocked?'':'locked'} ${isSelected?'selected':''} ${evolved?'evolved':''}" onclick="${unlocked?'selectLabTank(\''+k+'\')':'tryUnlockFromLab(\''+k+'\')'}">
-      <span class="lab-tank-icon">${unlocked ? (evolved ? TANK_EVOLUTION[k].icon : icons[k]) : '🔒'}</span>
+      <span class="lab-tank-icon">${unlocked ? (evolved ? evoEntries[evoLevel - 1].icon : icons[k]) : '🔒'}</span>
       <div class="lab-tank-name">${unlocked ? tankTypes[k].name : '???'}</div>
-      <div class="lab-tank-dots">${unlocked ? '★'.repeat(totalUpg)+'☆'.repeat(maxUpg-totalUpg) : label}</div>
-      ${evolved ? '<div class="lab-evo-badge">進化</div>' : ''}
+      <div class="lab-tank-dots">${unlocked ? '★'.repeat(totalUpg)+'☆'.repeat(Math.max(0, maxUpg-totalUpg)) : label}</div>
+      ${evolved ? `<div class="lab-evo-badge">E${evoLevel}</div>` : ''}
       ${isSelected ? '<div style="font-size:8px;color:#da0;margin-top:1px;">▼ 当前</div>' : ''}
     </div>`;
   }).join('');
@@ -4007,8 +4215,11 @@ function renderLabUI() {
   const k = labSelectedTank;
   const unlocked = unlockedTanks.has(k);
   const ug = tankUpgrades[k] || {};
-  const evolved = evolvedTanks.has(k);
-  const evoDef = TANK_EVOLUTION[k];
+  const evoEntries = TANK_EVOLUTION[k] || [];
+  const evoLevel = getEvolutionLevel(k);
+  const evolved = evoLevel > 0;
+  const evoDef = evolved ? evoEntries[evoLevel - 1] : null;
+  const nextEvo = evoEntries[evoLevel] || null;
   const fragDisplay = document.getElementById('lab-fragments');
   if (fragDisplay) fragDisplay.textContent = '💎 月光石: ' + coreFragments;
 
@@ -4020,10 +4231,20 @@ function renderLabUI() {
       ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">💎 解锁 (${cond.cost})</button>` : ''}</div>`;
   } else {
     const defs = TANK_UPGRADE_DEFS[k] || [];
-    const allMaxed = defs.every(d => (ug[d.id]||0) >= d.max);
+    const totalCurrent = defs.reduce((s,d) => s + (ug[d.id] || 0), 0);
+    const totalMax = defs.reduce((s,d) => s + d.max, 0);
+    const stageReady = canEvolve(k);
     let evoHTML = '';
-    if (evolved) evoHTML = `<div style="color:#f8d;font-size:14px;text-align:center;padding:4px;">${evoDef.icon} ${evoDef.name} · ${evoDef.bonus} ✅</div>`;
-    else if (allMaxed && defs.length > 0) evoHTML = `<div style="text-align:center;padding:4px;"><button class="lab-btn" style="border-color:#f8d;color:#f8d;font-size:14px;padding:6px 16px;" onclick="tryEvolveTank('${k}');renderLabUI();">✨ 进化 → ${evoDef.name} (200💎)</button></div>`;
+    if (evolved) {
+      evoHTML += `<div style="color:#f8d;font-size:13px;text-align:center;padding:4px;">当前阶段 E${evoLevel}: ${evoDef.icon} ${evoDef.name} · ${evoDef.bonus}</div>`;
+    }
+    if (nextEvo) {
+      evoHTML += `<div style="text-align:center;padding:4px;">
+        <button class="lab-btn" style="border-color:${stageReady?'#f8d':'rgba(248,141,216,0.28)'};color:${stageReady?'#f8d':'#8a94a4'};font-size:13px;padding:6px 16px;" onclick="tryEvolveTank('${k}');renderLabUI();">
+          ${stageReady ? '✨' : '◌'} 进化 E${evoLevel + 1} → ${nextEvo.name} (${nextEvo.cost}💎)
+        </button>
+      </div>`;
+    }
     let statsHTML = '';
     for (const d of defs) {
       const lvl = (ug[d.id]||0);
@@ -4047,7 +4268,7 @@ function renderLabUI() {
       <div style="color:#f49800;font-size:16px;font-weight:500;text-align:center;letter-spacing:2px;">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${(selected===k && selected===currentTankType) ? '✅ 出战中' : ''}</div>
       ${evoHTML}
       <div style="margin:8px 0;">${statsHTML}</div>
-      <div style="font-size:10px;color:#8a94a4;text-align:center;">💎 ${coreFragments} · ${defs.length}项升级 · ${evolved?'已达最终形态':(allMaxed?'满级可进化!':'')}</div>`;
+      <div style="font-size:10px;color:#8a94a4;text-align:center;">💎 ${coreFragments} · ${defs.length}项升级 · 进度 ${totalCurrent}/${totalMax} · ${nextEvo ? (stageReady ? '可进行下一阶段进化' : '继续强化以解锁进化') : '已完成全部进化'}</div>`;
   }
   // Update fixed confirm button visibility
   const confirmBtn = document.getElementById('lab-confirm-btn');
@@ -4330,10 +4551,10 @@ function tankCollidesObstacle(x, y, w, h) {
 
 // --- Spawn enemies ---
 const enemyTypes = [
-  { color: '#d44', turret: '#f66', speed: 0.5, hp: 2, label: 'Scout' },
-  { color: '#d84', turret: '#fa8', speed: 0.7, hp: 1, label: 'Fast' },
-  { color: '#a4d', turret: '#c6f', speed: 0.4, hp: 3, label: 'Heavy' },
-  { color: '#d4a', turret: '#f6c', speed: 0.6, hp: 3, label: 'Elite' },
+  { kind:'scout', color: '#d44', turret: '#f66', speed: 0.5, hp: 2, label: 'Scout' },
+  { kind:'runner', color: '#d84', turret: '#fa8', speed: 0.7, hp: 1, label: 'Fast' },
+  { kind:'brute', color: '#a4d', turret: '#c6f', speed: 0.4, hp: 3, label: 'Heavy' },
+  { kind:'artillery', color: '#d4a', turret: '#f6c', speed: 0.6, hp: 3, label: 'Elite' },
 ];
 
 function spawnEnemy() {
@@ -4365,7 +4586,7 @@ function spawnEnemy() {
   const type = enemyTypes[idx];
   const diff = difficultySettings[currentDifficulty];
   const hp = Math.max(1, type.hp + Math.floor(level / 3) + diff.enemyHpBonus);
-  enemies.push(new EnemyTank(x, y, type.color, type.turret, type.speed * diff.enemySpeedMul, hp));
+  enemies.push(new EnemyTank(x, y, type.color, type.turret, type.speed * diff.enemySpeedMul, hp, type.kind));
 }
 
 // --- Collision detection ---
