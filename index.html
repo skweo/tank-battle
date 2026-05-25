@@ -335,6 +335,32 @@ canvas { display: block; background: #0a0f18; }
 #achievements-screen .achieve-row.locked .ach-name { color: #4a5a70; }
 #achievements-screen .achieve-row .ach-desc { color: #6b7d95; font-size: 11px; margin-top: 1px; }
 #achievements-screen .achieve-row.locked .ach-desc { color: #3a4a58; }
+#achievements-screen .ach-claim { flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; min-width: 74px; }
+#achievements-screen .ach-reward {
+  border: 1px solid rgba(244,152,0,0.22);
+  color: #f6e5aa;
+  background: rgba(244,152,0,0.1);
+  padding: 5px 9px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
+  cursor: pointer;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  transition: all 0.2s;
+}
+#achievements-screen .ach-reward.ready:hover {
+  border-color: rgba(246,229,170,0.72);
+  background: rgba(244,152,0,0.24);
+  transform: translateY(-1px);
+  box-shadow: 0 0 16px rgba(244,152,0,0.18);
+}
+#achievements-screen .ach-reward.claimed,
+#achievements-screen .ach-reward.locked-reward {
+  color: #58677a;
+  border-color: rgba(107,125,149,0.12);
+  background: rgba(8,12,18,0.4);
+  cursor: default;
+}
 #achievements-screen .ach-back-btn {
   margin-top: 14px; padding: 8px 28px; font-size: 13px;
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 2px;
@@ -508,6 +534,34 @@ canvas { display: block; background: #0a0f18; }
   padding: 2px 6px; flex-shrink: 0; background: rgba(8,12,18,0.45);
   clip-path: polygon(2px 0, 100% 0, 100% calc(100% - 2px), calc(100% - 2px) 100%, 0 100%, 0 2px);
 }
+#bestiary-screen .best-row .bst-lore {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  color: #b8c4d2;
+  font-size: 11px;
+  line-height: 1.65;
+  letter-spacing: 0.6px;
+  border-left: 1px solid var(--threat, #f49800);
+  padding-left: 10px;
+  transform: translateY(-4px);
+  transition: max-height 0.28s ease, opacity 0.22s ease, margin-top 0.22s ease, transform 0.22s ease;
+}
+#bestiary-screen .best-row .bst-lore span {
+  color: var(--threat, #f49800);
+  font-size: 9px;
+  letter-spacing: 2px;
+  margin-right: 8px;
+}
+#bestiary-screen .best-row:hover .bst-lore,
+#bestiary-screen .best-row:focus .bst-lore,
+#bestiary-screen .best-row:focus-within .bst-lore {
+  max-height: 120px;
+  opacity: 1;
+  margin-top: 8px;
+  transform: translateY(0);
+}
 .best-back-btn {
   margin-top: 8px; padding: 8px 30px; font-size: 13px;
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 3px;
@@ -614,7 +668,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.6.8 unified Rhodes-sacred terminal skin */
+/* v3.6.9 achievement rewards and archive lore */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -732,6 +786,32 @@ canvas { background: #070d13; }
   position: absolute;
   overflow: hidden;
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
+}
+#achievements-screen,
+#bestiary-screen {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(244,152,0,0.55) rgba(7,10,16,0.7);
+}
+#achievements-screen::-webkit-scrollbar,
+#bestiary-screen::-webkit-scrollbar { width: 8px; }
+#achievements-screen::-webkit-scrollbar-track,
+#bestiary-screen::-webkit-scrollbar-track { background: rgba(7,10,16,0.72); }
+#achievements-screen::-webkit-scrollbar-thumb,
+#bestiary-screen::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(244,152,0,0.75), rgba(140,232,255,0.32));
+  border: 2px solid rgba(7,10,16,0.72);
+}
+#achievements-screen h1,
+#achievements-screen .ach-back-btn,
+#achievements-screen .achieve-grid,
+#bestiary-screen h1,
+#bestiary-screen .best-tabs,
+#bestiary-screen .best-grid,
+#bestiary-screen .best-back-btn {
+  flex-shrink: 0;
 }
 #start-screen > *,
 #tank-select-screen > *,
@@ -1045,6 +1125,10 @@ canvas { background: #070d13; }
   border-color: var(--threat, #f49800);
   transform: translateX(3px);
 }
+#bestiary-screen .best-row:focus {
+  outline: 1px solid rgba(246,229,170,0.35);
+  outline-offset: 2px;
+}
 #bestiary-screen .best-row .bst-emblem {
   border-radius: 0;
   clip-path: polygon(50% 0, 94% 24%, 94% 76%, 50% 100%, 6% 76%, 6% 24%);
@@ -1317,6 +1401,9 @@ canvas { background: #070d13; }
 
 @media (max-width: 760px), (max-height: 640px) {
   #start-screen h1 { font-size: 34px; letter-spacing: 10px; }
+  #achievements-screen .achieve-row { align-items: flex-start; }
+  #achievements-screen .ach-claim { min-width: 62px; }
+  #achievements-screen .ach-reward { padding: 4px 7px; font-size: 9px; }
   #tank-select-screen .tank-card { width: 132px; min-height: 178px; padding: 12px 10px; }
   #tank-select-screen .tank-card .tank-icon { font-size: 34px; }
   #tank-select-screen .tank-card .tank-name { font-size: 15px; }
@@ -1813,6 +1900,7 @@ function checkDailyTarget() {
     clearTimeout(toast._timeout);
     toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 3000);
     renderDailyTarget();
+    checkAchievements();
   }
 }
 
@@ -1999,36 +2087,58 @@ function hideTankSelect() {
 
 // --- Achievements ---
 const achievementsDef = [
-  { id: 'first_blood', name: '首次击杀', desc: '消灭第一个敌人', icon: '🎯' },
-  { id: 'sharpshooter', name: '百发百中', desc: '累计消灭10个敌人', icon: '🔫' },
-  { id: 'tank_hunter', name: '坦克杀手', desc: '累计消灭50个敌人', icon: '💥' },
-  { id: 'battle_veteran', name: '战斗老兵', desc: '累计消灭100个敌人', icon: '🏅' },
-  { id: 'survivor', name: '生存专家', desc: '到达第5关', icon: '🛡️' },
-  { id: 'tenacious', name: '顽强战士', desc: '到达第10关', icon: '⚔️' },
-  { id: 'score_500', name: '初露锋芒', desc: '单局得分达到500', icon: '⭐' },
-  { id: 'score_2000', name: '高分玩家', desc: '单局得分达到2000', icon: '🌟' },
-  { id: 'score_5000', name: '积分之王', desc: '单局得分达到5000', icon: '👑' },
-  { id: 'hardcore', name: '硬核玩家', desc: '困难难度到达第5关', icon: '💀' },
-  { id: 'flawless', name: '无伤过关', desc: '一关内未受任何伤害', icon: '✨' },
-  { id: 'tank_spread_win', name: '扩散大师', desc: '使用扩散型通关第5波', icon: '☆' },
-  { id: 'tank_focus_win', name: '集中火力', desc: '使用集中型通关第5波', icon: '★' },
-  { id: 'tank_wide_win', name: '广域压制', desc: '使用广域型通关第5波', icon: '❋' },
-  { id: 'tank_burst_win', name: '爆裂艺术家', desc: '使用爆裂型通关第5波', icon: '✦' },
-  { id: 'tank_sniper_win', name: '致命狙击', desc: '使用狙击型通关第5波', icon: '◈' },
-  { id: 'tank_homing_win', name: '追踪猎手', desc: '使用追踪型通关第5波', icon: '◎' },
-  { id: 'combo_20', name: '连击大师', desc: '达成20连击', icon: '🔥' },
-  { id: 'elite_hunter', name: '精英猎手', desc: '累计消灭10个精英敌人', icon: '💀' },
-  { id: 'speed_demon', name: '闪电通关', desc: '在180秒内通关第5波', icon: '⚡' },
-  { id: 'powerup_collector', name: '道具收藏家', desc: '单局收集20个道具', icon: '🎒' },
-  { id: 'mine_dodger', name: '排雷专家', desc: '一局内未触发任何地雷', icon: '🚫' },
-  { id: 'wave_15', name: '无尽征途', desc: '到达第15波', icon: '🌌' },
-  { id: 'perfect_run', name: '完美通关', desc: '一整局未受伤到达第5波', icon: '💎' },
+  { id: 'first_blood', name: '首次击杀', desc: '消灭第一个敌人', icon: '🎯', reward: 4 },
+  { id: 'sharpshooter', name: '百发百中', desc: '累计消灭10个敌人', icon: '🔫', reward: 5 },
+  { id: 'tank_hunter', name: '坦克杀手', desc: '累计消灭50个敌人', icon: '💥', reward: 8 },
+  { id: 'battle_veteran', name: '战斗老兵', desc: '累计消灭100个敌人', icon: '🏅', reward: 12 },
+  { id: 'survivor', name: '生存专家', desc: '到达第5关', icon: '🛡️', reward: 6 },
+  { id: 'tenacious', name: '顽强战士', desc: '到达第10关', icon: '⚔️', reward: 10 },
+  { id: 'score_500', name: '初露锋芒', desc: '单局得分达到500', icon: '⭐', reward: 4 },
+  { id: 'score_2000', name: '高分玩家', desc: '单局得分达到2000', icon: '🌟', reward: 8 },
+  { id: 'score_5000', name: '积分之王', desc: '单局得分达到5000', icon: '👑', reward: 14 },
+  { id: 'hardcore', name: '硬核玩家', desc: '困难难度到达第5关', icon: '💀', reward: 12 },
+  { id: 'flawless', name: '无伤过关', desc: '一关内未受任何伤害', icon: '✨', reward: 8 },
+  { id: 'tank_spread_win', name: '扩散大师', desc: '使用扩散型通关第5波', icon: '☆', reward: 7 },
+  { id: 'tank_focus_win', name: '集中火力', desc: '使用集中型通关第5波', icon: '★', reward: 7 },
+  { id: 'tank_wide_win', name: '广域压制', desc: '使用广域型通关第5波', icon: '❋', reward: 7 },
+  { id: 'tank_burst_win', name: '爆裂艺术家', desc: '使用爆裂型通关第5波', icon: '✦', reward: 7 },
+  { id: 'tank_sniper_win', name: '致命狙击', desc: '使用狙击型通关第5波', icon: '◈', reward: 7 },
+  { id: 'tank_homing_win', name: '追踪猎手', desc: '使用追踪型通关第5波', icon: '◎', reward: 7 },
+  { id: 'combo_20', name: '连击大师', desc: '达成20连击', icon: '🔥', reward: 9 },
+  { id: 'elite_hunter', name: '精英猎手', desc: '累计消灭10个精英敌人', icon: '💀', reward: 10 },
+  { id: 'speed_demon', name: '闪电通关', desc: '在180秒内通关第5波', icon: '⚡', reward: 10 },
+  { id: 'powerup_collector', name: '道具收藏家', desc: '单局收集20个道具', icon: '🎒', reward: 8 },
+  { id: 'mine_dodger', name: '排雷专家', desc: '一局内未触发任何地雷', icon: '🚫', reward: 8 },
+  { id: 'wave_15', name: '无尽征途', desc: '到达第15波', icon: '🌌', reward: 16 },
+  { id: 'perfect_run', name: '完美通关', desc: '一整局未受伤到达第5波', icon: '💎', reward: 14 },
+  { id: 'score_10000', name: '战场显圣', desc: '单局得分达到10000', icon: '✴', reward: 18 },
+  { id: 'score_20000', name: '月面王冠', desc: '单局得分达到20000', icon: '☾', reward: 26 },
+  { id: 'wave_20', name: '灰域远征', desc: '到达第20波', icon: '▣', reward: 24 },
+  { id: 'wave_25', name: '碎月行军', desc: '到达第25波', icon: '◬', reward: 34 },
+  { id: 'combo_35', name: '火线礼赞', desc: '达成35连击', icon: '✹', reward: 18 },
+  { id: 'combo_50', name: '弹幕圣歌', desc: '达成50连击', icon: '✺', reward: 28 },
+  { id: 'elite_hunter_25', name: '精英清算者', desc: '单局消灭25个精英敌人', icon: '◇', reward: 22 },
+  { id: 'powerup_collector_40', name: '模块掠夺者', desc: '单局收集40个道具', icon: '⬡', reward: 18 },
+  { id: 'fragment_500', name: '月光石库管', desc: '持有500个月光石', icon: '◆', reward: 16 },
+  { id: 'fragment_1000', name: '碎月银行', desc: '持有1000个月光石', icon: '◈', reward: 25 },
+  { id: 'all_tanks_unlocked', name: '机装全谱系', desc: '解锁全部我方坦克', icon: '▰', reward: 32 },
+  { id: 'upgrade_apprentice', name: '整备学徒', desc: '累计完成10次坦克强化', icon: '▱', reward: 14 },
+  { id: 'upgrade_master', name: '机装技师', desc: '累计完成30次坦克强化', icon: '▰', reward: 30 },
+  { id: 'evolution_first', name: '初次进化', desc: '完成任意坦克1次进化', icon: '✧', reward: 20 },
+  { id: 'evolution_six', name: '六相开花', desc: '累计完成6次坦克进化', icon: '✦', reward: 38 },
+  { id: 'daily_clear', name: '日课清算', desc: '完成一次每日挑战目标', icon: '☉', reward: 20 },
+  { id: 'nightmare_survivor', name: '梦魇存活者', desc: '梦魇难度到达第5关', icon: '☄', reward: 28 },
+  { id: 'boss_witness', name: '首领目击者', desc: '抵达第4波并直面Boss', icon: '⬢', reward: 14 },
+  { id: 'boss_breaker', name: '破城记录', desc: '抵达第12波，多次突破Boss战线', icon: '⬣', reward: 26 },
+  { id: 'untouched_combo', name: '无伤连祷', desc: '未受伤时达成15连击', icon: '✶', reward: 18 },
 ];
 
 const STORAGE_KEY = 'tankbattle_achievements';
 const UNLOCK_KEY = 'tankbattle_unlocks';
+const ACHIEVEMENT_REWARD_KEY = 'tankbattle_achievement_rewards_claimed';
 let unlockedAchievements = new Set();
 let unlockedDifficulties = new Set(['easy']);
+let claimedAchievementRewards = new Set();
 
 function loadAchievements() {
   try {
@@ -2041,6 +2151,55 @@ function saveAchievements() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...unlockedAchievements]));
   } catch(e) {}
+}
+
+function loadAchievementRewards() {
+  try {
+    const raw = localStorage.getItem(ACHIEVEMENT_REWARD_KEY);
+    claimedAchievementRewards = raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch(e) { claimedAchievementRewards = new Set(); }
+}
+
+function saveAchievementRewards() {
+  try {
+    localStorage.setItem(ACHIEVEMENT_REWARD_KEY, JSON.stringify([...claimedAchievementRewards]));
+  } catch(e) {}
+}
+
+function getAchievementReward(def) {
+  return Math.max(1, (def && def.reward) || 5);
+}
+
+function showAchievementToast(icon, name, label, accent) {
+  const toast = document.getElementById('achieve-toast');
+  toast.querySelector('.achieve-icon').textContent = icon;
+  const nameEl = toast.querySelector('.achieve-name');
+  nameEl.textContent = name;
+  nameEl.style.color = accent || '';
+  toast.querySelector('.achieve-label').textContent = label || '';
+  toast.style.display = 'block';
+  toast.style.animation = 'none';
+  toast.offsetHeight;
+  toast.style.animation = 'toastIn 0.4s ease-out';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.style.display = 'none';
+    nameEl.style.color = '';
+  }, 3000);
+}
+
+function claimAchievementReward(id) {
+  const def = achievementsDef.find(a => a.id === id);
+  if (!def || !unlockedAchievements.has(id) || claimedAchievementRewards.has(id)) return;
+  const reward = getAchievementReward(def);
+  coreFragments += reward;
+  claimedAchievementRewards.add(id);
+  saveAchievementRewards();
+  saveProgression();
+  checkAchievements();
+  sfxAchievement();
+  showAchievementToast(def.icon, '成就奖励已领取', def.name + ' +' + reward + ' 月光石', '#f6e5aa');
+  renderAchievements();
 }
 
 function loadUnlocks() {
@@ -2093,15 +2252,7 @@ function unlockAchievement(id) {
   const def = achievementsDef.find(a => a.id === id);
   if (!def) return;
   sfxAchievement();
-  const toast = document.getElementById('achieve-toast');
-  toast.querySelector('.achieve-icon').textContent = def.icon;
-  toast.querySelector('.achieve-name').textContent = def.name;
-  toast.style.display = 'block';
-  toast.style.animation = 'none';
-  toast.offsetHeight;
-  toast.style.animation = 'toastIn 0.4s ease-out';
-  clearTimeout(toast._timeout);
-  toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  showAchievementToast(def.icon, def.name, '已完成 · 可领取 +' + getAchievementReward(def) + ' 月光石');
 }
 
 // --- Achievement tracking ---
@@ -2114,6 +2265,20 @@ let sessionStartTime = 0;
 let maxComboReached = 0;
 let sessionGotHit = false;
 
+function getTotalTankUpgradeCount() {
+  return Object.values(tankUpgrades || {}).reduce((total, group) => {
+    return total + Object.values(group || {}).reduce((sum, value) => sum + (parseInt(value) || 0), 0);
+  }, 0);
+}
+
+function getTotalEvolutionCount() {
+  return [...(evolvedTanks || new Set())].reduce((total, entry) => {
+    const parts = String(entry).split(':');
+    const levelText = parts.length > 1 ? parts[1] : '1';
+    return total + (parseInt(levelText) || 1);
+  }, 0);
+}
+
 function checkAchievements() {
   if (sessionKills >= 1) unlockAchievement('first_blood');
   if (sessionKills >= 10) unlockAchievement('sharpshooter');
@@ -2125,10 +2290,32 @@ function checkAchievements() {
   if (score >= 500) unlockAchievement('score_500');
   if (score >= 2000) unlockAchievement('score_2000');
   if (score >= 5000) unlockAchievement('score_5000');
+  if (score >= 10000) unlockAchievement('score_10000');
+  if (score >= 20000) unlockAchievement('score_20000');
   if (currentDifficulty === 'hard' && level >= 5) unlockAchievement('hardcore');
+  if (currentDifficulty === 'nightmare' && level >= 5) unlockAchievement('nightmare_survivor');
   if (maxComboReached >= 20) unlockAchievement('combo_20');
+  if (maxComboReached >= 35) unlockAchievement('combo_35');
+  if (maxComboReached >= 50) unlockAchievement('combo_50');
   if (sessionEliteKills >= 10) unlockAchievement('elite_hunter');
+  if (sessionEliteKills >= 25) unlockAchievement('elite_hunter_25');
   if (sessionPowerUpsCollected >= 20) unlockAchievement('powerup_collector');
+  if (sessionPowerUpsCollected >= 40) unlockAchievement('powerup_collector_40');
+  if (coreFragments >= 500) unlockAchievement('fragment_500');
+  if (coreFragments >= 1000) unlockAchievement('fragment_1000');
+  if (wave >= 4) unlockAchievement('boss_witness');
+  if (wave >= 12) unlockAchievement('boss_breaker');
+  if (wave >= 20) unlockAchievement('wave_20');
+  if (wave >= 25) unlockAchievement('wave_25');
+  if (!sessionGotHit && maxComboReached >= 15) unlockAchievement('untouched_combo');
+  if (dailyTargetAchieved) unlockAchievement('daily_clear');
+  if (Object.keys(tankTypes).every(k => unlockedTanks.has(k))) unlockAchievement('all_tanks_unlocked');
+  const totalUpgrades = getTotalTankUpgradeCount();
+  if (totalUpgrades >= 10) unlockAchievement('upgrade_apprentice');
+  if (totalUpgrades >= 30) unlockAchievement('upgrade_master');
+  const totalEvolutions = getTotalEvolutionCount();
+  if (totalEvolutions >= 1) unlockAchievement('evolution_first');
+  if (totalEvolutions >= 6) unlockAchievement('evolution_six');
   if (level >= 5) {
     const tankAch = {spread:'tank_spread_win',focus:'tank_focus_win',wide:'tank_wide_win',burst:'tank_burst_win',sniper:'tank_sniper_win',homing:'tank_homing_win'};
     if (tankAch[currentTankType]) unlockAchievement(tankAch[currentTankType]);
@@ -2485,12 +2672,20 @@ function renderAchievements() {
   const grid = document.getElementById('achieve-grid');
   grid.innerHTML = achievementsDef.map(a => {
     const unlocked = unlockedAchievements.has(a.id);
+    const claimed = claimedAchievementRewards.has(a.id);
+    const reward = getAchievementReward(a);
+    const rewardHtml = unlocked
+      ? (claimed
+        ? `<button class="ach-reward claimed" disabled>已领取</button>`
+        : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">领取 +${reward}</button>`)
+      : `<span class="ach-reward locked-reward">+${reward}</span>`;
     return `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'}">
       <span class="ach-icon">${unlocked ? a.icon : '🔒'}</span>
       <div class="ach-info">
         <div class="ach-name">${a.name}</div>
         <div class="ach-desc">${unlocked ? a.desc : '???'}</div>
       </div>
+      <div class="ach-claim">${rewardHtml}</div>
     </div>`;
   }).join('');
 }
@@ -2519,6 +2714,7 @@ function renderBestiary() {
       name: p.name, desc: p.desc, powerType: p.type,
       tag: p.duration > 0 ? (p.duration/60).toFixed(0) + '秒' : '即时',
       subTag: '拾取强化',
+      lore: BESTIARY_LORE.powerups[p.type],
     }));
   } else if (bestiaryTab === 'elites') {
     items = eliteTypes.map(e => {
@@ -2527,6 +2723,7 @@ function renderBestiary() {
         glyph: profile.glyph, color: profile.color, classLabel: profile.label,
         name: e.name, desc: getEliteDescription(e.special), tag: '精英',
         subTag: 'HP ' + e.hp + ' · SPD ' + e.speed,
+        lore: BESTIARY_LORE.elites[e.special],
       };
     });
   } else if (bestiaryTab === 'bosses') {
@@ -2537,6 +2734,7 @@ function renderBestiary() {
       desc: b.desc + ' · ' + b.phases.map(p => p.name).join(' → '),
       tag: 'HP ' + b.hp,
       subTag: b.phases.length + '阶段战术',
+      lore: BESTIARY_LORE.bosses[b.name],
     }));
   } else {
     items = FUSION_RECIPES.map(f => ({
@@ -2545,6 +2743,7 @@ function renderBestiary() {
       desc: f.desc,
       tag: f.requires.map(r => powerUpDefs.find(p => p.type === r)?.name || r).join(' + '),
       subTag: '组合协议',
+      lore: BESTIARY_LORE.fusions[f.id],
     }));
   }
   grid.innerHTML = items.map(buildBestiaryRow).join('');
@@ -3102,7 +3301,7 @@ function escapeHtml(text) {
 }
 
 function buildBestiaryRow(it) {
-  return `<div class="best-row" style="--threat:${escapeHtml(it.color || '#f49800')}">
+  return `<div class="best-row" tabindex="0" style="--threat:${escapeHtml(it.color || '#f49800')}">
     <div class="bst-icon">${getBestiaryVisual(it)}</div>
     <div class="bst-info">
       <div class="bst-head">
@@ -3114,6 +3313,7 @@ function buildBestiaryRow(it) {
         <span class="bst-tag">${escapeHtml(it.tag || '')}</span>
         ${it.subTag ? `<span class="bst-tag">${escapeHtml(it.subTag)}</span>` : ''}
       </div>
+      ${it.lore ? `<div class="bst-lore"><span>档案</span>${escapeHtml(it.lore)}</div>` : ''}
     </div>
   </div>`;
 }
@@ -4350,6 +4550,58 @@ const BOSS_TYPES = [
     ]},
 ];
 
+const BESTIARY_LORE = {
+  powerups: {
+    speed: '灰域运输队的遗物，履带内侧刻着“不要回头”。装上它的人通常真的没有回头。',
+    railgun: '第七观测站用来击穿月壳样本的试验炮。后来样本醒了，炮也被送上前线。',
+    ricochet: '圣城钟楼坍塌后回收的相位合金。弹道会记住墙壁，如同记住一次失败的祈祷。',
+    shield: '机装研究室称它为“短时赦免”。护盾亮起时，驾驶舱里能听见很远处的钟声。',
+    rapid: '过热阀门被故意拆除后的产物。它不让武器冷静，也不让驾驶员冷静。',
+    repair: '旧时代工程兵留下的手册残页，夹着一枚干枯的月白花。修复装甲，也修复一点点胆量。',
+    freeze: '来自北方冷却塔的禁运弹种。它冻结的不是金属，而是敌方装置里那一瞬间的“命令”。',
+    multishot: '群星修会早期的防空方案。没有一发子弹被赋予姓名，所以它们一起抵达。',
+    magnet: '矿区孩子用月光石碎屑做成的玩具。长大后，玩具被军方重新命名为回收协议。',
+    pierce: '祈械外壳太厚，普通弹药只会留下火花。穿甲弹的尖端封存着一段低声咏唱。',
+    vampire: '红色模块总是被单独封箱。说明书说它吸收热量，老兵说它吸收遗憾。',
+    double_score: '战术终端的结算插件。它让每一次击毁都更有价值，也更像一笔无法注销的账。',
+    big_bullet: '将月核碎片粗暴压铸后的弹体。它飞得不快，却像一座小型审判庭。',
+    explosive: '灰域爆破队的签名武器。爆光散开时，能短暂照亮地面下埋藏的城市街牌。',
+    invisible: '不是隐形，而是让敌人的索敌协议忘记你。被遗忘太久的人会开始怀疑自己是否还活着。',
+    thorns: '圣城外环的殉爆装甲。它相信伤害应当被归还，哪怕归还得并不精确。',
+    overdrive: '解除安全栓后的红线模式。研究员称它为效率，驾驶员称它为把明天提前烧掉。',
+    timewarp: '观测站的失败钟摆。它不能改变时间，只能让敌人的子弹在一瞬间想起重力。',
+    goldrush: '月光石粉尘被高温点燃后的短暂丰收。所有仪表都会亮成金色，像末日前的庆典。',
+  },
+  elites: {
+    heavy: '圣城正门的旧守卫，装甲层比墓碑还厚。它们不追击，只把战线向前推。',
+    sniper: '观测站失联前发送的最后一种坐标兵器。它开火前会停顿，像在确认你是否值得被记录。',
+    fast: '灰域风暴里的侦察机装，轻得像一枚弹壳。它的履带声通常晚于炮火抵达。',
+    flame: '焚化区的巡逻单元，把净化和燃烧写进同一个函数。它不憎恨生命，只憎恨潮湿。',
+    summoner: '移动中继塔，腹部装着未完成的生产祈文。每次呼叫援军，车体都会短暂像祭坛一样发亮。',
+    stealth: '光学迷彩的军用原型，驾驶舱早已空置。雷达显示它不存在，残骸却证明它来过。',
+    splitter: '自修复程序被月核污染后的产物。击毁它只是在告诉它，应该以更小的形态继续战斗。',
+    regen: '机装研究室的“永续样机”。它把伤口当成接口，把时间当成备用零件。',
+    laser: '圣城塔顶拆下的裁决镜阵。光束扫过时，地面会留下像经文一样整齐的焦痕。',
+    miner: '灰域布雷队的无人残部。它们播撒的不是地雷，而是未来某一秒的噩耗。',
+    barrier: '护教军的移动圣龛。护盾展开时，周围弹片会像朝圣者一样改变方向。',
+    missile: '末日前的远程火力平台，导航系统被月相噪声磨坏。它仍会追踪目标，只是不再理解“目标”是什么。',
+  },
+  bosses: {
+    '巨兽坦克': '破城级攻城机装，曾拖着三座城门走过灰域。二阶段启动时，它会把自己的装甲当作弹药燃烧。',
+    '幻影坦克': '相位试验的幸存者，也是失败者。它的镜像并非幻觉，而是没有死成的其他可能性。',
+    '要塞坦克': '一座被压缩进履带里的移动堡垒。雷区展开时，战场会短暂恢复成它记忆中的城防图。',
+    '虚空坦克': '第七观测站试图用它封存月洞。现在月洞反过来驾驶它，在战场上寻找新的边界。',
+    '风暴坦克': '气象控制塔的核心残骸。它召来的雷并非来自天空，而是来自碎月背面的静电海。',
+  },
+  fusions: {
+    gold_magnet: '回收协议与结算插件互相吞并后的产物。它会吸来补给，也会吸来贪婪。',
+    railgun_plus: '观测炮与穿甲祈文的重叠协议。发射瞬间，炮口会出现一圈微型月蚀。',
+    frost_blast: '冷却塔弹芯被灰域炸药强行唤醒。冰先让敌人停下，火再解释原因。',
+    undying_thorns: '红色模块与殉爆装甲的禁忌并联。它不保证你活着，只保证敌人也要付账。',
+    bullet_storm: '重弹体进入散射阵列后的失控礼花。每一发都像在替某座失守城市回信。',
+  },
+};
+
 class BossEnemy extends EliteEnemy {
   constructor(x, y, bossDef) {
     const diff = difficultySettings[currentDifficulty];
@@ -5178,6 +5430,7 @@ function tryUnlockTank(tankType) {
     coreFragments -= cond.cost;
     unlockedTanks.add(tankType);
     saveProgression();
+    checkAchievements();
     sfxAchievement();
     return true;
   }
@@ -5207,6 +5460,7 @@ function purchaseTankUpgrade(tank, statId) {
   if (!tankUpgrades[tank]) tankUpgrades[tank] = {};
   tankUpgrades[tank][statId] = (tankUpgrades[tank][statId] || 0) + 1;
   saveProgression();
+  checkAchievements();
   renderLabUI();
   sfxPowerUp();
 }
@@ -5231,6 +5485,7 @@ function tryEvolveTank(tank) {
   coreFragments -= evo.cost;
   setEvolutionLevel(tank, evoLevel + 1);
   saveProgression();
+  checkAchievements();
   sfxAchievement();
   renderLabUI();
   return true;
@@ -6316,6 +6571,7 @@ function restartGame() {
 // --- Init ---
 function init() {
   loadAchievements();
+  loadAchievementRewards();
   loadUnlocks();
   loadProgression();
   loadLeaderboard();
