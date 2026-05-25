@@ -317,24 +317,119 @@ canvas { display: block; background: #0a0f18; }
   text-shadow: 0 0 20px rgba(244,152,0,0.3);
 }
 #achievements-screen .achieve-grid {
-  display: flex; flex-direction: column; gap: 2px; width: 100%; max-width: 460px;
-  padding: 6px; background: rgba(10,14,22,0.5);
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 760px;
+  padding: 8px; background: rgba(10,14,22,0.5);
   border: 1px solid rgba(107,125,149,0.06);
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
 #achievements-screen .achieve-row {
-  display: flex; align-items: center; gap: 10px; padding: 6px 10px;
-  border: 1px solid rgba(107,125,149,0.05); background: rgba(12,16,24,0.5);
+  display: grid; grid-template-columns: 68px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px;
+  min-height: 104px;
+  border: 1px solid rgba(107,125,149,0.08); background: linear-gradient(135deg, rgba(12,16,24,0.72), rgba(6,10,15,0.88));
   clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
 }
-#achievements-screen .achieve-row.unlocked { border-color: rgba(244,152,0,0.2); background: rgba(18,24,34,0.6); }
-#achievements-screen .achieve-row .ach-icon { font-size: 20px; width: 30px; text-align: center; flex-shrink: 0; }
-#achievements-screen .achieve-row.locked .ach-icon { opacity: 0.25; filter: grayscale(1); }
-#achievements-screen .achieve-row .ach-info { flex: 1; }
-#achievements-screen .achieve-row .ach-name { color: #d0d4dc; font-size: 14px; font-weight: 500; letter-spacing: 1px; }
-#achievements-screen .achieve-row.locked .ach-name { color: #4a5a70; }
-#achievements-screen .achieve-row .ach-desc { color: #6b7d95; font-size: 11px; margin-top: 1px; }
-#achievements-screen .achieve-row.locked .ach-desc { color: #3a4a58; }
+#achievements-screen .achieve-row::before {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 4px;
+  background: var(--ach-accent, #f49800);
+  box-shadow: 0 0 18px var(--ach-accent, #f49800);
+  opacity: 0.62;
+}
+#achievements-screen .achieve-row::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ach-accent, #f49800) 12%, transparent), transparent 42%),
+    repeating-linear-gradient(90deg, transparent 0 28px, rgba(255,255,255,0.018) 28px 29px);
+  pointer-events: none;
+  opacity: 0.78;
+}
+#achievements-screen .achieve-row.unlocked { border-color: color-mix(in srgb, var(--ach-accent, #f49800) 44%, rgba(246,229,170,0.12)); }
+#achievements-screen .achieve-row.locked { filter: saturate(0.72); }
+#achievements-screen .achieve-row:hover,
+#achievements-screen .achieve-row:focus {
+  border-color: var(--ach-accent, #f49800);
+  transform: translateY(-2px);
+  outline: none;
+}
+#achievements-screen .ach-medal,
+#achievements-screen .ach-info,
+#achievements-screen .ach-claim { position: relative; z-index: 1; }
+#achievements-screen .ach-medal {
+  width: 58px; height: 66px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  color: var(--ach-accent, #f49800);
+  background:
+    radial-gradient(circle at 50% 36%, color-mix(in srgb, var(--ach-accent, #f49800) 22%, transparent), transparent 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(8,12,18,0.9));
+  border: 1px solid color-mix(in srgb, var(--ach-accent, #f49800) 58%, rgba(255,255,255,0.08));
+  clip-path: polygon(50% 0, 92% 18%, 92% 78%, 50% 100%, 8% 78%, 8% 18%);
+  box-shadow: inset 0 0 18px rgba(255,255,255,0.04), 0 0 18px color-mix(in srgb, var(--ach-accent, #f49800) 18%, transparent);
+}
+#achievements-screen .ach-medal-code {
+  color: rgba(232,237,242,0.62);
+  font: 700 8px 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+#achievements-screen .ach-medal-seal {
+  font: 800 18px 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+#achievements-screen .achieve-row.locked .ach-medal {
+  color: #59687c;
+  border-color: rgba(107,125,149,0.18);
+  box-shadow: none;
+}
+#achievements-screen .achieve-row .ach-info { min-width: 0; }
+#achievements-screen .ach-topline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+#achievements-screen .ach-code,
+#achievements-screen .ach-rarity,
+#achievements-screen .ach-status {
+  color: #9dacbd;
+  border: 1px solid rgba(107,125,149,0.16);
+  background: rgba(5,8,12,0.48);
+  padding: 2px 5px;
+  font: 700 8px 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+#achievements-screen .ach-rarity {
+  color: var(--ach-accent, #f49800);
+  border-color: color-mix(in srgb, var(--ach-accent, #f49800) 38%, rgba(255,255,255,0.08));
+}
+#achievements-screen .ach-status { color: rgba(246,229,170,0.62); }
+#achievements-screen .achieve-row .ach-name { color: #dce3ed; font-size: 14px; font-weight: 600; letter-spacing: 1px; }
+#achievements-screen .achieve-row.locked .ach-name { color: #5e6f84; }
+#achievements-screen .achieve-row .ach-desc { color: #7d8fa5; font-size: 11px; margin-top: 2px; line-height: 1.45; }
+#achievements-screen .achieve-row.locked .ach-desc { color: #3e4b5b; }
+#achievements-screen .ach-lore {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  color: #b8c4d2;
+  font-size: 11px;
+  line-height: 1.65;
+  letter-spacing: 0.5px;
+  border-left: 1px solid var(--ach-accent, #f49800);
+  padding-left: 10px;
+  transform: translateY(-4px);
+  transition: max-height 0.28s ease, opacity 0.22s ease, margin-top 0.22s ease, transform 0.22s ease;
+}
+#achievements-screen .ach-lore span {
+  color: var(--ach-accent, #f49800);
+  font-size: 9px;
+  letter-spacing: 2px;
+  margin-right: 8px;
+}
+#achievements-screen .achieve-row:hover .ach-lore,
+#achievements-screen .achieve-row:focus .ach-lore,
+#achievements-screen .achieve-row:focus-within .ach-lore {
+  max-height: 140px;
+  opacity: 1;
+  margin-top: 8px;
+  transform: translateY(0);
+}
 #achievements-screen .ach-claim { flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; min-width: 74px; }
 #achievements-screen .ach-reward {
   border: 1px solid rgba(244,152,0,0.22);
@@ -668,7 +763,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.6.9 achievement rewards and archive lore */
+/* v3.6.10 achievement dossier terminal */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -1072,19 +1167,23 @@ canvas { background: #070d13; }
     linear-gradient(90deg, rgba(244,152,0,0.12), transparent 18%, transparent 82%, rgba(180,91,60,0.08));
 }
 #achievements-screen .achieve-grid {
-  max-width: 560px;
-  gap: 5px;
+  max-width: 760px;
+  gap: 8px;
   background: rgba(5,8,12,0.58);
   border-color: rgba(246,229,170,0.1);
 }
 #achievements-screen .achieve-row {
-  min-height: 48px;
+  min-height: 104px;
   border-color: rgba(246,229,170,0.1);
-  background: linear-gradient(90deg, rgba(246,229,170,0.035), rgba(10,14,18,0.74));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ach-accent, #f49800) 9%, transparent), transparent 42%),
+    linear-gradient(135deg, rgba(8,12,18,0.9), rgba(5,9,14,0.78));
 }
 #achievements-screen .achieve-row.unlocked {
-  border-color: rgba(246,229,170,0.34);
-  background: linear-gradient(90deg, rgba(244,152,0,0.14), rgba(13,17,22,0.84));
+  border-color: color-mix(in srgb, var(--ach-accent, #f49800) 46%, rgba(246,229,170,0.12));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ach-accent, #f49800) 18%, transparent), transparent 46%),
+    linear-gradient(135deg, rgba(13,17,22,0.94), rgba(8,11,16,0.86));
 }
 
 #bestiary-screen {
@@ -1401,9 +1500,12 @@ canvas { background: #070d13; }
 
 @media (max-width: 760px), (max-height: 640px) {
   #start-screen h1 { font-size: 34px; letter-spacing: 10px; }
-  #achievements-screen .achieve-row { align-items: flex-start; }
+  #achievements-screen .achieve-grid { grid-template-columns: 1fr; max-width: 92%; }
+  #achievements-screen .achieve-row { grid-template-columns: 58px minmax(0, 1fr); align-items: flex-start; }
   #achievements-screen .ach-claim { min-width: 62px; }
+  #achievements-screen .ach-claim { grid-column: 2; justify-content: flex-start; margin-top: 6px; }
   #achievements-screen .ach-reward { padding: 4px 7px; font-size: 9px; }
+  #achievements-screen .ach-medal { width: 50px; height: 58px; }
   #tank-select-screen .tank-card { width: 132px; min-height: 178px; padding: 12px 10px; }
   #tank-select-screen .tank-card .tank-icon { font-size: 34px; }
   #tank-select-screen .tank-card .tank-name { font-size: 15px; }
@@ -2133,6 +2235,60 @@ const achievementsDef = [
   { id: 'untouched_combo', name: '无伤连祷', desc: '未受伤时达成15连击', icon: '✶', reward: 18 },
 ];
 
+const ACHIEVEMENT_LORE = {
+  first_blood: '档案里称它为“第一次回声”。每个驾驶员都从这里开始确认，炮火真的会改变世界。',
+  sharpshooter: '观测员在弹孔之间画出细线，像一张临时星图。没有一颗星属于和平年代。',
+  tank_hunter: '灰域广播会把这类战绩读三遍。不是为了庆祝，而是提醒幸存者还有人活着。',
+  battle_veteran: '老兵的编号不会写在墓碑上，只写在维修清单里。因为他们总是先修车，再谈伤口。',
+  survivor: '第五关之后，驾驶舱里的空气会变得很薄。能继续呼吸，本身就是一种技术。',
+  tenacious: '第十关的记录被称为“拒绝撤退”。圣城从不承认这是勇气，只承认这是资源消耗。',
+  score_500: '第一次高分会被终端存入金色缓存。研究室说那不是奖励，是继续观察的理由。',
+  score_2000: '分数越高，战术终端越安静。它已经不需要鼓励你，只需要统计你。',
+  score_5000: '王冠不是戴在头上的，而是压在履带下的。它越闪亮，战场越黑。',
+  hardcore: '困难模式会关闭许多保护协议。剩下的那些，也只是礼貌地延迟失败。',
+  flawless: '弹片擦过装甲却没有留下痕迹。机装研究室把这种偶然称为“神圣偏差”。',
+  tank_spread_win: '扩散弹幕像一把打开的扇。灰域孩子说，那是坦克在替月亮撒花。',
+  tank_focus_win: '集中型不相信祈祷，只相信一条直线。直线尽头，通常有人来不及后悔。',
+  tank_wide_win: '广域火力会把战场切成扇形沉默区。敌人不是被击毁，是被命令不得靠近。',
+  tank_burst_win: '爆裂型驾驶员总说爆炸也有构图。记录员没有反驳，只把废墟拍了下来。',
+  tank_sniper_win: '狙击型的每次命中都像一次签名。被签上的目标，不再需要名字。',
+  tank_homing_win: '追踪弹会在废城间绕行，像有自己的记忆。它们迟到，但从不失约。',
+  combo_20: '连击数字升高时，终端会短暂发热。有人说那是月光石在兴奋。',
+  elite_hunter: '每个精英单位都有独立葬送协议。猎手的工作，是让协议来不及启动。',
+  speed_demon: '三分钟内穿过五波战线，像把战场撕开一道口子。风会先一步逃出去。',
+  powerup_collector: '收集模块的人常被误认为贪婪。其实他们只是知道，下一秒可能什么都缺。',
+  mine_dodger: '未触发的地雷也会被记录。灰域相信，真正的好运应该写进军功章里。',
+  wave_15: '第十五波之后，地图边缘开始重复。不是你在前进，是战场不肯结束。',
+  perfect_run: '没有受伤的记录最不可信。因为每个完美故事，都像被谁偷偷修过。',
+  score_10000: '一万分时，终端会显示一行旧时代乱码。研究室翻译成：继续。',
+  score_20000: '两万分记录会被上传到碎月链路。没有人知道链路另一端是否还有接收者。',
+  wave_20: '第二十波的幸存者会看见更远的雾。雾里不是终点，只是另一段战线。',
+  wave_25: '第二十五波被称为“长夜中段”。能走到这里的人，已经不再问黎明在哪。',
+  combo_35: '三十五连击像一段急促祷词。每个音节都由炮口发出。',
+  combo_50: '五十连击会让弹道形成短暂合唱。那不是音乐，是幸存者的心跳被放大了。',
+  elite_hunter_25: '二十五个精英编号被划掉后，清算者会获得新的空白名单。名单很长。',
+  powerup_collector_40: '四十次拾取会让机体像拼接圣像。每一块零件都来自不同的灾难。',
+  fragment_500: '五百枚月光石足够点亮一座小礼拜堂。也足够把它再次炸平。',
+  fragment_1000: '一千枚月光石会吸引研究室的注意。注意，有时比敌人更危险。',
+  all_tanks_unlocked: '六种机体列入同一名册时，终端会生成一份不存在的部队番号。',
+  upgrade_apprentice: '十次强化后，驾驶员开始听懂维修员的沉默。那是另一种战场语言。',
+  upgrade_master: '三十次强化不是熟练，而是妥协。每一次拧紧螺栓，都在放弃一点旧人类。',
+  evolution_first: '第一次进化会让机体短暂失声。仿佛有什么新东西在内部学会呼吸。',
+  evolution_six: '六次进化记录合并时，屏幕上会出现花的形状。研究室立刻把它归类为武器。',
+  daily_clear: '每日目标来自一台早已离线的调度机。它仍准时发布命令，像世界还完整。',
+  nightmare_survivor: '梦魇难度的第五关没有祝贺语。只有一段静默，长得像追悼。',
+  boss_witness: '第一次看见首领时，雷达会慢半拍。机器也需要一点时间理解恐惧。',
+  boss_breaker: '第十二波之后，Boss不再像敌人，更像灾害。破城者学会向灾害开火。',
+  untouched_combo: '十五连击且未受伤，像在弹雨中完成一段仪式。圣城拒绝承认这不是神迹。',
+};
+
+const ACHIEVEMENT_RARITY = [
+  { min: 30, label: 'MYTH', className: 'myth', color: '#f6e5aa' },
+  { min: 20, label: 'EPIC', className: 'epic', color: '#8ce8ff' },
+  { min: 12, label: 'RARE', className: 'rare', color: '#f49800' },
+  { min: 0, label: 'STD', className: 'standard', color: '#7f92aa' },
+];
+
 const STORAGE_KEY = 'tankbattle_achievements';
 const UNLOCK_KEY = 'tankbattle_unlocks';
 const ACHIEVEMENT_REWARD_KEY = 'tankbattle_achievement_rewards_claimed';
@@ -2170,6 +2326,32 @@ function getAchievementReward(def) {
   return Math.max(1, (def && def.reward) || 5);
 }
 
+function getAchievementIndex(id) {
+  return Math.max(0, achievementsDef.findIndex(a => a.id === id));
+}
+
+function getAchievementCode(def) {
+  const idx = getAchievementIndex(def.id) + 1;
+  return 'ACH-' + String(idx).padStart(2, '0');
+}
+
+function getAchievementRarity(def) {
+  const reward = getAchievementReward(def);
+  return ACHIEVEMENT_RARITY.find(r => reward >= r.min) || ACHIEVEMENT_RARITY[ACHIEVEMENT_RARITY.length - 1];
+}
+
+function getAchievementSeal(def) {
+  const clean = String(def.id || 'ach').replace(/[^a-z0-9]/gi, '').toUpperCase();
+  const first = clean[0] || 'A';
+  const last = clean[Math.max(0, clean.length - 1)] || 'H';
+  return first + last;
+}
+
+function getAchievementToastIcon(def) {
+  if (!def) return 'ACH';
+  return getAchievementCode(def).replace('ACH-', 'A');
+}
+
 function showAchievementToast(icon, name, label, accent) {
   const toast = document.getElementById('achieve-toast');
   toast.querySelector('.achieve-icon').textContent = icon;
@@ -2198,7 +2380,7 @@ function claimAchievementReward(id) {
   saveProgression();
   checkAchievements();
   sfxAchievement();
-  showAchievementToast(def.icon, '成就奖励已领取', def.name + ' +' + reward + ' 月光石', '#f6e5aa');
+  showAchievementToast(getAchievementToastIcon(def), '成就奖励已领取', def.name + ' +' + reward + ' 月光石', '#f6e5aa');
   renderAchievements();
 }
 
@@ -2252,7 +2434,7 @@ function unlockAchievement(id) {
   const def = achievementsDef.find(a => a.id === id);
   if (!def) return;
   sfxAchievement();
-  showAchievementToast(def.icon, def.name, '已完成 · 可领取 +' + getAchievementReward(def) + ' 月光石');
+  showAchievementToast(getAchievementToastIcon(def), def.name, '已完成 · 可领取 +' + getAchievementReward(def) + ' 月光石');
 }
 
 // --- Achievement tracking ---
@@ -2674,16 +2856,30 @@ function renderAchievements() {
     const unlocked = unlockedAchievements.has(a.id);
     const claimed = claimedAchievementRewards.has(a.id);
     const reward = getAchievementReward(a);
+    const rarity = getAchievementRarity(a);
+    const code = getAchievementCode(a);
+    const seal = getAchievementSeal(a);
+    const lore = ACHIEVEMENT_LORE[a.id] || '该战绩尚未完成解密。记录员只留下一个空白编号，等待新的驾驶员补全。';
+    const statusText = unlocked ? (claimed ? 'ARCHIVED' : 'CLAIM READY') : 'ENCRYPTED';
     const rewardHtml = unlocked
       ? (claimed
         ? `<button class="ach-reward claimed" disabled>已领取</button>`
         : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">领取 +${reward}</button>`)
       : `<span class="ach-reward locked-reward">+${reward}</span>`;
-    return `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'}">
-      <span class="ach-icon">${unlocked ? a.icon : '🔒'}</span>
+    return `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'} rarity-${rarity.className}" tabindex="0" style="--ach-accent:${escapeHtml(rarity.color)}">
+      <div class="ach-medal" aria-label="${escapeHtml(code)}">
+        <span class="ach-medal-code">${escapeHtml(code)}</span>
+        <span class="ach-medal-seal">${escapeHtml(seal)}</span>
+      </div>
       <div class="ach-info">
+        <div class="ach-topline">
+          <span class="ach-code">${escapeHtml(code)}</span>
+          <span class="ach-rarity">${escapeHtml(rarity.label)}</span>
+          <span class="ach-status">${escapeHtml(statusText)}</span>
+        </div>
         <div class="ach-name">${a.name}</div>
         <div class="ach-desc">${unlocked ? a.desc : '???'}</div>
+        <div class="ach-lore"><span>战绩档案</span>${escapeHtml(lore)}</div>
       </div>
       <div class="ach-claim">${rewardHtml}</div>
     </div>`;
