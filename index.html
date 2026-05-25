@@ -573,6 +573,21 @@ canvas {
   background: rgba(0,80,150,0.4);
   box-shadow: 0 0 20px rgba(64,170,255,0.4);
 }
+#upgrade-screen {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: none; flex-direction: column; justify-content: center; align-items: center;
+  gap: 12px; background: rgba(0,0,0,0.9); z-index: 15;
+}
+#upgrade-screen h1 { color: #8cf; font-size: 36px; letter-spacing: 4px; }
+#upgrade-screen .upgrade-grid { display: flex; flex-direction: column; gap: 8px; width: 400px; }
+#upgrade-screen .upgrade-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid #444; border-radius: 8px; background: rgba(20,20,30,0.5); }
+#upgrade-screen .upgrade-row .upg-icon { font-size: 24px; }
+#upgrade-screen .upgrade-row .upg-info { flex: 1; }
+#upgrade-screen .upgrade-row .upg-name { color: #ccc; font-size: 14px; font-weight: bold; }
+#upgrade-screen .upgrade-row .upg-effect { color: #888; font-size: 11px; }
+#upgrade-screen .upgrade-row .upg-btn { padding: 8px 16px; border: 1px solid #a8f; border-radius: 6px; background: rgba(100,64,200,0.2); color: #8cf; cursor: pointer; font-family: 'Courier New',monospace; font-size: 12px; }
+#upgrade-screen .upgrade-row .upg-btn:hover { background: rgba(100,64,200,0.4); }
+#upgrade-screen .upgrade-row .upg-btn.capped { border-color: #555; color: #555; background: rgba(30,30,30,0.3); cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -604,6 +619,13 @@ canvas {
     <p class="achieve-link" onclick="showAchievements()">🏆 查看成就</p>
     <p class="achieve-link" onclick="showBestiary()" style="margin-top:4px;">📖 查看图鉴</p>
     <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()" style="margin-top:4px;color:#fd0;border-color:#da0;">📅 每日挑战</p>
+    <p class="achieve-link" onclick="showUpgradeScreen()" style="margin-top:4px;color:#8cf;border-color:#a8f;">💎 核心升级</p>
+  </div>
+  <div id="upgrade-screen">
+    <h1>💎 核心升级</h1>
+    <p class="subtitle" style="color:#8cf;margin-top:-16px;" id="upgrade-fragments">💎 核心碎片: 0</p>
+    <div class="upgrade-grid" id="upgrade-grid"></div>
+    <button class="best-back-btn" onclick="hideUpgradeScreen()" style="margin-top:16px;">返回</button>
   </div>
   <div id="tank-select-screen">
     <h2>选 择 机 体</h2>
@@ -1320,13 +1342,29 @@ function showWaveNotification(text, sub) {
 
 function startNextWave() {
   wave++;
+  // Earn fragments for previous wave clear
+  if (wave > 1) earnFragments(Math.floor(wave / 2) + 1);
+
+  // Boss wave every 5 waves
+  if (wave % 5 === 0) {
+    isBossWave = true;
+    waveEnemiesTotal = 1; waveEnemiesRemaining = 1;
+    wavePause = 0;
+    const bossIdx = Math.floor(wave / 5 - 1) % BOSS_TYPES.length;
+    const bossDef = BOSS_TYPES[bossIdx];
+    const bx = W/2, by = H/3;
+    bossRef = new BossEnemy(bx, by, bossDef);
+    enemies.push(bossRef);
+    showWaveNotification('BOSS: ' + bossDef.name, '第 ' + wave + ' 波 - Boss战!');
+    return;
+  }
+
+  isBossWave = false; bossRef = null;
   const enemiesPerWave = 3 + wave;
   waveEnemiesTotal = enemiesPerWave;
   waveEnemiesRemaining = enemiesPerWave;
   wavePause = 0;
-  // Spawn initial wave enemies
   for (let i = 0; i < 2; i++) spawnEnemy();
-  // Every 3 waves, show extra rest notification
   const sub = (wave % 3 === 0) ? '补给时间! 收集道具准备下一波' : '准备迎战!';
   showWaveNotification('第 ' + wave + ' 波', sub);
 }
@@ -2708,6 +2746,247 @@ class EliteEnemy extends EnemyTank {
   }
 }
 
+// --- Boss System ---
+let isBossWave = false;
+let bossRef = null;
+
+const BOSS_TYPES = [
+  { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.25, hp:30, icon:'🦾',
+    phases:[
+      { hpPct:1.0, attack:'spiral', shootDelay:30, bulletCount:12, bulletSpeed:1.6 },
+      { hpPct:0.5, attack:'enrage', shootDelay:18, bulletCount:16, bulletSpeed:2.0 },
+    ]},
+  { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.5, hp:20, icon:'👻',
+    phases:[
+      { hpPct:1.0, attack:'teleport', shootDelay:40, bulletCount:6, bulletSpeed:2.0 },
+      { hpPct:0.5, attack:'clone_barrage', shootDelay:25, bulletCount:10, bulletSpeed:2.5 },
+    ]},
+  { name:'要塞坦克', color:'#664', turret:'#ca4', speed:0, hp:40, icon:'🏰',
+    phases:[
+      { hpPct:1.0, attack:'turret_salvo', shootDelay:50, bulletCount:8, bulletSpeed:1.8 },
+      { hpPct:0.5, attack:'mine_storm', shootDelay:35, bulletCount:14, bulletSpeed:2.2 },
+    ]},
+];
+
+class BossEnemy extends EliteEnemy {
+  constructor(x, y, bossDef) {
+    const diff = difficultySettings[currentDifficulty];
+    const hp = bossDef.hp + level * 3 + diff.enemyHpBonus * 3;
+    super(x, y, {name:bossDef.name, color:bossDef.color, turret:bossDef.turret, speed:bossDef.speed, hp:Math.max(20,hp), special:'boss', icon:bossDef.icon});
+    this.bossDef = bossDef;
+    this.maxHp = this.hp;
+    this.currentPhase = 0;
+    this.phaseTimer = 0;
+    this.eliteName = bossDef.name;
+    this.eliteIcon = bossDef.icon;
+    this.shootDelay = bossDef.phases[0].shootDelay;
+  }
+  update() {
+    super.update();
+    if (!this.alive) return;
+    this.phaseTimer++;
+    // Phase transition
+    const phases = this.bossDef.phases;
+    for (let i = phases.length - 1; i >= 0; i--) {
+      if (this.hp / this.maxHp <= phases[i].hpPct && i > this.currentPhase) {
+        this.currentPhase = i;
+        this.shootDelay = phases[i].shootDelay;
+        spawnExplosion(this.x, this.y, 40, '#fff', '#ff0');
+        showWaveNotification('', this.bossDef.name + ' 进入第' + (i+1) + '阶段!');
+      }
+    }
+  }
+  shoot() {
+    const phase = this.bossDef.phases[Math.max(0, this.currentPhase)] || this.bossDef.phases[0];
+    const bx = this.x + Math.cos(this.turretAngle) * 22;
+    const by = this.y + Math.sin(this.turretAngle) * 22;
+    if (phase.attack === 'spiral') {
+      for (let i = 0; i < phase.bulletCount; i++) {
+        const a = this.turretAngle + (i / phase.bulletCount) * Math.PI * 2;
+        enemyBullets.push(new Bullet(bx, by, a, phase.bulletSpeed, '#f44', false));
+      }
+    } else if (phase.attack === 'enrage') {
+      for (let i = 0; i < phase.bulletCount; i++) {
+        const a = this.turretAngle + (i - phase.bulletCount/2) * 0.15;
+        enemyBullets.push(new Bullet(bx, by, a, phase.bulletSpeed, '#f80', false));
+      }
+    } else if (phase.attack === 'teleport') {
+      this.x = 50 + rng() * (W - 100); this.y = 50 + rng() * (H - 100);
+      for (let i = 0; i < phase.bulletCount; i++) {
+        const a = (i / phase.bulletCount) * Math.PI * 2;
+        enemyBullets.push(new Bullet(this.x, this.y, a, phase.bulletSpeed, '#88f', false));
+      }
+    } else if (phase.attack === 'clone_barrage') {
+      for (let j = 0; j < 3; j++) {
+        const cx = this.x + (rng() - 0.5) * 120, cy = this.y + (rng() - 0.5) * 120;
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * Math.PI * 2;
+          enemyBullets.push(new Bullet(cx, cy, a, phase.bulletSpeed, '#aaf', false));
+        }
+      }
+    } else if (phase.attack === 'turret_salvo') {
+      for (let t = -1; t <= 1; t += 2) {
+        const tx = this.x + t * 30;
+        for (let i = 0; i < phase.bulletCount / 2; i++) {
+          const a = Math.atan2(player.y - this.y, player.x - tx) + (i - 3) * 0.12;
+          enemyBullets.push(new Bullet(tx, this.y, a, phase.bulletSpeed, '#ca4', false));
+        }
+      }
+    } else if (phase.attack === 'mine_storm') {
+      for (let i = 0; i < 3; i++) {
+        mines.push({x:this.x+(rng()-0.5)*200, y:this.y+(rng()-0.5)*200, life:600, armed:true});
+      }
+      for (let i = 0; i < phase.bulletCount; i++) {
+        const a = this.turretAngle + (i - phase.bulletCount/2) * 0.1;
+        enemyBullets.push(new Bullet(bx, by, a, phase.bulletSpeed, '#ff0', false));
+      }
+    }
+  }
+  draw(ctx) {
+    ctx.save(); ctx.translate(this.x, this.y);
+    const bpulse = Math.sin(Date.now()/200)*0.3+0.7;
+    ctx.shadowColor = '#ff0'; ctx.shadowBlur = 15 + bpulse * 8;
+    // Large angular body
+    ctx.fillStyle = this.color;
+    ctx.fillRect(-24, -16, 48, 32);
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+    ctx.strokeRect(-24, -16, 48, 32);
+    ctx.fillStyle = this.turretColor;
+    ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.save(); ctx.rotate(this.turretAngle);
+    ctx.fillStyle = this.turretColor;
+    ctx.fillRect(6, -5, 20, 10);
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(6, -5, 20, 10);
+    ctx.restore();
+    ctx.shadowBlur = 0;
+    // Phase indicator
+    const p = this.bossDef.phases[Math.max(0,this.currentPhase)];
+    if (p) {
+      ctx.fillStyle = '#ff0'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('P'+(this.currentPhase+1), 0, -30);
+    }
+    ctx.restore();
+    // Boss HP bar at top of screen
+    if (this.alive) {
+      const bhpW = 400, bfpH = 12;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(W/2 - bhpW/2 - 2, 6, bhpW + 4, bfpH + 4);
+      ctx.fillStyle = '#400';
+      ctx.fillRect(W/2 - bhpW/2, 8, bhpW, bfpH);
+      const hpr = this.hp / this.maxHp;
+      ctx.fillStyle = hpr > 0.5 ? '#f44' : (hpr > 0.25 ? '#f80' : '#f00');
+      ctx.fillRect(W/2 - bhpW/2, 8, bhpW * hpr, bfpH);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(this.bossDef.icon + ' ' + this.bossDef.name + ' ' + Math.ceil(this.hp) + '/' + this.maxHp, W/2, 8 + bfpH/2 + 4);
+    }
+  }
+}
+
+// --- Tank Progression System ---
+const UPGRADE_KEY = 'tankbattle_upgrades';
+const FRAGMENT_KEY = 'tankbattle_fragments';
+let coreFragments = 0;
+let permanentUpgrades = {
+  maxHp: 0,      // +1 max HP per level (max 5)
+  bulletDmg: 0,  // +10% damage per level (max 5)
+  moveSpd: 0,    // +5% speed per level (max 5)
+  specialCD: 0,  // -1 special interval per level (max 3)
+};
+
+function loadProgression() {
+  try {
+    const raw = localStorage.getItem(FRAGMENT_KEY);
+    coreFragments = raw ? parseInt(raw) : 0;
+    const upg = localStorage.getItem(UPGRADE_KEY);
+    if (upg) permanentUpgrades = JSON.parse(upg);
+  } catch(e) {}
+}
+function saveProgression() {
+  try {
+    localStorage.setItem(FRAGMENT_KEY, coreFragments.toString());
+    localStorage.setItem(UPGRADE_KEY, JSON.stringify(permanentUpgrades));
+  } catch(e) {}
+}
+
+function earnFragments(amount) {
+  coreFragments += amount;
+  saveProgression();
+  const toast = document.getElementById('achieve-toast');
+  toast.querySelector('.achieve-icon').textContent = '💎';
+  toast.querySelector('.achieve-name').textContent = '+' + amount + ' 核心碎片';
+  toast.querySelector('.achieve-label').textContent = '总计: ' + coreFragments;
+  toast.querySelector('.achieve-name').style.color = '#8cf';
+  toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
+  toast.style.animation = 'toastIn 0.4s ease-out';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+
+function applyPermanentUpgrades() {
+  playerBulletDmgMul += permanentUpgrades.bulletDmg * 0.1;
+  playerSpeedMul += permanentUpgrades.moveSpd * 0.05;
+  if (player.alive && permanentUpgrades.maxHp > 0) {
+    player.maxHp += permanentUpgrades.maxHp;
+    player.hp += permanentUpgrades.maxHp;
+  }
+}
+
+function getUpgradeCost(stat, level) {
+  return (level + 1) * 50; // 50, 100, 150, 200, 250
+}
+
+function purchaseUpgrade(stat) {
+  const lvl = permanentUpgrades[stat];
+  const cost = getUpgradeCost(stat, lvl);
+  const caps = { maxHp:5, bulletDmg:5, moveSpd:5, specialCD:3 };
+  if (lvl >= caps[stat]) return;
+  if (coreFragments < cost) return;
+  coreFragments -= cost;
+  permanentUpgrades[stat]++;
+  saveProgression();
+  renderUpgradeUI();
+  sfxAchievement();
+}
+
+function renderUpgradeUI() {
+  const names = { maxHp:'基础耐久', bulletDmg:'弹头强化', moveSpd:'机动优化', specialCD:'特殊充能' };
+  const icons = { maxHp:'❤️', bulletDmg:'💥', moveSpd:'💨', specialCD:'⚡' };
+  const caps = { maxHp:5, bulletDmg:5, moveSpd:5, specialCD:3 };
+  const effects = {
+    maxHp: '+1最大HP', bulletDmg: '+10%伤害', moveSpd: '+5%移速', specialCD: '特殊子弹间隔-1',
+  };
+  const container = document.getElementById('upgrade-grid');
+  if (!container) return;
+  container.innerHTML = Object.keys(names).map(stat => {
+    const lvl = permanentUpgrades[stat];
+    const capped = lvl >= caps[stat];
+    const cost = capped ? 'MAX' : getUpgradeCost(stat, lvl) + ' 💎';
+    return `<div class="upgrade-row">
+      <span class="upg-icon">${icons[stat]}</span>
+      <div class="upg-info">
+        <div class="upg-name">${names[stat]} Lv.${lvl}</div>
+        <div class="upg-effect">${effects[stat]}</div>
+      </div>
+      <button class="upg-btn ${capped?'capped':''}" onclick="purchaseUpgrade('${stat}')" ${capped?'disabled':''}>${cost}</button>
+    </div>`;
+  }).join('');
+  const fragEl = document.getElementById('upgrade-fragments');
+  if (fragEl) fragEl.textContent = '💎 核心碎片: ' + coreFragments;
+}
+
+function showUpgradeScreen() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('tank-select-screen').style.display = 'none';
+  document.getElementById('upgrade-screen').style.display = 'flex';
+  renderUpgradeUI();
+}
+function hideUpgradeScreen() {
+  document.getElementById('upgrade-screen').style.display = 'none';
+  document.getElementById('start-screen').style.display = 'flex';
+  renderDifficultyButtons();
+}
+
 // --- Game objects ---
 let player;
 let enemies = [];
@@ -3274,6 +3553,7 @@ function restartGame() {
 function init() {
   loadAchievements();
   loadUnlocks();
+  loadProgression();
   renderDifficultyButtons();
   player = new PlayerTank(currentTankType);
   gameRunning = false;
@@ -3294,6 +3574,7 @@ function startGame(difficulty, tankType) {
   wave = 0; waveEnemiesRemaining = 0; waveEnemiesTotal = 0; wavePause = 0; waveNotificationTimer = 0;
   comboCount = 0; comboTimer = 0;
   player = new PlayerTank(currentTankType);
+  applyPermanentUpgrades();
   enemies = [];
   playerBullets = [];
   enemyBullets = [];
