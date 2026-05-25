@@ -3562,6 +3562,9 @@ function applyTankUpgrades(tankType) {
 // Tank Lab UI (replaces old upgrade screen)
 function renderLabUI() {
   const grid = document.getElementById('lab-tank-grid');
+  const detail = document.getElementById('lab-detail');
+  // Diagnostic: show bright pink text to confirm renderLabUI is called
+  if (detail) detail.innerHTML = '<div style="color:#f0f;font-size:18px;text-align:center;padding:10px;">DEBUG: renderLabUI called, tank=' + labSelectedTank + '</div>';
   if (!grid) return;
   const tankKeys = Object.keys(tankTypes);
   const icons = {spread:'☆',focus:'★',wide:'❋',burst:'✦',sniper:'◈',homing:'◎'};
@@ -3584,7 +3587,6 @@ function renderLabUI() {
     </div>`;
   }).join('');
   // Detail panel
-  const detail = document.getElementById('lab-detail');
   if (!detail) return;
   const k = labSelectedTank;
   const unlocked = unlockedTanks.has(k);
