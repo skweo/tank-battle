@@ -531,11 +531,11 @@ canvas { display: block; background: #0a0f18; }
 #lab-screen .lab-tank-name { font-size: 10px; color: #c0c8d0; font-weight: 500; margin-top: 2px; }
 #lab-screen .lab-tank-dots { font-size: 7px; color: #6b7d95; margin-top: 1px; }
 #lab-screen .lab-evo-badge { position: absolute; top: 1px; right: 1px; font-size: 6px; color: #c8a0d8; background: rgba(160,80,200,0.15); padding: 0 3px; }
-#lab-screen .lab-detail-panel { width: 94%; max-width: 450px; padding: 10px 14px; border: 1px solid rgba(107,125,149,0.1); background: rgba(10,14,22,0.6); clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px); flex-shrink: 0; }
-#lab-screen .lab-detail-name { font-size: 14px; color: #e0e4ec; font-weight: 500; letter-spacing: 2px; }
-#lab-screen .lab-detail-desc { font-size: 10px; color: #6b7d95; margin: 2px 0; }
-#lab-screen .lab-stats { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
-#lab-screen .lab-stat-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a0a8b4; }
+#lab-screen .lab-detail-panel { width: 94%; max-width: 450px; padding: 12px 16px; border: 1px solid rgba(244,152,0,0.15); background: rgba(16,22,32,0.7); clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px); flex-shrink: 0; }
+#lab-screen .lab-detail-name { font-size: 15px; color: #f49800; font-weight: 500; letter-spacing: 2px; }
+#lab-screen .lab-detail-desc { font-size: 11px; color: #8a94a4; margin: 2px 0; }
+#lab-screen .lab-stats { display: flex; flex-direction: column; gap: 5px; margin: 8px 0; }
+#lab-screen .lab-stat-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #c0c8d0; }
 #lab-screen .lab-stat-dots { letter-spacing: 2px; color: #6b7d95; }
 #lab-screen .lab-upg-btn { padding: 5px 10px; font-size: 12px; font-weight: 600; border: 1px solid rgba(244,152,0,0.3); background: rgba(22,30,40,0.7); color: #f49800; cursor: pointer; font-family: 'Segoe UI','Microsoft YaHei',sans-serif; clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px); min-width: 50px; transition: all 0.2s; }
 #lab-screen .lab-upg-btn:hover { background: rgba(34,44,56,0.8); border-color: #ffb340; box-shadow: 0 0 8px rgba(244,152,0,0.25); }
@@ -637,7 +637,7 @@ canvas { display: block; background: #0a0f18; }
   <div id="lab-screen">
     <h1>🔬 机 装 研 究 室</h1>
     <p class="subtitle" style="color:#da0;margin-top:-6px;font-size:11px;" id="lab-fragments">💎 月光石: 0</p>
-    <p style="color:#666;font-size:10px;margin:-4px 0 0 0;">选择机体 → 升级强化 → 出撃战斗</p>
+    <p style="color:#8a94a4;font-size:10px;margin:-4px 0 0 0;">选择机体 → 升级强化 → 确认出战</p>
     <div class="lab-tank-grid" id="lab-tank-grid"></div>
     <div class="ornament" style="width:200px;margin:2px 0;"></div>
     <div class="lab-detail-panel" id="lab-detail"></div>
@@ -3596,36 +3596,35 @@ function renderLabUI() {
 
   if (!unlocked) {
     const cond = TANK_UNLOCK_CONDITIONS[k];
-    detail.innerHTML = `
-      <div class="lab-info-text">点击上方卡片选择机体</div>
-      <div class="lab-detail-name">${tankTypes[k].name} 🔒</div>
-      <div class="lab-detail-desc">${cond.desc}</div>
-      ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">💎 解锁 (${cond.cost})</button>` : ''}`;
+    detail.innerHTML = `<div style="color:#e0e4ec;font-size:14px;text-align:center;padding:10px;">
+      <div style="font-size:22px;margin-bottom:8px;">🔒 ${tankTypes[k].name}</div>
+      <div style="color:#8a94a4;margin-bottom:8px;">${cond.desc}</div>
+      ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">💎 解锁 (${cond.cost})</button>` : ''}</div>`;
   } else {
     const defs = TANK_UPGRADE_DEFS[k] || [];
     const allMaxed = defs.every(d => (ug[d.id]||0) >= d.max);
     let evoHTML = '';
-    if (evolved) evoHTML = `<div style="color:#f8d;font-size:11px;">${evoDef.icon} ${evoDef.name} · ${evoDef.bonus} ✅</div>`;
-    else if (allMaxed && defs.length > 0) evoHTML = `<button class="lab-btn" style="border-color:#f8d;color:#f8d;" onclick="tryEvolveTank('${k}');renderLabUI();">✨ 进化 → ${evoDef.name} (200💎)</button>`;
+    if (evolved) evoHTML = `<div style="color:#f8d;font-size:13px;text-align:center;">${evoDef.icon} ${evoDef.name} · ${evoDef.bonus} ✅</div>`;
+    else if (allMaxed && defs.length > 0) evoHTML = `<div style="text-align:center;"><button class="lab-btn" style="border-color:#f8d;color:#f8d;" onclick="tryEvolveTank('${k}');renderLabUI();">✨ 进化 → ${evoDef.name} (200💎)</button></div>`;
+    const statsHTML = defs.map(d => {
+      const lvl = (ug[d.id]||0);
+      const capped = lvl >= d.max;
+      const cost = capped ? 999 : getTankUpgradeCost(k, d.id);
+      const canAfford = coreFragments >= cost;
+      const costText = capped ? 'MAX' : (cost + '💎');
+      const costColor = capped ? '#5a6878' : (canAfford ? '#e0e4ec' : '#f06060');
+      return `<div class="lab-stat-row" style="color:#c0c8d0;">
+        <span style="width:70px;">${d.icon} ${d.name}</span>
+        <span class="lab-stat-dots">${'●'.repeat(lvl)}${'○'.repeat(d.max-lvl)}</span>
+        <span style="font-size:10px;color:${capped?'#5a6878':'#a0a8b4'};width:65px;text-align:center;">${capped?'已满':'→ '+d.desc}</span>
+        <button class="lab-upg-btn ${capped?'capped':''}" style="color:${costColor};" onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}>${costText}</button>
+      </div>`;
+    }).join('');
     detail.innerHTML = `
-      <div class="lab-detail-name">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${selected ? '✅ 出战中' : ''}</div>
+      <div class="lab-detail-name" style="text-align:center;">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${selected ? '✅ 出战中' : ''}</div>
       ${evoHTML}
-      <div class="lab-stats">${defs.map(d => {
-        const lvl = (ug[d.id]||0);
-        const capped = lvl >= d.max;
-        const cost = capped ? 999 : getTankUpgradeCost(k, d.id);
-        const canAfford = coreFragments >= cost;
-        const costText = capped ? 'MAX' : (cost + '💎');
-        const costColor = capped ? '#4a5a70' : (canAfford ? '#a0a8b4' : '#d05050');
-        const preview = capped ? '已满' : `→ ${d.desc}`;
-        return `<div class="lab-stat-row">
-          <span style="width:80px;font-weight:500;">${d.icon} ${d.name}</span>
-          <span class="lab-stat-dots" title="Lv.${lvl}/${d.max}">${'●'.repeat(lvl)}${'○'.repeat(d.max-lvl)}</span>
-          <span style="font-size:9px;color:${capped?'#3a4a58':'#8a94a4'};width:55px;text-align:right;">${preview}</span>
-          <button class="lab-upg-btn ${capped?'capped':''}" style="color:${costColor};" onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}>${costText}</button>
-        </div>`;
-      }).join('')}</div>
-      <div style="font-size:10px;color:#666;">${!selected ? '点击下方"确认出战"切换机体' : '当前出战机体'} · ${defs.some(d=>(ug[d.id]||0)<d.max) ? defs.length+'项可升级' : evolved ? '已达最终形态' : '满级可进化'}</div>`;
+      <div class="lab-stats">${statsHTML}</div>
+      <div style="font-size:10px;color:#8a94a4;text-align:center;">${defs.length}项升级 · ${evolved?'已达最终形态':(allMaxed?'满级可进化!':'')}</div>`;
   }
   // Update fixed confirm button visibility
   const confirmBtn = document.getElementById('lab-confirm-btn');
