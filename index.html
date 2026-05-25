@@ -1302,7 +1302,7 @@ function renderBestiary() {
         case 'flame': desc = '扇形三连火焰弹'; break;
         case 'summoner': desc = '周期性召唤敌方小兵增援'; break;
         case 'stealth': desc = '周期性隐身，现身时攻击'; break;
-        case 'splitter': desc = '被击败时分裂为2个普通敌人'; break;
+        case 'splitter': desc = '定期增殖复制体，击杀后分裂为2个'; break;
         case 'regen': desc = '每秒自动恢复生命值'; break;
         case 'laser': desc = '发射高速穿透激光束'; break;
         case 'miner': desc = '在地面布置触碰爆炸的地雷'; break;
@@ -2137,6 +2137,9 @@ class EliteEnemy extends EnemyTank {
     if (eliteDef.special === 'miner') {
       this.mineCooldown = 50 + Math.random() * 60;
     }
+    if (eliteDef.special === 'splitter') {
+      this.splitTimer = 300 + Math.random() * 200;
+    }
   }
   update() {
     super.update();
@@ -2167,6 +2170,19 @@ class EliteEnemy extends EnemyTank {
       if (this.mineCooldown <= 0) {
         this.mineCooldown = 60 + Math.random() * 60;
         mines.push({ x: this.x, y: this.y, life: 450, armed: true });
+      }
+    }
+    if (this.special === 'splitter' && enemies.length < 12) {
+      this.splitTimer--;
+      if (this.splitTimer <= 0) {
+        this.splitTimer = 400 + Math.random() * 250;
+        const sx = this.x + (Math.random() - 0.5) * 80;
+        const sy = this.y + (Math.random() - 0.5) * 80;
+        const nx = Math.max(30, Math.min(W - 30, sx));
+        const ny = Math.max(30, Math.min(H - 30, sy));
+        enemies.push(new EliteEnemy(nx, ny, eliteTypes[6])); // spawn another splitter
+        spawnExplosion(this.x, this.y, 12, '#c84', '#fb0');
+        showWaveNotification('', '分裂坦克增殖了!');
       }
     }
   }
@@ -2476,14 +2492,13 @@ class EliteEnemy extends EnemyTank {
     const dead = super.hit(bullet);
     if (dead && this.special === 'splitter') {
       for (let i = 0; i < 2; i++) {
-        const sx = this.x + (Math.random() - 0.5) * 60;
-        const sy = this.y + (Math.random() - 0.5) * 60;
+        const sx = this.x + (Math.random() - 0.5) * 80;
+        const sy = this.y + (Math.random() - 0.5) * 80;
         const nx = Math.max(30, Math.min(W - 30, sx));
         const ny = Math.max(30, Math.min(H - 30, sy));
-        const diff = difficultySettings[currentDifficulty];
-        const hp = Math.max(1, 2 + diff.enemyHpBonus);
-        enemies.push(new EnemyTank(nx, ny, '#d44', '#f66', 0.5 * diff.enemySpeedMul, hp));
+        enemies.push(new EliteEnemy(nx, ny, eliteTypes[6])); // spawn 2 new splitters
       }
+      spawnExplosion(this.x, this.y, 15, '#c84', '#fb0');
     }
     return dead;
   }
