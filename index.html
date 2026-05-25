@@ -3434,6 +3434,7 @@ function applyTankUpgrades(tankType) {
 function renderLabUI() {
   const grid = document.getElementById('lab-tank-grid');
   if (!grid) return;
+  try {
   const tankKeys = Object.keys(tankTypes);
   const icons = {spread:'☆',focus:'★',wide:'❋',burst:'✦',sniper:'◈',homing:'◎'};
   grid.innerHTML = tankKeys.map(k => {
@@ -3497,6 +3498,7 @@ function renderLabUI() {
         <span style="font-size:10px;color:#666;">${nextUpg ? '升级强化后更强' : evolved ? '已达最终形态' : '可进化!'}</span>
       </div>`;
   }
+  } catch(e) { console.error('Lab render error:', e); }
 }
 function selectLabTank(tank) {
   labSelectedTank = tank;
@@ -3508,9 +3510,6 @@ function tryUnlockFromLab(tank) {
 function setActiveTank(tank) {
   currentTankType = tank;
   hideLabScreen();
-  // Auto-start with the currently set difficulty
-  if (currentDifficulty) startGame(currentDifficulty);
-  else showTankSelect('easy');
 }
 function showLabScreen() {
   labSelectedTank = currentTankType;
