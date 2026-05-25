@@ -1560,7 +1560,7 @@ const powerUpDefs = [
   { type: 'rapid',    name: '急速连射', icon: '🔥', color: '#f44', desc: '射速翻倍', duration: 660 },
   { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复3HP', duration: 0 },
   { type: 'freeze',   name: '冰冻弹',   icon: '❄️', color: '#8cf', desc: '减缓敌人', duration: 540 },
-  { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '三发散射', duration: 780 },
+  { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '散射(最低3发)', duration: 780 },
   { type: 'magnet',   name: '磁铁',     icon: '🧲', color: '#c8f', desc: '自动吸取道具', duration: 720 },
   { type: 'pierce',   name: '穿甲弹',   icon: '🗡️', color: '#ff8', desc: '子弹穿透敌人', duration: 660 },
   { type: 'vampire',  name: '生命汲取', icon: '🩸', color: '#f66', desc: '击杀恢复1HP', duration: 720 },
@@ -2232,8 +2232,8 @@ class PlayerTank extends Tank {
       }
     }
 
-    const count = buffs.multishot > 0 ? 3 : def.bulletCount;
-    const spread = buffs.multishot > 0 ? 0.12 : def.spreadAngle;
+    const count = buffs.multishot > 0 ? Math.max(def.bulletCount, 3) : def.bulletCount;
+    const spread = buffs.multishot > 0 ? Math.max(def.spreadAngle, 0.12) : def.spreadAngle;
     const halfSpread = spread * (count - 1) / 2;
     for (let i = 0; i < count; i++) {
       const angleOffset = count === 1 ? 0 : -halfSpread + i * spread;
