@@ -1800,7 +1800,6 @@ window.addEventListener('keydown', e => {
     else if (document.getElementById('leaderboard-screen').style.display === 'flex') hideLeaderboard();
     else if (document.getElementById('bestiary-screen').style.display === 'flex') hideBestiary();
     else if (document.getElementById('achievements-screen').style.display === 'flex') hideAchievements();
-    else if (document.getElementById('upgrade-screen').style.display === 'flex') hideUpgradeScreen();
   }
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
@@ -3515,7 +3514,6 @@ function showLabScreen() {
   labSelectedTank = currentTankType;
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('tank-select-screen').style.display = 'none';
-  document.getElementById('upgrade-screen').style.display = 'none';
   document.getElementById('lab-screen').style.display = 'flex';
   renderLabUI();
 }
