@@ -4392,6 +4392,10 @@ function generateObstacles() {
   obstacles.length = 0;
   const count = 12 + level * 3;
   const totalWeight = Object.values(OBSTACLE_TYPES).reduce((s, d) => s + d.weight, 0);
+  const keepOutZones = [
+    { x: W / 2, y: H - 70, r: 90 },
+    { x: W / 2, y: H - 130, r: 72 },
+  ];
 
   for (let i = 0; i < count; i++) {
     const roll = rng() * totalWeight;
@@ -4405,6 +4409,12 @@ function generateObstacles() {
     const oy = 40 + rng() * (H - 80);
     const ow = def.minW + rng() * (def.maxW - def.minW);
     const oh = def.minH + rng() * (def.maxH - def.minH);
+    const cx0 = ox + ow / 2, cy0 = oy + oh / 2;
+    const blockedMain = keepOutZones.some(z => {
+      const dx = cx0 - z.x, dy = cy0 - z.y;
+      return Math.sqrt(dx * dx + dy * dy) < z.r;
+    });
+    if (blockedMain) continue;
     obstacles.push({ x: ox, y: oy, w: ow, h: oh, type: obsType, passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke });
 
     // 30% chance to spawn 1-2 smaller obstacles nearby (cluster effect)
@@ -4417,6 +4427,12 @@ function generateObstacles() {
         const cd = OBSTACLE_TYPES[ctype];
         const cw = cd.minW + rng() * (cd.maxW - cd.minW) * 0.7;
         const ch = cd.minH + rng() * (cd.maxH - cd.minH) * 0.7;
+        const ccx = cx + cw / 2, ccy = cy + ch / 2;
+        const blockedCluster = keepOutZones.some(z => {
+          const dx = ccx - z.x, dy = ccy - z.y;
+          return Math.sqrt(dx * dx + dy * dy) < z.r;
+        });
+        if (blockedCluster) continue;
         obstacles.push({ x: cx, y: cy, w: cw, h: ch, type: ctype, passable: cd.passable, slow: cd.slow, color: cd.color, stroke: cd.stroke });
       }
     }
@@ -4549,6 +4565,72 @@ function tankCollidesObstacle(x, y, w, h) {
   return false;
 }
 
+function distanceToNearestEnemy(x, y) {
+  let nearest = Infinity;
+  for (const enemy of enemies) {
+    if (!enemy.alive) continue;
+    const dx = enemy.x - x, dy = enemy.y - y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d < nearest) nearest = d;
+  }
+  return nearest;
+}
+
+function isSafeTankPosition(x, y, w, h, minEnemyDist) {
+  if (x < 30 || x > W - 30 || y < 30 || y > H - 30) return false;
+  if (tankCollidesObstacle(x, y, w, h)) return false;
+  if (Number.isFinite(minEnemyDist) && distanceToNearestEnemy(x, y) < minEnemyDist) return false;
+  return true;
+}
+
+function findSafeTankSpawn(options = {}) {
+  const w = options.w || 36;
+  const h = options.h || 36;
+  const minEnemyDist = options.minEnemyDist || 0;
+  const preferred = options.preferred || [
+    { x: W / 2, y: H - 70 },
+    { x: W / 2, y: H - 120 },
+    { x: W / 2, y: H * 0.75 },
+    { x: W * 0.25, y: H * 0.75 },
+    { x: W * 0.75, y: H * 0.75 },
+    { x: W / 2, y: H / 2 },
+  ];
+
+  for (const p of preferred) {
+    if (isSafeTankPosition(p.x, p.y, w, h, minEnemyDist)) return { x: p.x, y: p.y };
+  }
+
+  let best = null;
+  let bestScore = -Infinity;
+  for (let i = 0; i < 180; i++) {
+    const x = 40 + rng() * (W - 80);
+    const y = 40 + rng() * (H - 80);
+    if (tankCollidesObstacle(x, y, w, h)) continue;
+    const edgePenalty = Math.min(x, W - x, y, H - y);
+    const enemyDist = distanceToNearestEnemy(x, y);
+    const score = edgePenalty + enemyDist * 1.6;
+    if (enemyDist >= minEnemyDist && score > bestScore) {
+      best = { x, y };
+      bestScore = score;
+    }
+  }
+  if (best) return best;
+
+  for (let i = 0; i < 180; i++) {
+    const x = 40 + rng() * (W - 80);
+    const y = 40 + rng() * (H - 80);
+    if (!tankCollidesObstacle(x, y, w, h)) return { x, y };
+  }
+  return { x: W / 2, y: H - 70 };
+}
+
+function positionPlayerSafely(minEnemyDist) {
+  if (!player) return;
+  const safe = findSafeTankSpawn({ w: 36, h: 36, minEnemyDist: minEnemyDist || 140 });
+  player.x = safe.x;
+  player.y = safe.y;
+}
+
 // --- Spawn enemies ---
 const enemyTypes = [
   { kind:'scout', color: '#d44', turret: '#f66', speed: 0.5, hp: 2, label: 'Scout' },
@@ -4559,6 +4641,8 @@ const enemyTypes = [
 
 function spawnEnemy() {
   let x, y, safe;
+  const minDistToPlayer = player && player.invincible > 0 ? 220 : 150;
+  let attempts = 0;
   do {
     safe = true;
     const side = Math.floor(rng() * 4);
@@ -4568,8 +4652,34 @@ function spawnEnemy() {
     else { x = rng() * W; y = H - 40; }
     safe = !tankCollidesObstacle(x, y, 36, 36);
     const pdx = player.x - x, pdy = player.y - y;
-    safe = safe && Math.sqrt(pdx*pdx + pdy*pdy) > 80;
-  } while (!safe);
+    safe = safe && Math.sqrt(pdx*pdx + pdy*pdy) > minDistToPlayer;
+    if (safe) {
+      for (const enemy of enemies) {
+        if (!enemy.alive) continue;
+        const edx = enemy.x - x, edy = enemy.y - y;
+        if (Math.sqrt(edx * edx + edy * edy) < 60) { safe = false; break; }
+      }
+    }
+    attempts++;
+  } while (!safe && attempts < 80);
+
+  if (!safe) {
+    const rescue = findSafeTankSpawn({
+      w: 36,
+      h: 36,
+      minEnemyDist: Math.max(80, minDistToPlayer - 30),
+      preferred: [
+        { x: 40, y: 40 },
+        { x: W - 40, y: 40 },
+        { x: 40, y: H - 40 },
+        { x: W - 40, y: H - 40 },
+        { x: W / 2, y: 40 },
+        { x: W / 2, y: H - 40 },
+      ],
+    });
+    x = rescue.x;
+    y = rescue.y;
+  }
 
   // Chance to spawn elite (increases with level)
   const eliteChance = Math.min(0.35, 0.08 + level * 0.02);
@@ -4677,6 +4787,7 @@ function update() {
     // Respawn
     player = new PlayerTank(currentTankType);
     applyTankUpgrades(currentTankType);
+    positionPlayerSafely(220);
     player.hp = player.maxHp;
     player.invincible = 120;
   }
@@ -5146,10 +5257,11 @@ function startGame(difficulty, tankType, options = {}) {
     dailyCompletedToday = false;
     dailyBestScore = 0;
   }
+  generateObstacles();
   player = new PlayerTank(currentTankType);
   applyTankUpgrades(currentTankType);
+  positionPlayerSafely(220);
   resetAchievementTracking();
-  generateObstacles();
   document.getElementById('wave-notify').classList.remove('show');
   document.getElementById('combo-display').classList.remove('active');
   renderDailyTarget();
