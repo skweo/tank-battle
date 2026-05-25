@@ -3616,10 +3616,12 @@ function renderLabUI() {
         const canAfford = coreFragments >= cost;
         const costText = capped ? 'MAX' : (cost + '💎');
         const costColor = capped ? '#4a5a70' : (canAfford ? '#a0a8b4' : '#d05050');
+        const preview = capped ? '' : `→ ${d.desc}`;
         return `<div class="lab-stat-row">
-          <span style="width:90px;">${d.icon} ${d.name}</span>
-          <span class="lab-stat-dots">${'●'.repeat(lvl)}${'○'.repeat(d.max-lvl)}</span>
-          <button class="lab-upg-btn ${capped?'capped':''}" style="color:${costColor};" onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}>${costText}</button>
+          <span style="width:75px;">${d.icon} ${d.name}</span>
+          <span class="lab-stat-dots" title="Lv.${lvl}/${d.max}">${'●'.repeat(lvl)}${'○'.repeat(d.max-lvl)}</span>
+          <span style="font-size:9px;color:#5a6878;width:60px;text-align:right;">${preview}</span>
+          <button class="lab-upg-btn ${capped?'capped':''}" style="color:${costColor};min-width:45px;" onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}>${costText}</button>
         </div>`;
       }).join('')}</div>
       <div style="font-size:10px;color:#666;">${!selected ? '点击下方"确认出战"切换机体' : '当前出战机体'} · ${defs.some(d=>(ug[d.id]||0)<d.max) ? defs.length+'项可升级' : evolved ? '已达最终形态' : '满级可进化'}</div>`;
