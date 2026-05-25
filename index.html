@@ -82,130 +82,99 @@ canvas { display: block; background: #0c1018; }
 #game-over button:hover { background: rgba(40,48,58,0.9); border-color: rgba(244,152,0,0.6); }
 #start-screen {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  display: grid;
-  grid-template-rows: 36px 1fr 20px;
-  grid-template-columns: 64px 1fr;
-  grid-template-areas: 'topbar topbar' 'sidebar main' 'bottombar bottombar';
-  z-index: 10;
-  background:
-    radial-gradient(ellipse at 70% 30%, rgba(20,28,40,0.95) 0%, rgba(6,10,18,0.98) 60%),
-    repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(244,152,0,0.012) 40px, rgba(244,152,0,0.012) 41px),
-    repeating-linear-gradient(-45deg, transparent, transparent 40px, rgba(244,152,0,0.008) 40px, rgba(244,152,0,0.008) 41px);
-}
-/* Top resource bar */
-.ak-topbar {
-  grid-area: topbar;
-  display: flex; align-items: center; gap: 16px; padding: 0 16px;
-  background: rgba(10,14,22,0.9);
-  border-bottom: 1px solid rgba(107,125,149,0.1);
-}
-.ak-resource { color: #a0a8b4; font-size: 12px; font-weight: 500; letter-spacing: 1px; }
-.ak-resource:first-child { color: #f49800; }
-/* Sidebar */
-.ak-sidebar {
-  grid-area: sidebar;
-  display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 12px;
-  background: rgba(10,14,22,0.6);
-  border-right: 1px solid rgba(107,125,149,0.1);
-}
-.ak-side-icon {
-  width: 48px; height: 48px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; cursor: pointer;
-  color: #5a6878; transition: all 0.2s; position: relative;
-}
-.ak-side-icon:hover { color: #a0a8b4; background: rgba(244,152,0,0.05); }
-.ak-side-icon.active { color: #f49800; background: rgba(244,152,0,0.08); }
-.ak-side-icon.active::before {
-  content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px;
-  background: #f49800;
-}
-.ak-side-icon .ak-icon { font-size: 18px; }
-.ak-side-icon .ak-label { font-size: 8px; letter-spacing: 1px; margin-top: 1px; }
-.ak-side-icon.daily-side { margin-top: auto; margin-bottom: 8px; }
-.ak-side-icon.daily-side .ak-icon { color: #f49800; }
-/* Main content */
-.ak-main {
-  grid-area: main;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
-  gap: 10px; padding-bottom: 30px;
+  gap: 12px; z-index: 10;
+  background:
+    radial-gradient(ellipse at 50% 25%, rgba(20,28,40,0.95) 0%, rgba(6,10,18,0.98) 70%),
+    repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(244,152,0,0.015) 40px, rgba(244,152,0,0.015) 41px),
+    repeating-linear-gradient(-45deg, transparent, transparent 40px, rgba(244,152,0,0.01) 40px, rgba(244,152,0,0.01) 41px);
 }
 #start-screen h1 {
-  color: #f49800; font-size: 44px; font-weight: 200; letter-spacing: 14px;
-  text-shadow: 0 0 30px rgba(244,152,0,0.25); font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
+  color: #f49800; font-size: 48px; font-weight: 200; letter-spacing: 16px;
+  text-shadow: 0 0 40px rgba(244,152,0,0.25), 0 0 80px rgba(244,152,0,0.1);
+  margin-bottom: 0; font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
   animation: akPulse 4s ease-in-out infinite;
+  position: relative;
 }
 #start-screen h1::before, #start-screen h1::after {
   content: '◆'; position: absolute; top: 50%; transform: translateY(-50%);
-  font-size: 12px; color: rgba(244,152,0,0.25);
+  font-size: 14px; color: rgba(244,152,0,0.3);
 }
+#start-screen h1::before { left: -40px; }
+#start-screen h1::after { right: -40px; }
 @keyframes akPulse {
-  0%, 100% { text-shadow: 0 0 20px rgba(244,152,0,0.2); }
-  50% { text-shadow: 0 0 40px rgba(244,152,0,0.35), 0 0 80px rgba(244,152,0,0.12); }
+  0%, 100% { text-shadow: 0 0 25px rgba(244,152,0,0.2), 0 0 50px rgba(244,152,0,0.08); }
+  50% { text-shadow: 0 0 40px rgba(244,152,0,0.35), 0 0 80px rgba(244,152,0,0.18); }
 }
 #start-screen .subtitle {
-  color: #6b7d95; font-size: 10px; letter-spacing: 8px; margin-top: -6px;
+  color: #6b7d95; font-size: 11px; letter-spacing: 10px; margin-top: -8px;
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif; font-weight: 300;
 }
 #start-screen .ornament {
-  width: 240px; height: 1px; position: relative;
-  background: linear-gradient(90deg, transparent, rgba(244,152,0,0.25), rgba(244,152,0,0.4), rgba(244,152,0,0.25), transparent);
+  width: 280px; height: 1px; position: relative;
+  background: linear-gradient(90deg, transparent, rgba(244,152,0,0.3), rgba(244,152,0,0.5), rgba(244,152,0,0.3), transparent);
 }
 #start-screen .ornament::before, #start-screen .ornament::after {
   content: '◆'; position: absolute; top: 50%; transform: translateY(-50%);
-  font-size: 5px; color: rgba(244,152,0,0.35);
+  font-size: 6px; color: rgba(244,152,0,0.4);
 }
-#start-screen .ornament::before { left: -10px; }
-#start-screen .ornament::after { right: -10px; }
+#start-screen .ornament::before { left: -12px; }
+#start-screen .ornament::after { right: -12px; }
 #start-screen .difficulty-buttons {
-  display: flex; flex-direction: column; gap: 3px; margin-top: 4px;
-  padding: 10px 18px; background: rgba(12,16,24,0.55);
-  border: 1px solid rgba(107,125,149,0.08);
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  display: flex; flex-direction: column; gap: 4px; margin-top: 6px;
+  padding: 12px 20px; background: rgba(12,16,24,0.6);
+  border: 1px solid rgba(107,125,149,0.1);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  position: relative;
 }
 #start-screen .difficulty-buttons::before {
-  content: ''; position: absolute; top: -1px; left: 18px; right: 18px; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(244,152,0,0.3), transparent);
+  content: ''; position: absolute; top: -1px; left: 20px; right: 20px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(244,152,0,0.4), transparent);
 }
 #start-screen .diff-btn {
-  padding: 7px 55px; font-size: 13px; font-weight: 400;
-  font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 3px; border: none;
-  background: rgba(16,22,32,0.7); color: #8a94a4;
+  padding: 8px 60px; font-size: 14px; font-weight: 400;
+  font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 4px; border: none;
+  background: rgba(18,24,34,0.7); color: #8a94a4;
   cursor: pointer; transition: all 0.2s; position: relative;
-  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
 #start-screen .diff-btn::after {
   content: ''; position: absolute; top: 1px; left: 1px; right: 1px; bottom: 1px;
-  border: 1px solid rgba(107,125,149,0.08);
-  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  border: 1px solid rgba(107,125,149,0.1);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
   transition: border-color 0.2s;
 }
-#start-screen .diff-btn:hover { background: rgba(26,34,46,0.9); color: #d0d4dc; transform: translateX(3px); }
-#start-screen .diff-btn:hover::after { border-color: rgba(244,152,0,0.35); }
-#start-screen .diff-btn.easy::after { border-color: rgba(90,160,90,0.18); }
-#start-screen .diff-btn.easy:hover::after { border-color: rgba(90,160,90,0.45); }
-#start-screen .diff-btn.normal::after { border-color: rgba(190,150,70,0.18); }
-#start-screen .diff-btn.normal:hover::after { border-color: rgba(190,150,70,0.45); }
-#start-screen .diff-btn.hard::after { border-color: rgba(190,90,70,0.18); }
-#start-screen .diff-btn.hard:hover::after { border-color: rgba(190,90,70,0.45); }
-#start-screen .diff-btn.extreme::after { border-color: rgba(130,90,190,0.18); }
-#start-screen .diff-btn.extreme:hover::after { border-color: rgba(130,90,190,0.45); }
-#start-screen .diff-btn.nightmare::after { border-color: rgba(200,70,70,0.18); }
-#start-screen .diff-btn.nightmare:hover::after { border-color: rgba(200,70,70,0.45); }
-#start-screen .diff-btn.locked { opacity: 0.3; cursor: not-allowed; }
-#start-screen .diff-btn.locked:hover { background: rgba(16,22,32,0.7); color: #8a94a4; transform: none; }
-#start-screen .diff-btn.locked:hover::after { border-color: rgba(107,125,149,0.08); }
-#start-screen .diff-btn .lock-hint { font-size: 8px; color: #5a6878; letter-spacing: 1px; font-weight: 300; }
+#start-screen .diff-btn:hover { background: rgba(28,36,48,0.9); color: #d0d4dc; transform: translateX(3px); }
+#start-screen .diff-btn:hover::after { border-color: rgba(244,152,0,0.4); }
+#start-screen .diff-btn.easy::after { border-color: rgba(90,160,90,0.2); }
+#start-screen .diff-btn.easy:hover::after { border-color: rgba(90,160,90,0.5); }
+#start-screen .diff-btn.normal::after { border-color: rgba(190,150,70,0.2); }
+#start-screen .diff-btn.normal:hover::after { border-color: rgba(190,150,70,0.5); }
+#start-screen .diff-btn.hard::after { border-color: rgba(190,90,70,0.2); }
+#start-screen .diff-btn.hard:hover::after { border-color: rgba(190,90,70,0.5); }
+#start-screen .diff-btn.extreme::after { border-color: rgba(130,90,190,0.2); }
+#start-screen .diff-btn.extreme:hover::after { border-color: rgba(130,90,190,0.5); }
+#start-screen .diff-btn.nightmare::after { border-color: rgba(200,70,70,0.2); }
+#start-screen .diff-btn.nightmare:hover::after { border-color: rgba(200,70,70,0.5); }
+#start-screen .diff-btn.locked { opacity: 0.35; cursor: not-allowed; }
+#start-screen .diff-btn.locked:hover { background: rgba(18,24,34,0.7); color: #8a94a4; transform: none; }
+#start-screen .diff-btn.locked:hover::after { border-color: rgba(107,125,149,0.1); }
+#start-screen .diff-btn .lock-hint { font-size: 9px; color: #6b7d95; letter-spacing: 1px; font-weight: 300; }
 #start-screen .diff-info {
-  color: #5a6878; font-size: 9px; letter-spacing: 1px; text-align: center; line-height: 1.5;
+  color: #5a6878; font-size: 10px; letter-spacing: 1px; text-align: center; line-height: 1.6;
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
 }
 #start-screen .locked-info { color: #3a4a58; }
-/* Bottom bar */
-.ak-bottombar {
-  grid-area: bottombar;
-  display: flex; justify-content: space-between; align-items: center; padding: 0 16px;
-  background: rgba(10,14,22,0.85); border-top: 1px solid rgba(107,125,149,0.08);
-  font-size: 8px; color: #4a5a70; letter-spacing: 1px;
+#start-screen .achieve-link {
+  color: #6b7d95; font-size: 11px; cursor: pointer; letter-spacing: 3px;
+  font-family: 'Segoe UI','Microsoft YaHei',sans-serif; transition: all 0.2s;
+  padding: 4px 20px; background: rgba(16,22,32,0.6); border: 1px solid rgba(107,125,149,0.1);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+#start-screen .achieve-link:hover { color: #f49800; background: rgba(24,32,44,0.8); border-color: rgba(244,152,0,0.3); }
+.currency-display {
+  color: #f49800; font-size: 11px; letter-spacing: 2px; text-align: center;
+  font-family: 'Segoe UI','Microsoft YaHei',sans-serif; margin: 0;
 }
 .daily-challenge-btn { color: #f49800 !important; border-color: rgba(244,152,0,0.3) !important; }
 .daily-challenge-btn:hover { color: #ffb340 !important; border-color: rgba(244,152,0,0.6) !important; text-shadow: none !important; }
@@ -724,45 +693,18 @@ canvas { display: block; background: #0c1018; }
   <div id="wave-notify"><span id="wave-text"></span><div class="wave-sub" id="wave-sub"></div></div>
   <div id="combo-display"><span id="combo-text"></span><div class="combo-mult" id="combo-mult"></div></div>
   <div id="start-screen">
-    <!-- Resource bar -->
-    <div class="ak-topbar">
-      <span class="ak-resource">💎 <span id="currency-display-top">0</span></span>
-      <span class="ak-resource">🚀 <span id="active-tank-display">扩散型</span></span>
-    </div>
-    <!-- Sidebar -->
-    <div class="ak-sidebar">
-      <div class="ak-side-icon active" onclick="scrollToDifficulty()" title="出击">
-        <span class="ak-icon">⚔</span><span class="ak-label">出击</span>
-      </div>
-      <div class="ak-side-icon" onclick="showLabScreen()" title="机体">
-        <span class="ak-icon">🔬</span><span class="ak-label">机体</span>
-      </div>
-      <div class="ak-side-icon" onclick="showBestiary()" title="图鉴">
-        <span class="ak-icon">📖</span><span class="ak-label">图鉴</span>
-      </div>
-      <div class="ak-side-icon" onclick="showAchievements()" title="成就">
-        <span class="ak-icon">🏆</span><span class="ak-label">成就</span>
-      </div>
-      <div class="ak-side-icon" onclick="showLeaderboard()" title="排行">
-        <span class="ak-icon">🏅</span><span class="ak-label">排行</span>
-      </div>
-      <div class="ak-side-icon daily-side" onclick="startDailyChallenge()" title="每日">
-        <span class="ak-icon">📅</span><span class="ak-label">每日</span>
-      </div>
-    </div>
-    <!-- Main content -->
-    <div class="ak-main">
-      <h1>幻 月 战 记</h1>
-      <p class="subtitle">G E N G E T S U &nbsp; S E N K I</p>
-      <div class="ornament"></div>
-      <div class="difficulty-buttons" id="difficulty-buttons"></div>
-      <p class="diff-info" id="diff-info"></p>
-    </div>
-    <!-- Bottom bar -->
-    <div class="ak-bottombar">
-      <span class="ak-ver">VER 3.6.2</span>
-      <span class="ak-id">ID: SKWEO</span>
-    </div>
+    <h1>幻 月 战 记</h1>
+    <p class="subtitle">G E N G E T S U &nbsp; S E N K I</p>
+    <div class="ornament"></div>
+    <p class="currency-display" id="currency-display">💎 0</p>
+    <div class="difficulty-buttons" id="difficulty-buttons"></div>
+    <p class="diff-info" id="diff-info"></p>
+    <div class="ornament" style="width:120px;"></div>
+    <p class="achieve-link" onclick="showAchievements()">🏆 成 就</p>
+    <p class="achieve-link" onclick="showBestiary()">📖 图 鉴</p>
+    <p class="achieve-link" onclick="showLeaderboard()">🏅 排 行 榜</p>
+    <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()">📅 每 日 挑 战</p>
+    <p class="achieve-link" onclick="showLabScreen()">🔬 机 装 研 究 室</p>
   </div>
   <div id="leaderboard-screen">
     <h1>🏅 排 行 榜</h1>
@@ -1310,17 +1252,11 @@ function renderDifficultyButtons() {
       ? `${d.label}: ${d.lives}条命 · 敌HP+${d.enemyHpBonus} · 速度×${d.enemySpeedMul}`
       : `<span class="locked-info">${d.label}: 🔒 需分数${d.unlockScore}解锁</span>`;
   }).join('<br>');
-  // Update topbar resources
-  const curEl = document.getElementById('currency-display-top');
-  if (curEl) curEl.textContent = coreFragments;
-  const tankEl = document.getElementById('active-tank-display');
-  if (tankEl) tankEl.textContent = tankTypes[currentTankType]?.name || '扩散型';
+  // Update currency + active tank
+  const curEl = document.getElementById('currency-display');
+  if (curEl) curEl.textContent = '💎 ' + coreFragments + '  |  🚀 ' + (tankTypes[currentTankType]?.name || '??');
 }
 
-function scrollToDifficulty() {
-  const section = document.getElementById('difficulty-buttons');
-  if (section) section.scrollIntoView({behavior:'smooth',block:'center'});
-}
 function showTankSelect(difficulty) {
   currentDifficulty = difficulty;
   const container = document.querySelector('#tank-select-screen .tank-cards');
