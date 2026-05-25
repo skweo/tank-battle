@@ -36,7 +36,10 @@ canvas {
   font-weight: bold;
   pointer-events: none;
 }
-#ui span { text-shadow: 0 0 8px rgba(0,255,0,0.6); }
+#ui span {
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000,
+               0 0 8px rgba(0,255,0,0.6);
+}
 #game-over {
   position: absolute;
   top: 50%; left: 50%;
@@ -92,10 +95,11 @@ canvas {
   50% { text-shadow: 0 0 50px rgba(0,255,0,1), 0 0 90px rgba(0,255,0,0.7), 0 0 120px rgba(0,255,0,0.3); }
 }
 #start-screen .subtitle {
-  color: #888;
-  font-size: 14px;
+  color: #aaa;
+  font-size: 16px;
   letter-spacing: 4px;
   margin-top: -16px;
+  text-shadow: 0 0 8px rgba(0,255,0,0.3);
 }
 #start-screen .difficulty-buttons {
   display: flex;
@@ -143,8 +147,8 @@ canvas {
 #start-screen .diff-btn.hard { border-color: #d40; color: #f66; }
 #start-screen .diff-btn.hard:hover { box-shadow: 0 0 20px rgba(255,0,0,0.4); }
 #start-screen .diff-info {
-  color: #666;
-  font-size: 11px;
+  color: #888;
+  font-size: 14px;
   letter-spacing: 1px;
   text-align: center;
   line-height: 1.6;
@@ -245,10 +249,11 @@ canvas {
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  color: #888;
-  font-size: 12px;
+  color: #aaa;
+  font-size: 14px;
   pointer-events: none;
   text-align: center;
+  text-shadow: 0 0 6px rgba(0,0,0,0.8);
 }
 #achieve-toast {
   position: absolute;
@@ -1603,6 +1608,42 @@ canvas.addEventListener('mousedown', e => { if (e.button === 0) mouseDown = true
 canvas.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
+// --- Floating Damage Numbers ---
+const dmgNumbers = [];
+class DamageNumber {
+  constructor(x, y, value, color) {
+    this.x = x + (Math.random() - 0.5) * 20;
+    this.y = y;
+    this.value = value;
+    this.color = color || '#ff0';
+    this.life = 45;
+    this.vy = -1.5;
+    this.alpha = 1;
+  }
+  update() {
+    this.y += this.vy;
+    this.life--;
+    if (this.life < 15) this.alpha = this.life / 15;
+  }
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.font = 'bold 15px "Courier New", monospace';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 3;
+    ctx.fillStyle = this.color;
+    ctx.textAlign = 'center';
+    ctx.fillText(this.value, this.x, this.y);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+}
+function spawnDamageNumber(x, y, value, isCrit) {
+  if (isNaN(value) || value <= 0) return;
+  const color = isCrit ? '#ff0' : '#fff';
+  dmgNumbers.push(new DamageNumber(x, y, (isCrit ? '★' : '') + value, color));
+}
+
 // --- Particles ---
 const particles = [];
 class Particle {
@@ -2195,6 +2236,7 @@ class PlayerTank extends Tank {
     gotHitThisLevel = true;
     sessionGotHit = true;
     spawnExplosion(this.x, this.y, 8, '#f80', '#ff0');
+    spawnDamageNumber(this.x, this.y - 10, 1, false);
     sfxPlayerHurt();
     if (this.hp <= 0) {
       this.alive = false;
@@ -2322,6 +2364,7 @@ class EnemyTank extends Tank {
       spawnExplosion(this.x, this.y, 8, '#8cf', '#fff');
     }
     spawnExplosion(this.x, this.y, 5, '#f80', '#ff0');
+    spawnDamageNumber(this.x, this.y - 10, dmg, dmg >= 3);
     sfxEnemyHit();
     if (this.hp <= 0) {
       this.alive = false;
@@ -3350,6 +3393,11 @@ function update() {
   for (let i = particles.length - 1; i >= 0; i--) {
     if (particles[i].life <= 0) particles.splice(i, 1);
   }
+  // Update damage numbers
+  for (const d of dmgNumbers) d.update();
+  for (let i = dmgNumbers.length - 1; i >= 0; i--) {
+    if (dmgNumbers[i].life <= 0) dmgNumbers.splice(i, 1);
+  }
 }
 
 function draw() {
@@ -3460,6 +3508,11 @@ function draw() {
     if (p.life > 0) p.draw(ctx);
   }
 
+  // Damage numbers
+  for (const d of dmgNumbers) {
+    if (d.life > 0) d.draw(ctx);
+  }
+
   // Low HP vignette
   if (player.alive && player.hp / player.maxHp < 0.4) {
     const hpRatio = player.hp / player.maxHp;
@@ -3538,6 +3591,7 @@ function restartGame() {
   powerUpSpawnTimer = 0;
   buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0, magnet:0, pierce:0, vampire:0, double_score:0, big_bullet:0, explosive:0, invisible:0, thorns:0 };
   particles.length = 0;
+  dmgNumbers.length = 0;
   spawnTimer = 0;
   difficultyTimer = 0;
   resetModifiers();
