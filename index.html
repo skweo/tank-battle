@@ -749,7 +749,10 @@ canvas {
     <div class="lab-tank-grid" id="lab-tank-grid"></div>
     <div class="ornament" style="width:300px;"></div>
     <div class="lab-detail-panel" id="lab-detail"></div>
-    <button class="best-back-btn" onclick="hideLabScreen()" style="margin-top:8px;">返 回</button>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="lab-btn sortie-btn" id="lab-confirm-btn" onclick="confirmActiveTank(labSelectedTank)">✅ 确认出战</button>
+      <button class="best-back-btn" onclick="hideLabScreen()" style="margin:0;">返 回</button>
+    </div>
   </div>
   <div id="tank-select-screen">
     <h2>选 择 机 体</h2>
@@ -3720,23 +3723,27 @@ function renderLabUI() {
           <button class="lab-upg-btn ${capped?'capped':''}" onclick="event.stopPropagation();purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}>${cost}</button>
         </div>`;
       }).join('')}</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        ${!selected ? `<button class="lab-btn sortie-btn" onclick="confirmActiveTank('${k}')">✅ 确认出战</button>` : `<span style="color:#da0;font-size:13px;">✅ 当前出战机体</span>`}
-        <span style="font-size:10px;color:#666;">${defs.some(d=>(ug[d.id]||0)<d.max) ? defs.length+'项可升级' : evolved ? '已达最终形态' : '满级可进化'}</span>
-      </div>`;
+      <div style="font-size:10px;color:#666;">${!selected ? '点击下方"确认出战"切换机体' : '当前出战机体'} · ${defs.some(d=>(ug[d.id]||0)<d.max) ? defs.length+'项可升级' : evolved ? '已达最终形态' : '满级可进化'}</div>`;
+  }
+  // Update fixed confirm button visibility
+  const confirmBtn = document.getElementById('lab-confirm-btn');
+  if (confirmBtn) {
+    const sel = labSelectedTank;
+    confirmBtn.style.display = (sel !== currentTankType && unlockedTanks.has(sel)) ? 'inline-block' : 'none';
+    confirmBtn.textContent = '✅ 出战: ' + (tankTypes[sel]?.name || '??');
   }
 }
 function selectLabTank(tank) {
   labSelectedTank = tank;
+  currentTankType = tank;
+  saveProgression();
   renderLabUI();
 }
 function tryUnlockFromLab(tank) {
   if (tryUnlockTank(tank)) renderLabUI();
 }
 function confirmActiveTank(tank) {
-  currentTankType = tank;
   hideLabScreen();
-  sfxAchievement();
 }
 function setActiveTank(tank) {
   labSelectedTank = tank;
