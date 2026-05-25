@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>坦克大战 - Tank Battle</title>
+<title>幻月战记 - Gengetsu Senki</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -197,6 +197,8 @@ canvas {
 }
 #start-screen .achieve-link:hover { color: #da0; border-color: rgba(220,170,0,0.5); text-shadow: 0 0 8px rgba(200,150,40,0.3); }
 .daily-challenge-btn { color: #c8a860 !important; border-color: rgba(200,160,80,0.5) !important; }
+#tank-select-screen .tank-card.locked-card { opacity: 0.5; cursor: pointer; border-color: rgba(80,70,60,0.4); }
+#tank-select-screen .tank-card.locked-card:hover { border-color: rgba(200,160,80,0.5); background: rgba(30,20,10,0.3); box-shadow: none; }
 .daily-challenge-btn:hover { color: #edc !important; border-color: rgba(240,200,100,0.7) !important; text-shadow: 0 0 10px rgba(200,160,40,0.5); }
 #wave-notify {
   position: absolute;
@@ -615,6 +617,50 @@ canvas {
 #upgrade-screen .upgrade-row .upg-btn { padding: 8px 16px; border: 1px solid #a8f; border-radius: 6px; background: rgba(100,64,200,0.2); color: #8cf; cursor: pointer; font-family: 'Courier New',monospace; font-size: 12px; }
 #upgrade-screen .upgrade-row .upg-btn:hover { background: rgba(100,64,200,0.4); }
 #upgrade-screen .upgrade-row .upg-btn.capped { border-color: #555; color: #555; background: rgba(30,30,30,0.3); cursor: not-allowed; }
+#lab-screen {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: none; flex-direction: column; justify-content: flex-start; align-items: center;
+  gap: 8px; padding-top: 30px; overflow-y: auto;
+  background: radial-gradient(ellipse at 50% 30%, rgba(15,10,40,0.94) 0%, rgba(3,2,12,0.97) 100%);
+  z-index: 15;
+}
+#lab-screen h1 { font-family: 'STKaiti','KaiTi','SimSun',serif; color: #da0; font-size: 30px; letter-spacing: 6px; text-shadow: 0 0 25px rgba(200,150,40,0.5); }
+#lab-screen .lab-tank-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 600px; }
+#lab-screen .lab-tank-card {
+  width: 170px; padding: 12px 10px; border: 1px solid rgba(200,160,80,0.2); border-radius: 8px;
+  text-align: center; cursor: pointer; background: rgba(15,12,8,0.5); transition: all 0.25s;
+  position: relative;
+}
+#lab-screen .lab-tank-card:hover { border-color: rgba(200,160,80,0.5); background: rgba(30,20,10,0.5); transform: translateY(-2px); }
+#lab-screen .lab-tank-card.selected { border-color: #da0; box-shadow: 0 0 15px rgba(200,150,40,0.3); }
+#lab-screen .lab-tank-card.locked { opacity: 0.5; border-color: rgba(80,70,60,0.3); }
+#lab-screen .lab-tank-card.evolved { border-color: rgba(220,100,180,0.5); }
+#lab-screen .lab-tank-icon { font-size: 28px; display: block; margin-bottom: 4px; }
+#lab-screen .lab-tank-name { font-size: 14px; color: #edc; font-weight: bold; letter-spacing: 2px; }
+#lab-screen .lab-tank-dots { font-size: 9px; color: #da0; margin-top: 4px; letter-spacing: 1px; }
+#lab-screen .lab-evo-badge { position: absolute; top: 4px; right: 4px; font-size: 9px; color: #f8f; background: rgba(200,100,180,0.15); padding: 1px 5px; border-radius: 3px; }
+#lab-screen .lab-detail-panel { width: 440px; padding: 14px 20px; border: 1px solid rgba(200,160,80,0.25); border-radius: 8px; background: rgba(15,12,8,0.5); }
+#lab-screen .lab-detail-name { font-size: 18px; color: #edc; font-weight: bold; letter-spacing: 3px; }
+#lab-screen .lab-detail-desc { font-size: 12px; color: #887860; margin: 4px 0; }
+#lab-screen .lab-evo-info { font-size: 13px; color: #f8d; margin: 6px 0; }
+#lab-screen .lab-stats { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+#lab-screen .lab-stat-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #baa; }
+#lab-screen .lab-stat-dots { flex: 1; letter-spacing: 2px; color: #da0; }
+#lab-screen .lab-upg-btn { padding: 4px 12px; font-size: 11px; border: 1px solid rgba(200,160,80,0.3); border-radius: 3px; background: rgba(30,20,10,0.4); color: #c8a860; cursor: pointer; font-family: 'Courier New',monospace; }
+#lab-screen .lab-upg-btn:hover { background: rgba(60,40,15,0.5); border-color: #da0; }
+#lab-screen .lab-upg-btn.capped { border-color: #555; color: #555; cursor: not-allowed; background: rgba(20,20,20,0.2); }
+#lab-screen .lab-btn { padding: 8px 20px; font-size: 14px; border: 1px solid rgba(200,160,80,0.4); border-radius: 4px; background: rgba(30,20,10,0.5); color: #da0; cursor: pointer; font-family: 'STKaiti','KaiTi',serif; letter-spacing: 2px; margin-top: 6px; }
+#lab-screen .lab-btn:hover { background: rgba(60,40,15,0.6); border-color: #da0; }
+#lab-screen .lab-btn.evolve-btn { border-color: rgba(220,100,180,0.5); color: #f8d; }
+#lab-screen .lab-btn.evolve-btn:hover { background: rgba(60,10,40,0.5); border-color: #f8d; }
+#lab-screen .lab-btn.sortie-btn { border-color: #da0; background: rgba(40,30,5,0.5); font-size: 16px; padding: 10px 40px; }
+#lab-screen .lab-btn.sortie-btn:hover { background: rgba(60,40,10,0.6); box-shadow: 0 0 15px rgba(200,150,40,0.4); }
+#daily-target {
+  position: absolute; top: 42px; left: 50%; transform: translateX(-50%);
+  color: #fd0; font-size: 13px; font-weight: bold; letter-spacing: 2px;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  pointer-events: none; z-index: 4;
+}
 #leaderboard-screen {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: none; flex-direction: column; justify-content: center; align-items: center;
@@ -659,6 +705,7 @@ canvas {
     <span>❤️ <span id="lives">3</span></span>
     <span>🏆 <span id="level">1</span></span>
   </div>
+  <div id="daily-target" style="display:none;"></div>
   <div id="game-over">
     <h1>游戏结束</h1>
     <p>最终得分: <span id="final-score">0</span></p>
@@ -672,8 +719,8 @@ canvas {
   <div id="wave-notify"><span id="wave-text"></span><div class="wave-sub" id="wave-sub"></div></div>
   <div id="combo-display"><span id="combo-text"></span><div class="combo-mult" id="combo-mult"></div></div>
   <div id="start-screen">
-    <h1>坦 克 大 战</h1>
-    <p class="subtitle">T A N K &nbsp; B A T T L E</p>
+    <h1>幻 月 战 记</h1>
+    <p class="subtitle">G E N G E T S U &nbsp; S E N K I</p>
     <div class="ornament"></div>
     <div class="difficulty-buttons" id="difficulty-buttons"></div>
     <p class="diff-info" id="diff-info"></p>
@@ -682,7 +729,7 @@ canvas {
     <p class="achieve-link" onclick="showBestiary()" style="margin-top:2px;">📖 图 鉴</p>
     <p class="achieve-link" onclick="showLeaderboard()" style="margin-top:2px;">🏅 排 行 榜</p>
     <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()" style="margin-top:2px;">📅 每 日 挑 战</p>
-    <p class="achieve-link" onclick="showUpgradeScreen()" style="margin-top:2px;">💎 核 心 升 级</p>
+    <p class="achieve-link" onclick="showLabScreen()" style="margin-top:2px;">🔬 机 装 研 究 室</p>
   </div>
   <div id="leaderboard-screen">
     <h1>🏅 排 行 榜</h1>
@@ -690,11 +737,13 @@ canvas {
     <div class="leader-grid" id="leader-grid"></div>
     <button class="best-back-btn" onclick="hideLeaderboard()">返 回</button>
   </div>
-  <div id="upgrade-screen">
-    <h1>💎 核心升级</h1>
-    <p class="subtitle" style="color:#8cf;margin-top:-16px;" id="upgrade-fragments">💎 核心碎片: 0</p>
-    <div class="upgrade-grid" id="upgrade-grid"></div>
-    <button class="best-back-btn" onclick="hideUpgradeScreen()" style="margin-top:16px;">返回</button>
+  <div id="lab-screen">
+    <h1>🔬 机 装 研 究 室</h1>
+    <p class="subtitle" style="color:#da0;margin-top:-12px;" id="lab-fragments">💎 月光石: 0</p>
+    <div class="lab-tank-grid" id="lab-tank-grid"></div>
+    <div class="ornament" style="width:300px;"></div>
+    <div class="lab-detail-panel" id="lab-detail"></div>
+    <button class="best-back-btn" onclick="hideLabScreen()" style="margin-top:8px;">返 回</button>
   </div>
   <div id="tank-select-screen">
     <h2>选 择 机 体</h2>
@@ -1051,18 +1100,60 @@ function getDailySeed() {
 function getDailyBestKey() { return 'tankbattle_daily_best_' + getDailySeed(); }
 function getDailyCompletedKey() { return 'tankbattle_daily_done_' + getDailySeed(); }
 
+let dailyTarget = null;
+let dailyTargetAchieved = false;
+
+function getDailyTarget(seed) {
+  const targets = [
+    { desc:'单局得分达到3000', check:()=>score>=3000, reward:60 },
+    { desc:'单局得分达到5000', check:()=>score>=5000, reward:80 },
+    { desc:'到达第5波', check:()=>level>=5, reward:50 },
+    { desc:'到达第8波', check:()=>level>=8, reward:80 },
+    { desc:'击杀任意Boss', check:()=>bossRef&&!bossRef.alive, reward:100 },
+    { desc:'击杀5个精英敌人', check:()=>sessionEliteKills>=5, reward:70 },
+    { desc:'收集15个道具', check:()=>sessionPowerUpsCollected>=15, reward:60 },
+    { desc:'达成20连击', check:()=>maxComboReached>=20, reward:70 },
+  ];
+  return targets[seed % targets.length];
+}
+function checkDailyTarget() {
+  if (!isDailyChallenge || !dailyTarget || dailyTargetAchieved) return;
+  if (dailyTarget.check()) {
+    dailyTargetAchieved = true;
+    earnFragments(dailyTarget.reward);
+    const toast = document.getElementById('achieve-toast');
+    toast.querySelector('.achieve-icon').textContent = '🎯';
+    toast.querySelector('.achieve-name').textContent = '每日目标达成!';
+    toast.querySelector('.achieve-label').textContent = '奖励 +' + dailyTarget.reward + ' 月光石';
+    toast.querySelector('.achieve-name').style.color = '#fd0';
+    toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
+    toast.style.animation = 'toastIn 0.4s ease-out';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+}
+
 function startDailyChallenge() {
   const seed = getDailySeed();
   seededRandom = mulberry32(seed);
   isDailyChallenge = true;
-  // Fixed tank+difficulty based on seed
-  const tanks = ['spread','focus','wide','burst','sniper','homing'];
-  const diffs = DIFFICULTY_ORDER.filter(d => unlockedDifficulties.has(d));
+  dailyTarget = getDailyTarget(seed);
+  dailyTargetAchieved = false;
+  const tanks = Object.keys(tankTypes).filter(k => unlockedTanks.has(k));
+  if (tanks.length === 0) tanks.push('spread');
   currentTankType = tanks[seed % tanks.length];
+  const diffs = DIFFICULTY_ORDER.filter(d => unlockedDifficulties.has(d));
   currentDifficulty = diffs[Math.floor((seed % 100) / 100 * diffs.length)] || 'easy';
+  const targetEl = document.getElementById('daily-target');
+  if (targetEl) {
+    targetEl.textContent = '🎯 今日目标: ' + dailyTarget.desc + ' (奖励' + dailyTarget.reward + '💎)';
+    targetEl.style.display = 'block';
+  }
   showTankSelect(currentDifficulty);
-  // Auto-select the daily tank
-  setTimeout(() => { document.querySelector('.tank-card.' + currentTankType)?.click(); }, 100);
+  setTimeout(() => {
+    const card = document.querySelector('.tank-card.' + currentTankType);
+    if (card && !card.classList.contains('locked-card')) card.click();
+  }, 100);
 }
 
 // --- Wave Modifier System ---
@@ -1189,6 +1280,34 @@ function renderDifficultyButtons() {
 
 function showTankSelect(difficulty) {
   currentDifficulty = difficulty;
+  const container = document.querySelector('#tank-select-screen .tank-cards');
+  const tankKeys = ['spread','focus','wide','burst','sniper','homing'];
+  const tankNamesExtra = ['博丽灵梦式','雾雨魔理沙式','十六夜咲夜式','芙兰朵露式','八意永琳式','东风谷早苗式'];
+  const tankDescs = ['3方向扩散弹幕','高速集中火力','5方向广域压制','7方向爆裂弹幕','超远程高伤狙击','追踪弹幕'];
+  const tankDetails = ['中等速度 · 标准血量','快速移动 · 较低血量','低速移动 · 较高血量','标准速度 · 标准血量','极慢移动 · 较低血量','双发弹幕 · 每4发追踪弹'];
+  const tankIcons = ['☆','★','❋','✦','◈','◎'];
+  container.innerHTML = tankKeys.map((key, i) => {
+    const t = tankTypes[key];
+    const unlocked = unlockedTanks.has(key);
+    if (unlocked) {
+      return `<div class="tank-card ${key}" onclick="startGame(currentDifficulty, '${key}')">
+        <span class="tank-icon">${tankIcons[i]}</span>
+        <div class="tank-name">${t.name}</div>
+        <div class="tank-subtitle">${tankNamesExtra[i]}</div>
+        <div class="tank-desc">${tankDescs[i]}</div>
+        <div class="tank-detail">${tankDetails[i]}</div>
+      </div>`;
+    } else {
+      const cond = TANK_UNLOCK_CONDITIONS[key];
+      return `<div class="tank-card ${key} locked-card" onclick="if(tryUnlockTank('${key}')){showTankSelect(currentDifficulty);}">
+        <span class="tank-icon">🔒</span>
+        <div class="tank-name">???</div>
+        <div class="tank-subtitle">未解锁</div>
+        <div class="tank-desc">${cond.cost > 0 ? cond.cost+'💎 解锁' : cond.desc}</div>
+        <div class="tank-detail">${cond.desc}</div>
+      </div>`;
+    }
+  }).join('');
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('tank-select-screen').style.display = 'flex';
 }
@@ -3152,34 +3271,238 @@ class BossEnemy extends EliteEnemy {
 }
 
 // --- Tank Progression System ---
-const UPGRADE_KEY = 'tankbattle_upgrades';
+// --- Meta-Progression: Tank Unlocks + Per-Tank Upgrades + Evolution ---
 const FRAGMENT_KEY = 'tankbattle_fragments';
+const TANK_UNLOCK_KEY = 'tankbattle_tank_unlocks';
+const TANK_UPGRADE_KEY = 'tankbattle_tank_upgrades';
+const TANK_EVOLVE_KEY = 'tankbattle_tank_evolved';
 const LEADERBOARD_KEY = 'tankbattle_leaderboard';
 let leaderboardData = {};
 let leaderboardTab = 'easy';
 let coreFragments = 0;
-let permanentUpgrades = {
-  maxHp: 0,      // +1 max HP per level (max 5)
-  bulletDmg: 0,  // +10% damage per level (max 5)
-  moveSpd: 0,    // +5% speed per level (max 5)
-  specialCD: 0,  // -1 special interval per level (max 3)
+let unlockedTanks = new Set(['spread']);
+let tankUpgrades = {};   // { spread: {hp:0,dmg:0,spd:0,special:0}, ... }
+let evolvedTanks = new Set();
+let labSelectedTank = 'spread';
+
+const TANK_UNLOCK_CONDITIONS = {
+  spread: { cost:0, desc:'初始机体' },
+  focus:  { cost:100, desc:'到达第5波 或 100💎' },
+  wide:   { cost:150, desc:'到达第8波 或 150💎' },
+  burst:  { cost:200, desc:'单局击杀5精英 或 200💎' },
+  sniper: { cost:250, desc:'击杀任意Boss 或 250💎' },
+  homing: { cost:300, desc:'完成每日挑战 或 300💎' },
+};
+
+const TANK_EVOLUTION = {
+  spread: { name:'夢想散華', icon:'🌸', bonus:'弹幕+2发', effect: function(t){ t.bulletCount+=2; t.spreadAngle*=0.8; } },
+  focus:  { name:'極限火花', icon:'💫', bonus:'穿甲+50%伤害', effect: function(t){ t.bulletDamage+=1; } },
+  wide:   { name:'永恆凍土', icon:'❄️', bonus:'冰冻时间翻倍', effect: function(t){ /* handled in shoot() */ } },
+  burst:  { name:'終焉爆碎', icon:'💥', bonus:'爆炸范围+50%', effect: function(){ explosionRadiusMul+=0.5; } },
+  sniper: { name:'神域狙擊', icon:'🎯', bonus:'特殊弹追踪', effect: function(t){ /* handled in shoot() */ } },
+  homing: { name:'命運導引', icon:'🔮', bonus:'常驻微追踪', effect: function(){ /* handled in shoot() */ } },
 };
 
 function loadProgression() {
   try {
-    const raw = localStorage.getItem(FRAGMENT_KEY);
-    coreFragments = raw ? parseInt(raw) : 0;
-    const upg = localStorage.getItem(UPGRADE_KEY);
-    if (upg) permanentUpgrades = JSON.parse(upg);
-  } catch(e) {}
+    coreFragments = parseInt(localStorage.getItem(FRAGMENT_KEY)) || 0;
+    const ul = localStorage.getItem(TANK_UNLOCK_KEY);
+    if (ul) unlockedTanks = new Set(JSON.parse(ul));
+    else unlockedTanks = new Set(['spread']);
+    const ug = localStorage.getItem(TANK_UPGRADE_KEY);
+    tankUpgrades = ug ? JSON.parse(ug) : {};
+    const ev = localStorage.getItem(TANK_EVOLVE_KEY);
+    evolvedTanks = ev ? new Set(JSON.parse(ev)) : new Set();
+    // Ensure all tanks have upgrade entries
+    Object.keys(tankTypes).forEach(k => { if (!tankUpgrades[k]) tankUpgrades[k] = {hp:0,dmg:0,spd:0,special:0}; });
+  } catch(e) { resetProgression(); }
 }
 function saveProgression() {
   try {
     localStorage.setItem(FRAGMENT_KEY, coreFragments.toString());
-    localStorage.setItem(UPGRADE_KEY, JSON.stringify(permanentUpgrades));
+    localStorage.setItem(TANK_UNLOCK_KEY, JSON.stringify([...unlockedTanks]));
+    localStorage.setItem(TANK_UPGRADE_KEY, JSON.stringify(tankUpgrades));
+    localStorage.setItem(TANK_EVOLVE_KEY, JSON.stringify([...evolvedTanks]));
   } catch(e) {}
 }
+function resetProgression() {
+  coreFragments = 0;
+  unlockedTanks = new Set(['spread']);
+  tankUpgrades = {};
+  evolvedTanks = new Set();
+  Object.keys(tankTypes).forEach(k => { tankUpgrades[k] = {hp:0,dmg:0,spd:0,special:0}; });
+}
 
+function earnFragments(amount) {
+  coreFragments += amount;
+  saveProgression();
+  const toast = document.getElementById('achieve-toast');
+  toast.querySelector('.achieve-icon').textContent = '💎';
+  toast.querySelector('.achieve-name').textContent = '+' + amount + ' 月光石';
+  toast.querySelector('.achieve-label').textContent = '总计: ' + coreFragments;
+  toast.querySelector('.achieve-name').style.color = '#da0';
+  toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
+  toast.style.animation = 'toastIn 0.4s ease-out';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+
+function canUnlockTank(tankType) {
+  if (unlockedTanks.has(tankType)) return true;
+  return false;
+}
+function tryUnlockTank(tankType) {
+  if (unlockedTanks.has(tankType)) return true;
+  const cond = TANK_UNLOCK_CONDITIONS[tankType];
+  if (!cond || cond.cost === 0) return true;
+  if (coreFragments >= cond.cost) {
+    coreFragments -= cond.cost;
+    unlockedTanks.add(tankType);
+    saveProgression();
+    sfxAchievement();
+    return true;
+  }
+  return false;
+}
+
+function getTankUpgradeCost(tank, stat) {
+  const lvl = (tankUpgrades[tank] && tankUpgrades[tank][stat]) || 0;
+  return (lvl + 1) * 30;
+}
+function purchaseTankUpgrade(tank, stat) {
+  if (!unlockedTanks.has(tank)) return;
+  const lvl = (tankUpgrades[tank] && tankUpgrades[tank][stat]) || 0;
+  if (lvl >= 3) return;
+  const cost = getTankUpgradeCost(tank, stat);
+  if (coreFragments < cost) return;
+  coreFragments -= cost;
+  if (!tankUpgrades[tank]) tankUpgrades[tank] = {hp:0,dmg:0,spd:0,special:0};
+  tankUpgrades[tank][stat]++;
+  saveProgression();
+  renderLabUI();
+  sfxPowerUp();
+}
+
+function canEvolve(tank) {
+  if (evolvedTanks.has(tank)) return false;
+  const ug = tankUpgrades[tank];
+  if (!ug) return false;
+  return ug.hp >= 3 && ug.dmg >= 3 && ug.spd >= 3 && ug.special >= 3;
+}
+function tryEvolveTank(tank) {
+  if (!canEvolve(tank)) return false;
+  if (coreFragments < 200) return false;
+  coreFragments -= 200;
+  evolvedTanks.add(tank);
+  saveProgression();
+  sfxAchievement();
+  renderLabUI();
+  return true;
+}
+
+function applyTankUpgrades(tankType) {
+  const ug = tankUpgrades[tankType];
+  if (!ug) return;
+  playerBulletDmgMul += ug.dmg * 0.1;
+  playerSpeedMul += ug.spd * 0.05;
+  if (player.alive) {
+    player.maxHp += ug.hp;
+    player.hp += ug.hp;
+  }
+  if (ug.special > 0 && player._tankDef) {
+    player._tankDef.specialInterval = Math.max(1, (player._tankDef.specialInterval || 4) - ug.special);
+  }
+  // Evolution bonuses
+  if (evolvedTanks.has(tankType)) {
+    const evo = TANK_EVOLUTION[tankType];
+    if (evo && evo.effect) evo.effect(player._tankDef || tankTypes[tankType]);
+  }
+}
+
+// Tank Lab UI (replaces old upgrade screen)
+function renderLabUI() {
+  const grid = document.getElementById('lab-tank-grid');
+  if (!grid) return;
+  const tankKeys = Object.keys(tankTypes);
+  const icons = {spread:'☆',focus:'★',wide:'❋',burst:'✦',sniper:'◈',homing:'◎'};
+  grid.innerHTML = tankKeys.map(k => {
+    const unlocked = unlockedTanks.has(k);
+    const ug = tankUpgrades[k] || {hp:0,dmg:0,spd:0,special:0};
+    const totalUpg = ug.hp + ug.dmg + ug.spd + ug.special;
+    const evolved = evolvedTanks.has(k);
+    const evoName = evolved ? TANK_EVOLUTION[k].name : '';
+    const selected = labSelectedTank === k;
+    return `<div class="lab-tank-card ${unlocked?'':'locked'} ${selected?'selected':''} ${evolved?'evolved':''}" onclick="${unlocked?'selectLabTank(\''+k+'\')':'tryUnlockFromLab(\''+k+'\')'}">
+      <span class="lab-tank-icon">${evolved ? TANK_EVOLUTION[k].icon : icons[k]}</span>
+      <div class="lab-tank-name">${evolved ? evoName : tankTypes[k].name}</div>
+      <div class="lab-tank-dots">${unlocked ? '★'.repeat(totalUpg)+'☆'.repeat(12-totalUpg) : '🔒'}</div>
+      ${evolved ? '<div class="lab-evo-badge">進化</div>' : ''}
+    </div>`;
+  }).join('');
+  // Detail panel
+  const detail = document.getElementById('lab-detail');
+  if (!detail) return;
+  const k = labSelectedTank;
+  const unlocked = unlockedTanks.has(k);
+  const ug = tankUpgrades[k] || {hp:0,dmg:0,spd:0,special:0};
+  const evolved = evolvedTanks.has(k);
+  const evoDef = TANK_EVOLUTION[k];
+  const fragDisplay = document.getElementById('lab-fragments');
+  if (fragDisplay) fragDisplay.textContent = '💎 月光石: ' + coreFragments;
+
+  if (!unlocked) {
+    const cond = TANK_UNLOCK_CONDITIONS[k];
+    detail.innerHTML = `<div class="lab-detail-name">${tankTypes[k].name} 🔒</div>
+      <div class="lab-detail-desc">${cond.desc}</div>
+      ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">解锁 ${cond.cost}💎</button>` : ''}`;
+  } else {
+    const statNames = {hp:'耐久',dmg:'火力',spd:'机动',special:'充能'};
+    const statIcons = {hp:'❤️',dmg:'💥',spd:'💨',special:'⚡'};
+    const evoInfo = evolved ? `<div class="lab-evo-info">${evoDef.icon} ${evoDef.name} · ${evoDef.bonus}</div>` :
+      canEvolve(k) ? `<button class="lab-btn evolve-btn" onclick="tryEvolveTank('${k}');renderLabUI();">✨ 进化 ${evoDef.name} 200💎</button>` : '';
+    detail.innerHTML = `<div class="lab-detail-name">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name}</div>
+      <div class="lab-detail-desc">${tankTypes[k].desc}${evolved?' · 已进化':''}</div>
+      ${evoInfo}
+      <div class="lab-stats">${Object.keys(statNames).map(s => {
+        const lvl = ug[s] || 0;
+        const capped = lvl >= 3;
+        const cost = capped ? 'MAX' : getTankUpgradeCost(k, s) + '💎';
+        return `<div class="lab-stat-row">
+          <span>${statIcons[s]} ${statNames[s]}</span>
+          <span class="lab-stat-dots">${'●'.repeat(lvl)}${'○'.repeat(3-lvl)}</span>
+          <button class="lab-upg-btn ${capped?'capped':''}" onclick="event.stopPropagation();purchaseTankUpgrade('${k}','${s}');" ${capped?'disabled':''}>${cost}</button>
+        </div>`;
+      }).join('')}</div>
+      <button class="lab-btn sortie-btn" onclick="setActiveTank('${k}')">🚀 出撃</button>`;
+  }
+}
+function selectLabTank(tank) {
+  labSelectedTank = tank;
+  renderLabUI();
+}
+function tryUnlockFromLab(tank) {
+  if (tryUnlockTank(tank)) renderLabUI();
+}
+function setActiveTank(tank) {
+  currentTankType = tank;
+  hideLabScreen();
+  showTankSelect(currentDifficulty);
+}
+function showLabScreen() {
+  labSelectedTank = currentTankType;
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('tank-select-screen').style.display = 'none';
+  document.getElementById('upgrade-screen').style.display = 'none';
+  document.getElementById('lab-screen').style.display = 'flex';
+  renderLabUI();
+}
+function hideLabScreen() {
+  document.getElementById('lab-screen').style.display = 'none';
+  document.getElementById('start-screen').style.display = 'flex';
+  renderDifficultyButtons();
+}
+
+// --- Leaderboard ---
 function loadLeaderboard() {
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);
@@ -3222,10 +3545,7 @@ function renderLeaderboard() {
     </div>`;
   }).join('');
 }
-function switchLeaderTab(diff) {
-  leaderboardTab = diff;
-  renderLeaderboard();
-}
+function switchLeaderTab(diff) { leaderboardTab = diff; renderLeaderboard(); }
 function showLeaderboard() {
   renderLeaderboard();
   document.getElementById('start-screen').style.display = 'none';
@@ -3233,84 +3553,6 @@ function showLeaderboard() {
 }
 function hideLeaderboard() {
   document.getElementById('leaderboard-screen').style.display = 'none';
-  document.getElementById('start-screen').style.display = 'flex';
-  renderDifficultyButtons();
-}
-
-function earnFragments(amount) {
-  coreFragments += amount;
-  saveProgression();
-  const toast = document.getElementById('achieve-toast');
-  toast.querySelector('.achieve-icon').textContent = '💎';
-  toast.querySelector('.achieve-name').textContent = '+' + amount + ' 核心碎片';
-  toast.querySelector('.achieve-label').textContent = '总计: ' + coreFragments;
-  toast.querySelector('.achieve-name').style.color = '#8cf';
-  toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
-  toast.style.animation = 'toastIn 0.4s ease-out';
-  clearTimeout(toast._timeout);
-  toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 2500);
-}
-
-function applyPermanentUpgrades() {
-  playerBulletDmgMul += permanentUpgrades.bulletDmg * 0.1;
-  playerSpeedMul += permanentUpgrades.moveSpd * 0.05;
-  if (player.alive && permanentUpgrades.maxHp > 0) {
-    player.maxHp += permanentUpgrades.maxHp;
-    player.hp += permanentUpgrades.maxHp;
-  }
-}
-
-function getUpgradeCost(stat, level) {
-  return (level + 1) * 50; // 50, 100, 150, 200, 250
-}
-
-function purchaseUpgrade(stat) {
-  const lvl = permanentUpgrades[stat];
-  const cost = getUpgradeCost(stat, lvl);
-  const caps = { maxHp:5, bulletDmg:5, moveSpd:5, specialCD:3 };
-  if (lvl >= caps[stat]) return;
-  if (coreFragments < cost) return;
-  coreFragments -= cost;
-  permanentUpgrades[stat]++;
-  saveProgression();
-  renderUpgradeUI();
-  sfxAchievement();
-}
-
-function renderUpgradeUI() {
-  const names = { maxHp:'基础耐久', bulletDmg:'弹头强化', moveSpd:'机动优化', specialCD:'特殊充能' };
-  const icons = { maxHp:'❤️', bulletDmg:'💥', moveSpd:'💨', specialCD:'⚡' };
-  const caps = { maxHp:5, bulletDmg:5, moveSpd:5, specialCD:3 };
-  const effects = {
-    maxHp: '+1最大HP', bulletDmg: '+10%伤害', moveSpd: '+5%移速', specialCD: '特殊子弹间隔-1',
-  };
-  const container = document.getElementById('upgrade-grid');
-  if (!container) return;
-  container.innerHTML = Object.keys(names).map(stat => {
-    const lvl = permanentUpgrades[stat];
-    const capped = lvl >= caps[stat];
-    const cost = capped ? 'MAX' : getUpgradeCost(stat, lvl) + ' 💎';
-    return `<div class="upgrade-row">
-      <span class="upg-icon">${icons[stat]}</span>
-      <div class="upg-info">
-        <div class="upg-name">${names[stat]} Lv.${lvl}</div>
-        <div class="upg-effect">${effects[stat]}</div>
-      </div>
-      <button class="upg-btn ${capped?'capped':''}" onclick="purchaseUpgrade('${stat}')" ${capped?'disabled':''}>${cost}</button>
-    </div>`;
-  }).join('');
-  const fragEl = document.getElementById('upgrade-fragments');
-  if (fragEl) fragEl.textContent = '💎 核心碎片: ' + coreFragments;
-}
-
-function showUpgradeScreen() {
-  document.getElementById('start-screen').style.display = 'none';
-  document.getElementById('tank-select-screen').style.display = 'none';
-  document.getElementById('upgrade-screen').style.display = 'flex';
-  renderUpgradeUI();
-}
-function hideUpgradeScreen() {
-  document.getElementById('upgrade-screen').style.display = 'none';
   document.getElementById('start-screen').style.display = 'flex';
   renderDifficultyButtons();
 }
@@ -3671,6 +3913,7 @@ function update() {
   document.getElementById('score').textContent = score;
   document.getElementById('lives').textContent = lives;
   document.getElementById('level').textContent = level;
+  if (isDailyChallenge) checkDailyTarget();
 
   // Update particles
   for (const p of particles) p.update();
@@ -3837,6 +4080,7 @@ function endGame() {
   stopMusic();
   if (!isDailyChallenge) addToLeaderboard(currentDifficulty, score, currentTankType, wave);
   document.getElementById('final-score').textContent = score;
+  document.getElementById('daily-target').style.display = 'none';
   document.getElementById('game-over').classList.add('visible');
   // Show quick restart hint
   const hint = document.getElementById('game-over');
@@ -3884,6 +4128,7 @@ function restartGame() {
   isDailyChallenge = false; seededRandom = null;
   document.getElementById('wave-notify').classList.remove('show');
   document.getElementById('combo-display').classList.remove('active');
+  document.getElementById('daily-target').style.display = 'none';
   document.getElementById('game-over').classList.remove('visible');
   document.getElementById('start-screen').style.display = 'flex';
   renderDifficultyButtons();
@@ -3915,7 +4160,7 @@ function startGame(difficulty, tankType) {
   wave = 0; waveEnemiesRemaining = 0; waveEnemiesTotal = 0; wavePause = 0; waveNotificationTimer = 0;
   comboCount = 0; comboTimer = 0;
   player = new PlayerTank(currentTankType);
-  applyPermanentUpgrades();
+  applyTankUpgrades(currentTankType);
   enemies = [];
   playerBullets = [];
   enemyBullets = [];
@@ -3924,6 +4169,7 @@ function startGame(difficulty, tankType) {
   powerUpSpawnTimer = 0;
   buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0, magnet:0, pierce:0, vampire:0, double_score:0, big_bullet:0, explosive:0, invisible:0, thorns:0 };
   particles.length = 0;
+  dmgNumbers.length = 0;
   spawnTimer = 0;
   difficultyTimer = 0;
   resetAchievementTracking();
