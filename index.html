@@ -512,13 +512,13 @@ canvas { display: block; background: #0a0f18; }
 #lab-screen {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: none; flex-direction: column; align-items: center;
-  gap: 2px; padding: 6px 10px; overflow-y: auto;
+  gap: 4px; padding: 10px 14px; overflow-y: auto;
   background: rgba(4,8,16,0.97); z-index: 15;
 }
-#lab-screen h1 { font-family: 'Segoe UI','Microsoft YaHei',sans-serif; color: #f49800; font-size: 18px; font-weight: 300; letter-spacing: 4px; text-shadow: 0 0 12px rgba(244,152,0,0.3); margin: 0; }
-#lab-screen .lab-tank-grid { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
+#lab-screen h1 { font-family: 'Segoe UI','Microsoft YaHei',sans-serif; color: #f49800; font-size: 20px; font-weight: 300; letter-spacing: 5px; text-shadow: 0 0 15px rgba(244,152,0,0.3); margin: 0; }
+#lab-screen .lab-tank-grid { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
 #lab-screen .lab-tank-card {
-  width: 95px; padding: 5px 3px; border: 1px solid rgba(107,125,149,0.1);
+  width: 100px; padding: 6px 4px; border: 1px solid rgba(107,125,149,0.1);
   text-align: center; cursor: pointer; background: rgba(12,16,24,0.5); transition: all 0.2s;
   position: relative; flex-shrink: 0;
   clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
@@ -527,25 +527,25 @@ canvas { display: block; background: #0a0f18; }
 #lab-screen .lab-tank-card.selected { border-color: #f49800; box-shadow: 0 0 10px rgba(244,152,0,0.2); }
 #lab-screen .lab-tank-card.locked { opacity: 0.5; }
 #lab-screen .lab-tank-card.evolved { border-color: rgba(180,100,200,0.4); }
-#lab-screen .lab-tank-icon { font-size: 18px; display: block; }
-#lab-screen .lab-tank-name { font-size: 9px; color: #c0c8d0; font-weight: 500; margin-top: 2px; }
-#lab-screen .lab-tank-dots { font-size: 6px; color: #6b7d95; margin-top: 1px; }
-#lab-screen .lab-evo-badge { position: absolute; top: 1px; right: 1px; font-size: 5px; color: #c8a0d8; background: rgba(160,80,200,0.15); padding: 0 2px; }
-#lab-screen .lab-detail-panel { width: 96%; max-width: 440px; padding: 8px 12px; border: 1px solid rgba(107,125,149,0.08); background: rgba(10,14,22,0.5); clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px); flex-shrink: 0; }
-#lab-screen .lab-detail-name { font-size: 14px; color: #d0d4dc; font-weight: 500; letter-spacing: 2px; }
-#lab-screen .lab-detail-desc { font-size: 9px; color: #6b7d95; margin: 1px 0; }
-#lab-screen .lab-stats { display: flex; flex-direction: column; gap: 3px; margin: 4px 0; }
-#lab-screen .lab-stat-row { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #8a94a4; }
-#lab-screen .lab-stat-dots { letter-spacing: 1px; color: #6b7d95; }
-#lab-screen .lab-upg-btn { padding: 4px 8px; font-size: 11px; font-weight: 600; border: 1px solid rgba(244,152,0,0.25); background: rgba(20,26,36,0.7); color: #f49800; cursor: pointer; font-family: 'Segoe UI','Microsoft YaHei',sans-serif; clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px); min-width: 48px; transition: all 0.2s; }
-#lab-screen .lab-upg-btn:hover { background: rgba(30,38,48,0.8); border-color: #f49800; box-shadow: 0 0 6px rgba(244,152,0,0.2); transform: scale(1.05); }
-#lab-screen .lab-upg-btn.capped { border-color: rgba(107,125,149,0.06); color: #3a4a58; cursor: not-allowed; background: rgba(10,14,20,0.3); }
-#lab-screen .lab-upg-btn.capped:hover { transform: none; box-shadow: none; background: rgba(10,14,20,0.3); }
-#lab-screen .lab-btn { padding: 4px 12px; font-size: 11px; border: 1px solid rgba(107,125,149,0.15); background: rgba(14,18,26,0.5); color: #a0a8b4; cursor: pointer; font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 1px; margin: 2px; clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px); }
-#lab-screen .lab-btn:hover { background: rgba(24,30,40,0.6); border-color: rgba(244,152,0,0.3); color: #f49800; }
-#lab-screen .lab-btn.sortie-btn { border-color: rgba(244,152,0,0.3); background: rgba(20,26,36,0.6); font-size: 12px; color: #f49800; }
-#lab-screen .lab-btn.sortie-btn:hover { border-color: #f49800; box-shadow: 0 0 8px rgba(244,152,0,0.2); }
-#lab-screen .lab-info-text { font-size: 8px; color: #4a5a70; text-align: center; margin: 1px 0; }
+#lab-screen .lab-tank-icon { font-size: 20px; display: block; }
+#lab-screen .lab-tank-name { font-size: 10px; color: #c0c8d0; font-weight: 500; margin-top: 2px; }
+#lab-screen .lab-tank-dots { font-size: 7px; color: #6b7d95; margin-top: 1px; }
+#lab-screen .lab-evo-badge { position: absolute; top: 1px; right: 1px; font-size: 6px; color: #c8a0d8; background: rgba(160,80,200,0.15); padding: 0 3px; }
+#lab-screen .lab-detail-panel { width: 94%; max-width: 450px; padding: 10px 14px; border: 1px solid rgba(107,125,149,0.1); background: rgba(10,14,22,0.6); clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px); flex-shrink: 0; }
+#lab-screen .lab-detail-name { font-size: 14px; color: #e0e4ec; font-weight: 500; letter-spacing: 2px; }
+#lab-screen .lab-detail-desc { font-size: 10px; color: #6b7d95; margin: 2px 0; }
+#lab-screen .lab-stats { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+#lab-screen .lab-stat-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a0a8b4; }
+#lab-screen .lab-stat-dots { letter-spacing: 2px; color: #6b7d95; }
+#lab-screen .lab-upg-btn { padding: 5px 10px; font-size: 12px; font-weight: 600; border: 1px solid rgba(244,152,0,0.3); background: rgba(22,30,40,0.7); color: #f49800; cursor: pointer; font-family: 'Segoe UI','Microsoft YaHei',sans-serif; clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px); min-width: 50px; transition: all 0.2s; }
+#lab-screen .lab-upg-btn:hover { background: rgba(34,44,56,0.8); border-color: #ffb340; box-shadow: 0 0 8px rgba(244,152,0,0.25); }
+#lab-screen .lab-upg-btn.capped { border-color: rgba(107,125,149,0.1); color: #3a4a58; cursor: not-allowed; background: rgba(12,16,22,0.3); }
+#lab-screen .lab-upg-btn.capped:hover { transform: none; box-shadow: none; background: rgba(12,16,22,0.3); }
+#lab-screen .lab-btn { padding: 5px 14px; font-size: 12px; border: 1px solid rgba(244,152,0,0.2); background: rgba(18,24,34,0.6); color: #c0c8d0; cursor: pointer; font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 1px; margin: 2px; clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px); transition: all 0.2s; }
+#lab-screen .lab-btn:hover { background: rgba(28,36,46,0.7); border-color: rgba(244,152,0,0.5); color: #f49800; }
+#lab-screen .lab-btn.sortie-btn { border-color: #f49800; background: rgba(24,32,42,0.6); font-size: 13px; color: #f49800; padding: 6px 20px; }
+#lab-screen .lab-btn.sortie-btn:hover { border-color: #ffb340; box-shadow: 0 0 12px rgba(244,152,0,0.25); }
+#lab-screen .lab-info-text { font-size: 9px; color: #5a6878; text-align: center; margin: 2px 0; }
 #daily-target {
   position: absolute; top: 42px; left: 50%; transform: translateX(-50%);
   color: #fd0; font-size: 13px; font-weight: bold; letter-spacing: 2px;
@@ -641,9 +641,9 @@ canvas { display: block; background: #0a0f18; }
     <div class="lab-tank-grid" id="lab-tank-grid"></div>
     <div class="ornament" style="width:200px;margin:2px 0;"></div>
     <div class="lab-detail-panel" id="lab-detail"></div>
-    <div style="display:flex;gap:8px;margin-top:4px;">
+    <div style="display:flex;gap:12px;margin-top:6px;">
       <button class="lab-btn sortie-btn" id="lab-confirm-btn" onclick="confirmActiveTank(labSelectedTank)">✅ 确认出战</button>
-      <button class="best-back-btn" onclick="hideLabScreen()" style="margin:0;">返 回</button>
+      <button class="best-back-btn" onclick="hideLabScreen()" style="margin:0;font-size:13px;padding:8px 24px;">返 回</button>
     </div>
   </div>
   <div id="tank-select-screen">
