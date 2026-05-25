@@ -79,7 +79,7 @@ canvas {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
   background: radial-gradient(ellipse at 50% 30%, rgba(15,10,40,0.92) 0%, rgba(3,2,12,0.96) 100%);
   z-index: 10;
   border: 2px solid rgba(200,160,80,0.25);
@@ -87,9 +87,9 @@ canvas {
 #start-screen h1 {
   font-family: 'STKaiti','KaiTi','SimSun','Courier New',serif;
   color: #da0;
-  font-size: 44px;
-  text-shadow: 0 0 25px rgba(220,170,0,0.7), 0 0 50px rgba(200,120,0,0.4), 0 2px 4px rgba(0,0,0,0.8);
-  letter-spacing: 8px;
+  font-size: 50px;
+  text-shadow: 0 0 30px rgba(220,170,0,0.8), 0 0 60px rgba(200,120,0,0.5), 0 2px 4px rgba(0,0,0,0.8);
+  letter-spacing: 10px;
   margin-bottom: 0;
   animation: titleGlow 3s ease-in-out infinite;
   -webkit-text-stroke: 1px rgba(180,120,20,0.3);
@@ -102,8 +102,9 @@ canvas {
   font-family: 'STKaiti','KaiTi','Courier New',serif;
   color: #c8a8b8;
   font-size: 13px;
-  letter-spacing: 5px;
-  margin-top: -8px;
+  letter-spacing: 6px;
+  margin-top: -10px;
+  font-size: 14px;
   text-shadow: 0 0 10px rgba(200,120,160,0.4);
 }
 #start-screen .ornament {
@@ -114,12 +115,12 @@ canvas {
 #start-screen .difficulty-buttons {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 8px;
+  margin-top: 6px;
 }
 #start-screen .diff-btn {
-  padding: 8px 50px;
-  font-size: 16px;
+  padding: 10px 55px;
+  font-size: 17px;
   font-family: 'STKaiti','KaiTi','SimSun','Courier New',serif;
   font-weight: bold;
   letter-spacing: 4px;
@@ -189,9 +190,9 @@ canvas {
 #start-screen .locked-info { color: #504840; }
 #start-screen .achieve-link {
   color: #908078;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   font-family: 'STKaiti','KaiTi','SimSun',serif;
   border-bottom: 1px dashed rgba(160,140,120,0.3);
   transition: all 0.3s;
@@ -824,8 +825,8 @@ canvas {
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const W = 960;
-const H = 640;
+const W = 1000;
+const H = 680;
 canvas.width = W;
 canvas.height = H;
 
@@ -1536,7 +1537,7 @@ function showWaveNotification(text, sub) {
 function startNextWave() {
   wave++;
   // Earn fragments for previous wave clear
-  if (wave > 1) earnFragments(Math.floor(wave / 2) + 1);
+  if (wave > 1) earnFragments(wave + 1);
 
   // Boss wave every 4 waves (starting from wave 4)
   if (wave >= 4 && wave % 4 === 0) {
@@ -1740,6 +1741,8 @@ function renderBestiary() {
         case 'regen': desc = '周期性自动恢复生命值'; break;
         case 'laser': desc = '高速穿透激光束'; break;
         case 'miner': desc = '布置触碰爆炸的地雷'; break;
+        case 'barrier': desc = '周期性再生护盾，免疫伤害'; break;
+        case 'missile': desc = '发射追踪导弹，远程威胁'; break;
         default: desc = '强大的精英敌人';
       }
       return { icon: e.icon, name: e.name, desc: desc, tag: '精英' };
@@ -2594,6 +2597,8 @@ const eliteTypes = [
   { name: '再生坦克', color: '#353', turret: '#6a6', speed: 0.4,  hp: 7, special: 'regen', icon: '♻️' },
   { name: '激光坦克', color: '#335', turret: '#88f', speed: 0.35, hp: 5, special: 'laser', icon: '⚡' },
   { name: '地雷坦克', color: '#553', turret: '#ca4', speed: 0.45, hp: 5, special: 'miner', icon: '💣' },
+  { name: '护盾坦克', color: '#466', turret: '#4ff', speed: 0.35, hp: 6, special: 'barrier', icon: '🔰' },
+  { name: '导弹坦克', color: '#644', turret: '#f84', speed: 0.4,  hp: 4, special: 'missile', icon: '🚀' },
 ];
 
 class EliteEnemy extends EnemyTank {
@@ -2628,6 +2633,12 @@ class EliteEnemy extends EnemyTank {
     }
     if (eliteDef.special === 'splitter') {
       this.splitTimer = 300 + Math.random() * 200;
+    }
+    if (eliteDef.special === 'barrier') {
+      this.barrierHP = 3; this.barrierTimer = 0;
+    }
+    if (eliteDef.special === 'missile') {
+      this.missileCooldown = 0;
     }
   }
   update() {
@@ -2674,6 +2685,15 @@ class EliteEnemy extends EnemyTank {
         showWaveNotification('', '分裂坦克增殖了!');
       }
     }
+    if (this.special === 'barrier') {
+      this.barrierTimer++;
+      if (this.barrierTimer >= 300 && this.barrierHP < 3) {
+        this.barrierTimer = 0; this.barrierHP = Math.min(3, this.barrierHP + 1);
+      }
+    }
+    if (this.special === 'missile') {
+      this.missileCooldown--;
+    }
   }
   shoot() {
     if (this.special === 'flame') {
@@ -2700,6 +2720,11 @@ class EliteEnemy extends EnemyTank {
         const by = this.y + Math.sin(this.turretAngle + spread) * 18;
         enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, 1.8, '#4af', false));
       }
+    } else if (this.special === 'missile' && this.missileCooldown <= 0) {
+      this.missileCooldown = 40 + Math.random() * 30;
+      const b = new Bullet(this.x, this.y, this.turretAngle, 1.6, '#f84', false, 1);
+      b.homing = true; b.homingStrength = 0.04; b.radius = 4;
+      enemyBullets.push(b);
     } else {
       super.shoot();
     }
@@ -2722,6 +2747,8 @@ class EliteEnemy extends EnemyTank {
     else if (this.special === 'regen') glowColor = '#4f4';
     else if (this.special === 'laser') glowColor = '#88f';
     else if (this.special === 'miner') glowColor = '#ca4';
+    else if (this.special === 'barrier') glowColor = '#4ff';
+    else if (this.special === 'missile') glowColor = '#f84';
 
     ctx.shadowColor = glowColor;
     ctx.shadowBlur = 8 + Math.sin(Date.now() / 200) * 3;
@@ -2946,6 +2973,49 @@ class EliteEnemy extends EnemyTank {
         ctx.restore();
         break;
 
+      case 'barrier':
+        ctx.fillStyle = '#1a2a2a';
+        ctx.fillRect(-18, -12, 6, 24); ctx.fillRect(12, -12, 6, 24);
+        ctx.fillStyle = body; ctx.fillRect(-15, -10, 30, 20);
+        ctx.strokeStyle = '#066'; ctx.lineWidth = 2; ctx.strokeRect(-15, -10, 30, 20);
+        ctx.fillStyle = '#4cc'; ctx.fillRect(-11, -7, 22, 14);
+        ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#066'; ctx.lineWidth = 2; ctx.stroke();
+        // Barrier shield ring
+        if (this.barrierHP > 0) {
+          const bpulse = Math.sin(Date.now()/150)*0.3+0.7;
+          ctx.strokeStyle = '#4ff'; ctx.lineWidth = this.barrierHP;
+          ctx.shadowColor = '#4ff'; ctx.shadowBlur = 8 * bpulse;
+          ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.stroke();
+          ctx.fillStyle = '#4ff'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(this.barrierHP, 0, -22);
+        }
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = turretC; ctx.fillRect(4, -2, 12, 4);
+        ctx.strokeStyle = '#066'; ctx.lineWidth = 1.5; ctx.strokeRect(4, -2, 12, 4);
+        ctx.restore();
+        break;
+
+      case 'missile':
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-17, -11, 5, 22); ctx.fillRect(12, -11, 5, 22);
+        ctx.fillStyle = body; ctx.fillRect(-14, -10, 28, 20);
+        ctx.strokeStyle = '#530'; ctx.lineWidth = 2; ctx.strokeRect(-14, -10, 28, 20);
+        ctx.fillStyle = '#d53'; ctx.fillRect(-10, -7, 20, 14);
+        // Missile pods
+        for (let s = -1; s <= 1; s += 2) {
+          ctx.fillStyle = '#f84'; ctx.fillRect(s * 12, -12, 5, 8);
+          ctx.strokeStyle = '#530'; ctx.lineWidth = 1; ctx.strokeRect(s * 12, -12, 5, 8);
+          ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(s * 12 + 2.5, -4, 2, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#530'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.fillStyle = turretC; ctx.fillRect(3, -2, 16, 4);
+        ctx.strokeStyle = '#530'; ctx.lineWidth = 1; ctx.strokeRect(3, -2, 16, 4);
+        ctx.restore();
+        break;
+
     }
     ctx.restore();
 
@@ -2974,6 +3044,11 @@ class EliteEnemy extends EnemyTank {
     }
   }
   hit(bullet) {
+    if (this.special === 'barrier' && this.barrierHP > 0) {
+      this.barrierHP--;
+      spawnExplosion(this.x, this.y, 6, '#4ff', '#fff');
+      return false;
+    }
     if (this.special === 'stealth' && this.stealthPhase === 1 && Math.random() < 0.35) {
       spawnExplosion(this.x, this.y, 3, '#888', '#aaa');
       return false;
@@ -3592,7 +3667,7 @@ const OBSTACLE_TYPES = {
 // --- Obstacles ---
 function generateObstacles() {
   obstacles.length = 0;
-  const count = 8 + level * 2;
+  const count = 10 + level * 2;
   for (let i = 0; i < count; i++) {
     const roll = rng();
     let obsType;
@@ -3717,7 +3792,7 @@ function spawnEnemy() {
   // Chance to spawn elite (increases with level)
   const eliteChance = Math.min(0.35, 0.08 + level * 0.02);
   if (level >= 2 && rng() < eliteChance) {
-    const maxIdx = Math.min(9, Math.floor((level + 1) / 2));
+    const maxIdx = Math.min(11, Math.floor((level + 1) / 2));
     const idx = Math.floor(rng() * (maxIdx + 1));
     const etype = eliteTypes[idx];
     enemies.push(new EliteEnemy(x, y, etype));
@@ -3770,16 +3845,37 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
 
 // --- Ground decoration ---
 function drawGround(ctx) {
+  // Biome tint
+  const biome = (wave - 1) % 5;
+  const tints = ['#111','#111511','#111118','#181111','#111111'];
+  ctx.fillStyle = tints[biome];
+  ctx.fillRect(0, 0, W, H);
+
   // Grid pattern
-  ctx.strokeStyle = '#1e1e1e';
+  ctx.strokeStyle = biome === 1 ? '#1a2a1a' : (biome === 2 ? '#1a1a2a' : '#1e1e1e');
   ctx.lineWidth = 0.5;
   for (let x = 0; x < W; x += 30) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
   for (let y = 0; y < H; y += 30) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Decorative scatter
+  if (!gameRunning) return;
+  ctx.fillStyle = biome === 1 ? 'rgba(20,40,20,0.3)' : (biome === 2 ? 'rgba(20,20,50,0.2)' : 'rgba(30,25,20,0.2)');
+  for (let i = 0; i < 15; i++) {
+    const sx = ((i * 137 + wave * 53) % W);
+    const sy = ((i * 251 + wave * 37) % H);
     ctx.beginPath();
-    ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    if (biome === 1) {
+      ctx.arc(sx, sy, 2 + (i % 3), 0, Math.PI * 2); // grass tufts
+    } else if (biome === 2) {
+      ctx.arc(sx, sy, 2, 0, Math.PI * 2); // small rocks
+    } else {
+      ctx.fillRect(sx, sy, 3, 1); // dirt scratches
+    }
+    ctx.fill();
   }
 }
 
