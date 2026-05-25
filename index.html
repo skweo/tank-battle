@@ -85,6 +85,11 @@ canvas {
   text-shadow: 0 0 30px rgba(0,255,0,0.8), 0 0 60px rgba(0,255,0,0.4);
   letter-spacing: 6px;
   margin-bottom: 8px;
+  animation: titlePulse 2s ease-in-out infinite;
+}
+@keyframes titlePulse {
+  0%, 100% { text-shadow: 0 0 30px rgba(0,255,0,0.8), 0 0 60px rgba(0,255,0,0.4); }
+  50% { text-shadow: 0 0 50px rgba(0,255,0,1), 0 0 90px rgba(0,255,0,0.7), 0 0 120px rgba(0,255,0,0.3); }
 }
 #start-screen .subtitle {
   color: #888;
@@ -108,8 +113,25 @@ canvas {
   border-radius: 8px;
   cursor: pointer;
   color: #0f0;
-  background: rgba(0,100,0,0.15);
-  transition: all 0.2s;
+  background: linear-gradient(180deg, rgba(0,100,0,0.2) 0%, rgba(0,50,0,0.1) 100%);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+#start-screen .diff-btn::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#start-screen .diff-btn:hover::before { opacity: 1; }
+#start-screen .diff-btn:hover {
+  background: rgba(0,180,0,0.3);
+  box-shadow: 0 0 25px rgba(0,255,0,0.5), inset 0 0 15px rgba(0,255,0,0.1);
+  transform: scale(1.05) translateY(-2px);
 }
 #start-screen .diff-btn:hover {
   background: rgba(0,180,0,0.3);
@@ -408,6 +430,9 @@ canvas {
 #tank-select-screen .tank-card.sniper { border-color: #82d; }
 #tank-select-screen .tank-card.sniper:hover { border-color: #a4f; background: rgba(20,10,50,0.3); box-shadow: 0 8px 25px rgba(160,64,255,0.3); }
 #tank-select-screen .tank-card.sniper .tank-name { color: #a4f; }
+#tank-select-screen .tank-card.homing { border-color: #d6d; }
+#tank-select-screen .tank-card.homing:hover { border-color: #f8f; background: rgba(40,10,50,0.3); box-shadow: 0 8px 25px rgba(200,64,255,0.3); }
+#tank-select-screen .tank-card.homing .tank-name { color: #f8f; }
 #tank-select-screen .tank-back-btn {
   margin-top: 8px;
   padding: 10px 30px;
@@ -569,35 +594,42 @@ canvas {
         <div class="tank-name">扩散型</div>
         <div class="tank-subtitle">博丽灵梦式</div>
         <div class="tank-desc">3方向扩散弹幕</div>
-        <div class="tank-detail">中等速度 · 标准血量<br>3发扩散 · 均衡型</div>
+        <div class="tank-detail">中等速度 · 标准血量<br>每5发穿透弹 · 均衡型</div>
       </div>
       <div class="tank-card focus" onclick="startGame(currentDifficulty, 'focus')">
         <span class="tank-icon">★</span>
         <div class="tank-name">集中型</div>
         <div class="tank-subtitle">雾雨魔理沙式</div>
         <div class="tank-desc">高速集中火力</div>
-        <div class="tank-detail">快速移动 · 较低血量<br>强力单发 · 高射速</div>
+        <div class="tank-detail">快速移动 · 较低血量<br>强力单发 · 每4发电磁炮</div>
       </div>
       <div class="tank-card wide" onclick="startGame(currentDifficulty, 'wide')">
         <span class="tank-icon">❋</span>
         <div class="tank-name">广域型</div>
         <div class="tank-subtitle">十六夜咲夜式</div>
         <div class="tank-desc">5方向广域压制</div>
-        <div class="tank-detail">低速移动 · 较高血量<br>5发广域 · 压制型</div>
+        <div class="tank-detail">低速移动 · 较高血量<br>5发广域 · 每6发冰冻弹</div>
       </div>
       <div class="tank-card burst" onclick="startGame(currentDifficulty, 'burst')">
         <span class="tank-icon">✦</span>
         <div class="tank-name">爆裂型</div>
         <div class="tank-subtitle">芙兰朵露式</div>
         <div class="tank-desc">7方向爆裂弹幕</div>
-        <div class="tank-detail">标准速度 · 标准血量<br>7发爆裂 · 慢射速</div>
+        <div class="tank-detail">标准速度 · 标准血量<br>7发爆裂 · 每5发爆炸弹</div>
       </div>
       <div class="tank-card sniper" onclick="startGame(currentDifficulty, 'sniper')">
         <span class="tank-icon">◈</span>
         <div class="tank-name">狙击型</div>
         <div class="tank-subtitle">八意永琳式</div>
         <div class="tank-desc">超远程高伤狙击</div>
-        <div class="tank-detail">极慢移动 · 较低血量<br>单发高伤 · 穿透力强</div>
+        <div class="tank-detail">极慢移动 · 较低血量<br>单发高伤 · 每3发穿甲弹</div>
+      </div>
+      <div class="tank-card homing" onclick="startGame(currentDifficulty, 'homing')">
+        <span class="tank-icon">◎</span>
+        <div class="tank-name">追踪型</div>
+        <div class="tank-subtitle">东风谷早苗式</div>
+        <div class="tank-desc">追踪弹幕</div>
+        <div class="tank-detail">标准速度 · 标准血量<br>追踪弹 · 每4发强化追踪</div>
       </div>
     </div>
     <button class="tank-back-btn" onclick="hideTankSelect()">返回</button>
@@ -623,8 +655,8 @@ canvas {
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const W = 900;
-const H = 650;
+const W = 1100;
+const H = 750;
 canvas.width = W;
 canvas.height = H;
 
@@ -863,11 +895,12 @@ const DIFFICULTY_ORDER = ['easy','normal','hard','extreme','nightmare'];
 
 // --- Tank Types ---
 const tankTypes = {
-  spread: { name:'扩散型', color:'#e44', turret:'#c33', speed:1.1, hpBonus:0,  shootDelay:28, bulletCount:3, spreadAngle:0.13, bulletSpeed:2.5, bulletDamage:1, desc:'3方向扩散弹幕' },
-  focus:  { name:'集中型', color:'#ed4', turret:'#cb3', speed:1.4, hpBonus:-2, shootDelay:20, bulletCount:1, spreadAngle:0,    bulletSpeed:5.0, bulletDamage:2, desc:'高速集中火力' },
-  wide:   { name:'广域型', color:'#4af', turret:'#38c', speed:0.85,hpBonus:2,  shootDelay:44, bulletCount:5, spreadAngle:0.18, bulletSpeed:2.0, bulletDamage:1, desc:'5方向广域压制' },
-  burst:  { name:'爆裂型', color:'#f84', turret:'#d62', speed:1.0, hpBonus:0,  shootDelay:55, bulletCount:7, spreadAngle:0.16, bulletSpeed:2.8, bulletDamage:1, desc:'7方向爆裂弹幕' },
-  sniper: { name:'狙击型', color:'#a4f', turret:'#82d', speed:0.7, hpBonus:-1, shootDelay:52, bulletCount:1, spreadAngle:0,    bulletSpeed:7.5, bulletDamage:3, desc:'超远程高伤狙击' },
+  spread: { name:'扩散型', color:'#e44', turret:'#c33', speed:1.1, hpBonus:0,  shootDelay:28, bulletCount:3, spreadAngle:0.13, bulletSpeed:1.7, bulletDamage:1, desc:'3方向扩散弹幕', specialInterval:5, specialType:'pierce' },
+  focus:  { name:'集中型', color:'#ed4', turret:'#cb3', speed:1.4, hpBonus:-2, shootDelay:20, bulletCount:1, spreadAngle:0,    bulletSpeed:3.3, bulletDamage:2, desc:'高速集中火力', specialInterval:4, specialType:'railgun' },
+  wide:   { name:'广域型', color:'#4af', turret:'#38c', speed:0.85,hpBonus:2,  shootDelay:44, bulletCount:5, spreadAngle:0.18, bulletSpeed:1.4, bulletDamage:1, desc:'5方向广域压制', specialInterval:6, specialType:'freeze' },
+  burst:  { name:'爆裂型', color:'#f84', turret:'#d62', speed:1.0, hpBonus:0,  shootDelay:55, bulletCount:7, spreadAngle:0.16, bulletSpeed:1.9, bulletDamage:1, desc:'7方向爆裂弹幕', specialInterval:5, specialType:'explosive' },
+  sniper: { name:'狙击型', color:'#a4f', turret:'#82d', speed:0.7, hpBonus:-1, shootDelay:52, bulletCount:1, spreadAngle:0,    bulletSpeed:4.8, bulletDamage:3, desc:'超远程高伤狙击', specialInterval:3, specialType:'super_pierce' },
+  homing: { name:'追踪型', color:'#f8f', turret:'#d6d', speed:0.95,hpBonus:0,  shootDelay:38, bulletCount:2, spreadAngle:0.08, bulletSpeed:1.8, bulletDamage:1, desc:'追踪弹幕', specialInterval:4, specialType:'homing_burst' },
 };
 let currentTankType = 'spread';
 
@@ -920,6 +953,19 @@ const achievementsDef = [
   { id: 'score_5000', name: '积分之王', desc: '单局得分达到5000', icon: '👑' },
   { id: 'hardcore', name: '硬核玩家', desc: '困难难度到达第5关', icon: '💀' },
   { id: 'flawless', name: '无伤过关', desc: '一关内未受任何伤害', icon: '✨' },
+  { id: 'tank_spread_win', name: '扩散大师', desc: '使用扩散型通关第5波', icon: '☆' },
+  { id: 'tank_focus_win', name: '集中火力', desc: '使用集中型通关第5波', icon: '★' },
+  { id: 'tank_wide_win', name: '广域压制', desc: '使用广域型通关第5波', icon: '❋' },
+  { id: 'tank_burst_win', name: '爆裂艺术家', desc: '使用爆裂型通关第5波', icon: '✦' },
+  { id: 'tank_sniper_win', name: '致命狙击', desc: '使用狙击型通关第5波', icon: '◈' },
+  { id: 'tank_homing_win', name: '追踪猎手', desc: '使用追踪型通关第5波', icon: '◎' },
+  { id: 'combo_20', name: '连击大师', desc: '达成20连击', icon: '🔥' },
+  { id: 'elite_hunter', name: '精英猎手', desc: '累计消灭10个精英敌人', icon: '💀' },
+  { id: 'speed_demon', name: '闪电通关', desc: '在180秒内通关第5波', icon: '⚡' },
+  { id: 'powerup_collector', name: '道具收藏家', desc: '单局收集20个道具', icon: '🎒' },
+  { id: 'mine_dodger', name: '排雷专家', desc: '一局内未触发任何地雷', icon: '🚫' },
+  { id: 'wave_15', name: '无尽征途', desc: '到达第15波', icon: '🌌' },
+  { id: 'perfect_run', name: '完美通关', desc: '一整局未受伤到达第5波', icon: '💎' },
 ];
 
 const STORAGE_KEY = 'tankbattle_achievements';
@@ -1004,6 +1050,12 @@ function unlockAchievement(id) {
 // --- Achievement tracking ---
 let sessionKills = 0;
 let gotHitThisLevel = false;
+let sessionEliteKills = 0;
+let sessionPowerUpsCollected = 0;
+let sessionMinesTriggered = false;
+let sessionStartTime = 0;
+let maxComboReached = 0;
+let sessionGotHit = false;
 
 function checkAchievements() {
   if (sessionKills >= 1) unlockAchievement('first_blood');
@@ -1012,10 +1064,21 @@ function checkAchievements() {
   if (sessionKills >= 100) unlockAchievement('battle_veteran');
   if (level >= 5) unlockAchievement('survivor');
   if (level >= 10) unlockAchievement('tenacious');
+  if (level >= 15) unlockAchievement('wave_15');
   if (score >= 500) unlockAchievement('score_500');
   if (score >= 2000) unlockAchievement('score_2000');
   if (score >= 5000) unlockAchievement('score_5000');
   if (currentDifficulty === 'hard' && level >= 5) unlockAchievement('hardcore');
+  if (maxComboReached >= 20) unlockAchievement('combo_20');
+  if (sessionEliteKills >= 10) unlockAchievement('elite_hunter');
+  if (sessionPowerUpsCollected >= 20) unlockAchievement('powerup_collector');
+  if (level >= 5) {
+    const tankAch = {spread:'tank_spread_win',focus:'tank_focus_win',wide:'tank_wide_win',burst:'tank_burst_win',sniper:'tank_sniper_win',homing:'tank_homing_win'};
+    if (tankAch[currentTankType]) unlockAchievement(tankAch[currentTankType]);
+    if (!sessionGotHit) unlockAchievement('perfect_run');
+    if (!sessionMinesTriggered) unlockAchievement('mine_dodger');
+    if (sessionStartTime > 0 && (Date.now() - sessionStartTime) / 1000 < 180) unlockAchievement('speed_demon');
+  }
   checkDifficultyUnlock();
 }
 
@@ -1028,14 +1091,22 @@ function onLevelUp() {
 function resetAchievementTracking() {
   sessionKills = 0;
   gotHitThisLevel = false;
+  sessionEliteKills = 0;
+  sessionPowerUpsCollected = 0;
+  sessionMinesTriggered = false;
+  sessionStartTime = Date.now();
+  maxComboReached = 0;
+  sessionGotHit = false;
 }
 
 function onEnemyKilled(isElite) {
   sessionKills++;
+  if (isElite) sessionEliteKills++;
   waveEnemiesRemaining = Math.max(0, waveEnemiesRemaining - 1);
 
   // Combo system
   comboCount++;
+  if (comboCount > maxComboReached) maxComboReached = comboCount;
   comboTimer = COMBO_TIMEOUT;
   if (comboCount >= 5 && comboCount % 5 === 0) {
     const bonusPoints = comboCount * 10;
@@ -1153,6 +1224,7 @@ function spawnPowerUp(x, y) {
 }
 
 function applyPowerUp(p) {
+  sessionPowerUpsCollected++;
   if (p.rarity === 'legendary') sfxPowerUpRare(); else sfxPowerUp();
   if (p.type === 'repair') {
     const healAmt = p.rarity === 'legendary' ? 5 : (p.rarity === 'rare' ? 3 : 2);
@@ -1343,10 +1415,30 @@ class Bullet {
     this.pierce = false;
     this.explosive = false;
     this.bounces = 0;
+    this.homing = false;
+    this.homingStrength = 0;
   }
   update() {
     this.x += Math.cos(this.angle) * this.speed;
     this.y += Math.sin(this.angle) * this.speed;
+
+    // Homing: steer toward nearest enemy
+    if (this.homing && this.fromPlayer) {
+      let nearest = null, nearestDist = 200;
+      for (const enemy of enemies) {
+        if (!enemy.alive) continue;
+        const hdx = enemy.x - this.x, hdy = enemy.y - this.y;
+        const hd = Math.sqrt(hdx * hdx + hdy * hdy);
+        if (hd < nearestDist) { nearestDist = hd; nearest = enemy; }
+      }
+      if (nearest) {
+        const target = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+        let diff = target - this.angle;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        this.angle += Math.sign(diff) * Math.min(Math.abs(diff), this.homingStrength || 0.03);
+      }
+    }
 
     // Ricochet off walls
     if (this.ricochet && this.bounces > 0) {
@@ -1450,14 +1542,12 @@ class Tank {
 
     // HP bar
     if (this.hp < this.maxHp) {
-      const barW = 30;
-      const barH = 4;
+      const barW = 30, barH = 4;
       ctx.fillStyle = '#400';
       ctx.fillRect(-barW/2, -24, barW, barH);
       ctx.fillStyle = '#0f0';
       ctx.fillRect(-barW/2, -24, barW * (this.hp / this.maxHp), barH);
     }
-
     ctx.restore();
   }
   darken(color, factor) {
@@ -1472,11 +1562,12 @@ class PlayerTank extends Tank {
   constructor(tankType) {
     const type = tankTypes[tankType || 'spread'];
     const baseHp = difficultySettings[currentDifficulty].playerHp;
-    super(W/2, H - 60, type.color, type.turret, type.speed, Math.max(3, baseHp + type.hpBonus));
+    super(W/2, H - 70, type.color, type.turret, type.speed, Math.max(3, baseHp + type.hpBonus));
     this.tankType = tankType || 'spread';
     this.shootDelay = type.shootDelay;
     this.invincible = 0;
     this._tankDef = type;
+    this.shotCounter = 0;
   }
   update() {
     if (!this.alive) return;
@@ -1494,7 +1585,16 @@ class PlayerTank extends Tank {
       dy *= 0.707;
     }
 
-    const effSpeed = getEffectiveSpeed();
+    // Check terrain slow
+    let slowFactor = 1;
+    for (const obs of obstacles) {
+      if (obs.slow && this.x - 18 < obs.x + obs.w && this.x + 18 > obs.x &&
+          this.y - 18 < obs.y + obs.h && this.y + 18 > obs.y) {
+        slowFactor = Math.min(slowFactor, obs.slow);
+      }
+    }
+
+    const effSpeed = getEffectiveSpeed() * slowFactor;
     const newX = this.x + dx * effSpeed;
     const newY = this.y + dy * effSpeed;
     if (newX > 25 && newX < W - 25 && !tankCollidesObstacle(newX, this.y, 36, 36)) this.x = newX;
@@ -1513,9 +1613,52 @@ class PlayerTank extends Tank {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
     const by = this.y + Math.sin(this.turretAngle) * 18;
     const def = this._tankDef;
-    const baseSpeed = buffs.railgun > 0 ? 6 : def.bulletSpeed;
-    const baseColor = buffs.railgun > 0 ? '#a4f' : (buffs.freeze > 0 ? '#8cf' : (buffs.explosive > 0 ? '#f84' : '#ff0'));
-    const baseRadius = buffs.railgun > 0 ? 5 : (buffs.big_bullet > 0 ? 6 : 3);
+    this.shotCounter++;
+
+    const isSpecial = def.specialInterval && (this.shotCounter % def.specialInterval === 0);
+    const spType = isSpecial ? def.specialType : null;
+
+    // Base properties (power-up overrides take priority)
+    let baseSpeed = def.bulletSpeed;
+    let baseColor = '#ff0';
+    let baseRadius = 3;
+    let isRailgun = false, isPierce = false, isFreeze = false, isExplosive = false, isRicochet = false;
+    let bounceCount = 0;
+    let isHoming = (def.specialType === 'homing_burst');
+    let homingStr = isHoming ? 0.03 : 0;
+
+    // Power-up overrides
+    if (buffs.railgun > 0) { baseSpeed = 4.0; baseColor = '#a4f'; baseRadius = 5; isRailgun = true; }
+    else if (buffs.freeze > 0) { baseColor = '#8cf'; isFreeze = true; }
+    else if (buffs.explosive > 0) { baseColor = '#f84'; isExplosive = true; }
+    if (buffs.big_bullet > 0) baseRadius = 6;
+    if (buffs.pierce > 0) isPierce = true;
+    if (buffs.ricochet > 0) { isRicochet = true; bounceCount = 3; }
+
+    // Tank-inherent special (only if no conflicting power-up active)
+    if (isSpecial && spType) {
+      switch(spType) {
+        case 'pierce':
+          if (!buffs.pierce && !buffs.railgun) { isPierce = true; baseColor = '#ff8'; }
+          break;
+        case 'railgun':
+          if (!buffs.railgun) { isRailgun = true; baseSpeed = 4.0; baseColor = '#a4f'; baseRadius = 5; }
+          break;
+        case 'freeze':
+          if (!buffs.freeze) { isFreeze = true; baseColor = '#8cf'; }
+          break;
+        case 'explosive':
+          if (!buffs.explosive) { isExplosive = true; baseColor = '#f84'; }
+          break;
+        case 'super_pierce':
+          isRailgun = true; isPierce = true; baseSpeed = 5.5; baseColor = '#e8f'; baseRadius = 5;
+          break;
+        case 'homing_burst':
+          isHoming = true; homingStr = 0.06; baseSpeed = 2.2; baseColor = '#f8f'; baseRadius = 4;
+          break;
+      }
+    }
+
     const count = buffs.multishot > 0 ? 3 : def.bulletCount;
     const spread = buffs.multishot > 0 ? 0.12 : def.spreadAngle;
     const halfSpread = spread * (count - 1) / 2;
@@ -1523,15 +1666,20 @@ class PlayerTank extends Tank {
       const angleOffset = count === 1 ? 0 : -halfSpread + i * spread;
       const b = new Bullet(bx, by, this.turretAngle + angleOffset, baseSpeed, baseColor, true, def.bulletDamage);
       b.radius = baseRadius;
-      b.ricochet = buffs.ricochet > 0;
-      b.railgun = buffs.railgun > 0;
-      b.freeze = buffs.freeze > 0;
-      b.pierce = buffs.pierce > 0;
-      b.explosive = buffs.explosive > 0;
-      b.bounces = buffs.ricochet > 0 ? 3 : 0;
+      b.ricochet = isRicochet;
+      b.railgun = isRailgun;
+      b.freeze = isFreeze;
+      b.pierce = isPierce;
+      b.explosive = isExplosive;
+      b.bounces = bounceCount;
+      b.homing = isHoming;
+      b.homingStrength = homingStr;
       playerBullets.push(b);
     }
     sfxShoot();
+    if (isSpecial && spType) {
+      spawnExplosion(bx, by, 6, baseColor, '#fff');
+    }
   }
   draw(ctx) {
     if (this.invincible > 0 && Math.floor(this.invincible / 4) % 2 === 0) return;
@@ -1551,6 +1699,19 @@ class PlayerTank extends Tank {
       ctx.fillStyle = '#0f0';
       ctx.fillRect(this.x - barW/2, this.y - 28, barW * (this.hp / this.maxHp), barH);
     }
+    // Special shot charge bar
+    const tdef = this._tankDef;
+    if (tdef && tdef.specialInterval) {
+      const shotsUntil = tdef.specialInterval - (this.shotCounter % tdef.specialInterval);
+      const chargeRatio = 1 - (shotsUntil / tdef.specialInterval);
+      const cw = 30, ch = 3;
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(this.x - cw/2, this.y + 20, cw, ch);
+      const spColors = {pierce:'#ff8',railgun:'#a4f',freeze:'#8cf',explosive:'#f84',super_pierce:'#e8f',homing_burst:'#f8f'};
+      ctx.fillStyle = spColors[tdef.specialType] || '#fff';
+      ctx.fillRect(this.x - cw/2, this.y + 20, cw * chargeRatio, ch);
+    }
+
     // Buff indicator dots
     const activeBuffs = [];
     if (buffs.speed > 0) activeBuffs.push({icon:'⚡',c:'#4af'});
@@ -1735,6 +1896,41 @@ class PlayerTank extends Tank {
       break;
     }
 
+    case 'homing': { // 追踪型 - sleek with sensor, dual barrels
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-15, -11, 4, 22); ctx.fillRect(11, -11, 4, 22);
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+      for (let i = -9; i < 11; i += 5) {
+        ctx.beginPath(); ctx.moveTo(-14, i); ctx.lineTo(-12, i); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(12, i); ctx.lineTo(14, i); ctx.stroke();
+      }
+      ctx.fillStyle = body; ctx.beginPath();
+      ctx.moveTo(18, 0); ctx.lineTo(8, -10); ctx.lineTo(-10, -8);
+      ctx.lineTo(-12, 0); ctx.lineTo(-10, 8); ctx.lineTo(8, 10); ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#609'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#d8d';
+      ctx.beginPath(); ctx.arc(-4, -4, 6, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#609'; ctx.lineWidth = 1; ctx.stroke();
+      const hpulse = Math.sin(Date.now() / 180) * 0.3 + 0.7;
+      ctx.fillStyle = '#fff'; ctx.shadowColor = '#f8f'; ctx.shadowBlur = 5 * hpulse;
+      ctx.beginPath(); ctx.arc(-4, -4, 2.5, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(2, 0, 7, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#609'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.save(); ctx.rotate(turretAngle);
+      ctx.fillStyle = turretC;
+      ctx.fillRect(5, -4, 12, 3); ctx.fillRect(5, 1, 12, 3);
+      ctx.strokeStyle = '#609'; ctx.lineWidth = 1;
+      ctx.strokeRect(5, -4, 12, 3); ctx.strokeRect(5, 1, 12, 3);
+      ctx.fillStyle = '#f8f'; ctx.beginPath(); ctx.arc(14, -2, 3, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = '#f8f'; ctx.globalAlpha = 0.15 + Math.sin(Date.now() / 300) * 0.1;
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.stroke();
+      ctx.globalAlpha = 1;
+      break;
+    }
+
     default: // fallback to basic drawing
       ctx.fillStyle = '#1a1a1a';
       ctx.fillRect(-19, -14, 6, 28); ctx.fillRect(13, -14, 6, 28);
@@ -1755,6 +1951,7 @@ class PlayerTank extends Tank {
     this.hp--;
     this.invincible = 60;
     gotHitThisLevel = true;
+    sessionGotHit = true;
     spawnExplosion(this.x, this.y, 8, '#f80', '#ff0');
     sfxPlayerHurt();
     if (this.hp <= 0) {
@@ -1807,7 +2004,7 @@ class EnemyTank extends Tank {
 
     // Move
     let moveX = 0, moveY = 0;
-    const chaseThreshold = buffs.invisible > 0 ? 100 : 200;
+    const chaseThreshold = buffs.invisible > 0 ? 120 : 240;
     if (dist < chaseThreshold) {
       moveX = (dx / dist) * 0.5;
       moveY = (dy / dist) * 0.5;
@@ -1815,8 +2012,17 @@ class EnemyTank extends Tank {
     if (this.moveAxis === 'x') moveX += this.moveDir * 0.5;
     else moveY += this.moveDir * 0.5;
 
-    const newX = this.x + moveX * this.speed;
-    const newY = this.y + moveY * this.speed;
+    // Terrain slow
+    let enemySlow = 1;
+    for (const obs of obstacles) {
+      if (obs.slow && this.x - 18 < obs.x + obs.w && this.x + 18 > obs.x &&
+          this.y - 18 < obs.y + obs.h && this.y + 18 > obs.y) {
+        enemySlow = Math.min(enemySlow, obs.slow);
+      }
+    }
+
+    const newX = this.x + moveX * this.speed * enemySlow;
+    const newY = this.y + moveY * this.speed * enemySlow;
     if (newX > 25 && newX < W - 25 && !tankCollidesObstacle(newX, this.y, 36, 36)) this.x = newX;
     else this.moveDir *= -1;
     if (newY > 25 && newY < H - 25 && !tankCollidesObstacle(this.x, newY, 36, 36)) this.y = newY;
@@ -1859,7 +2065,7 @@ class EnemyTank extends Tank {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
     const by = this.y + Math.sin(this.turretAngle) * 18;
     const spread = (Math.random() - 0.5) * 0.15;
-    enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, 2.5, '#f44', false));
+    enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, 1.7, '#f44', false));
   }
   hit(bullet) {
     if (this.armor && Math.random() < 0.4) {
@@ -1915,8 +2121,11 @@ class EliteEnemy extends EnemyTank {
     if (eliteDef.special === 'sniper') {
       this.shootDelay = 40 + Math.random() * 30;
     }
+    if (eliteDef.special === 'fast') {
+      this.shootDelay = 30 + Math.random() * 20;
+    }
     if (eliteDef.special === 'summoner') {
-      this.summonCooldown = 120 + Math.random() * 120;
+      this.summonCooldown = 100 + Math.random() * 80;
     }
     if (eliteDef.special === 'stealth') {
       this.stealthPhase = 0;
@@ -1926,7 +2135,7 @@ class EliteEnemy extends EnemyTank {
       this.regenTimer = 0;
     }
     if (eliteDef.special === 'miner') {
-      this.mineCooldown = 80 + Math.random() * 80;
+      this.mineCooldown = 50 + Math.random() * 60;
     }
   }
   update() {
@@ -1935,13 +2144,13 @@ class EliteEnemy extends EnemyTank {
     if (this.special === 'summoner' && this.summonCooldown > 0) {
       this.summonCooldown--;
       if (this.summonCooldown <= 0) {
-        this.summonCooldown = 200 + Math.random() * 150;
+        this.summonCooldown = 150 + Math.random() * 100;
         spawnEnemy();
       }
     }
     if (this.special === 'stealth') {
       this.stealthTimer++;
-      if (this.stealthTimer > 120) {
+      if (this.stealthTimer > 90) {
         this.stealthTimer = 0;
         this.stealthPhase = this.stealthPhase === 0 ? 1 : 0;
       }
@@ -1956,29 +2165,36 @@ class EliteEnemy extends EnemyTank {
     if (this.special === 'miner') {
       this.mineCooldown--;
       if (this.mineCooldown <= 0) {
-        this.mineCooldown = 80 + Math.random() * 80;
-        mines.push({ x: this.x, y: this.y, life: 300, armed: true });
+        this.mineCooldown = 60 + Math.random() * 60;
+        mines.push({ x: this.x, y: this.y, life: 450, armed: true });
       }
     }
   }
   shoot() {
     if (this.special === 'flame') {
-      for (let a = -0.2; a <= 0.2; a += 0.2) {
+      for (let a = -0.32; a <= 0.32; a += 0.16) {
         const bx = this.x + Math.cos(this.turretAngle + a) * 18;
         const by = this.y + Math.sin(this.turretAngle + a) * 18;
-        enemyBullets.push(new Bullet(bx, by, this.turretAngle + a, 2.5, '#f84', false));
+        enemyBullets.push(new Bullet(bx, by, this.turretAngle + a, 2.0, '#f84', false));
       }
     } else if (this.special === 'sniper') {
       const bx = this.x + Math.cos(this.turretAngle) * 18;
       const by = this.y + Math.sin(this.turretAngle) * 18;
-      enemyBullets.push(new Bullet(bx, by, this.turretAngle, 5, '#6f6', false));
+      enemyBullets.push(new Bullet(bx, by, this.turretAngle, 3.2, '#6f6', false));
     } else if (this.special === 'laser') {
       const bx = this.x + Math.cos(this.turretAngle) * 18;
       const by = this.y + Math.sin(this.turretAngle) * 18;
-      const b = new Bullet(bx, by, this.turretAngle, 9, '#88f', false);
+      const b = new Bullet(bx, by, this.turretAngle, 5.8, '#88f', false);
       b.radius = 2;
       b.railgun = true;
       enemyBullets.push(b);
+    } else if (this.special === 'fast') {
+      for (let i = 0; i < 2; i++) {
+        const spread = (i === 0 ? -0.08 : 0.08);
+        const bx = this.x + Math.cos(this.turretAngle + spread) * 18;
+        const by = this.y + Math.sin(this.turretAngle + spread) * 18;
+        enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, 1.8, '#4af', false));
+      }
     } else {
       super.shoot();
     }
@@ -2253,7 +2469,7 @@ class EliteEnemy extends EnemyTank {
     }
   }
   hit(bullet) {
-    if (this.special === 'stealth' && this.stealthPhase === 1 && Math.random() < 0.5) {
+    if (this.special === 'stealth' && this.stealthPhase === 1 && Math.random() < 0.35) {
       spawnExplosion(this.x, this.y, 3, '#888', '#aaa');
       return false;
     }
@@ -2283,37 +2499,77 @@ let spawnTimer = 0;
 let difficultyTimer = 0;
 const obstacles = [];
 
+// --- Obstacle Types ---
+const OBSTACLE_TYPES = {
+  wall:   { color:'#555', stroke:'#777', passable:false, slow:0 },
+  bush:   { color:'#2a5a2a', stroke:'#3a7a3a', passable:true, slow:0.5 },
+  water:  { color:'#224488', stroke:'#3366aa', passable:true, slow:0.3 },
+  rubble: { color:'#665544', stroke:'#887766', passable:false, slow:0 },
+};
+
 // --- Obstacles ---
 function generateObstacles() {
   obstacles.length = 0;
-  const count = 6 + level * 2;
+  const count = 8 + level * 2;
   for (let i = 0; i < count; i++) {
+    const roll = Math.random();
+    let obsType;
+    if (roll < 0.45) obsType = 'wall';
+    else if (roll < 0.65) obsType = 'bush';
+    else if (roll < 0.80) obsType = 'water';
+    else obsType = 'rubble';
+    const def = OBSTACLE_TYPES[obsType];
+    const sm = (obsType === 'water' || obsType === 'bush') ? 0.7 : 1.0;
     obstacles.push({
       x: 40 + Math.random() * (W - 80),
       y: 40 + Math.random() * (H - 80),
-      w: 30 + Math.random() * 40,
-      h: 30 + Math.random() * 40,
+      w: (35 + Math.random() * 50) * sm,
+      h: (35 + Math.random() * 50) * sm,
+      type: obsType, passable: def.passable, slow: def.slow,
+      color: def.color, stroke: def.stroke,
     });
   }
 }
 
 function drawObstacles(ctx) {
   for (const obs of obstacles) {
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = obs.color;
     ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-    ctx.strokeStyle = '#777';
+    ctx.strokeStyle = obs.stroke;
     ctx.lineWidth = 2;
     ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
-    // Grid pattern
-    ctx.strokeStyle = '#666';
-    ctx.lineWidth = 0.5;
-    for (let gx = obs.x + 5; gx < obs.x + obs.w; gx += 5) {
-      ctx.beginPath();
-      ctx.moveTo(gx, obs.y); ctx.lineTo(gx, obs.y + obs.h); ctx.stroke();
-    }
-    for (let gy = obs.y + 5; gy < obs.y + obs.h; gy += 5) {
-      ctx.beginPath();
-      ctx.moveTo(obs.x, gy); ctx.lineTo(obs.x + obs.w, gy); ctx.stroke();
+    if (obs.type === 'wall') {
+      ctx.strokeStyle = '#666'; ctx.lineWidth = 0.5;
+      for (let gx = obs.x + 5; gx < obs.x + obs.w; gx += 5) {
+        ctx.beginPath(); ctx.moveTo(gx, obs.y); ctx.lineTo(gx, obs.y + obs.h); ctx.stroke();
+      }
+      for (let gy = obs.y + 5; gy < obs.y + obs.h; gy += 5) {
+        ctx.beginPath(); ctx.moveTo(obs.x, gy); ctx.lineTo(obs.x + obs.w, gy); ctx.stroke();
+      }
+    } else if (obs.type === 'bush') {
+      ctx.fillStyle = '#3a8a3a';
+      for (let j = 0; j < 8; j++) {
+        const bx = obs.x + 4 + Math.random() * (obs.w - 8);
+        const by = obs.y + 4 + Math.random() * (obs.h - 8);
+        ctx.beginPath(); ctx.arc(bx, by, 2 + Math.random() * 3, 0, Math.PI*2); ctx.fill();
+      }
+    } else if (obs.type === 'water') {
+      ctx.strokeStyle = '#4488cc'; ctx.lineWidth = 1;
+      const t = Date.now() / 1000;
+      for (let wy = obs.y + 4; wy < obs.y + obs.h; wy += 8) {
+        ctx.beginPath();
+        for (let wx = obs.x + 2; wx < obs.x + obs.w; wx += 2) {
+          const wy2 = wy + Math.sin(t + wy * 0.1 + wx * 0.05) * 2;
+          wx === obs.x + 2 ? ctx.moveTo(wx, wy2) : ctx.lineTo(wx, wy2);
+        }
+        ctx.stroke();
+      }
+    } else if (obs.type === 'rubble') {
+      ctx.fillStyle = '#776655';
+      ctx.fillRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h/2 - 2);
+      ctx.fillRect(obs.x + obs.w/3, obs.y + obs.h/2, obs.w/2, obs.h/2 - 3);
+      ctx.strokeStyle = '#998877'; ctx.lineWidth = 1;
+      ctx.strokeRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h/2 - 2);
     }
   }
 }
@@ -2345,6 +2601,7 @@ function bulletHitsObstacle(bullet) {
 
 function tankCollidesObstacle(x, y, w, h) {
   for (const obs of obstacles) {
+    if (obs.passable) continue;
     if (x - w/2 < obs.x + obs.w && x + w/2 > obs.x &&
         y - h/2 < obs.y + obs.h && y + h/2 > obs.y) {
       return true;
@@ -2556,6 +2813,7 @@ function update() {
       const mx = mines[i].x - player.x;
       const my = mines[i].y - player.y;
       if (mx * mx + my * my < 30 * 30) {
+        sessionMinesTriggered = true;
         spawnExplosion(mines[i].x, mines[i].y, 15, '#f80', '#ff0');
         if (!player.hit()) {
           player.hp = 0;
