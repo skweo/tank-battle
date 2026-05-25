@@ -222,6 +222,24 @@ canvas {
 @keyframes rarePulse { from { filter: drop-shadow(0 0 4px #6af); } to { filter: drop-shadow(0 0 12px #6af); } }
 @keyframes legendaryPulse { from { filter: drop-shadow(0 0 6px #fd0); } to { filter: drop-shadow(0 0 18px #fd0); transform: scale(1.1); } }
 @keyframes comboPulse { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+.daily-challenge-btn { color: #fd0 !important; border-color: #ca0 !important; }
+.daily-challenge-btn:hover { color: #ff0 !important; border-color: #ff0 !important; text-shadow: 0 0 10px rgba(255,200,0,0.6); }
+#modifier-screen {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: none; flex-direction: column; justify-content: center; align-items: center;
+  gap: 20px; background: rgba(0,0,0,0.88); z-index: 12;
+}
+#modifier-screen h2 { color: #0ff; font-size: 26px; letter-spacing: 4px; text-shadow: 0 0 15px rgba(0,255,255,0.5); }
+#modifier-screen .mod-choices { display: flex; gap: 16px; }
+#modifier-screen .mod-card {
+  width: 200px; padding: 20px 16px; border: 2px solid #0aa; border-radius: 12px;
+  cursor: pointer; text-align: center; color: #aaa; background: rgba(10,30,40,0.7);
+  transition: all 0.25s;
+}
+#modifier-screen .mod-card:hover { border-color: #0ff; background: rgba(0,60,80,0.3); transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
+#modifier-screen .mod-card .mod-icon { font-size: 36px; display: block; margin-bottom: 8px; }
+#modifier-screen .mod-card .mod-name { font-size: 18px; font-weight: bold; letter-spacing: 2px; color: #fff; }
+#modifier-screen .mod-card .mod-desc { font-size: 13px; color: #888; margin-top: 6px; }
 #instructions {
   position: absolute;
   bottom: 12px;
@@ -585,6 +603,7 @@ canvas {
     <p class="diff-info" id="diff-info"></p>
     <p class="achieve-link" onclick="showAchievements()">🏆 查看成就</p>
     <p class="achieve-link" onclick="showBestiary()" style="margin-top:4px;">📖 查看图鉴</p>
+    <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()" style="margin-top:4px;color:#fd0;border-color:#da0;">📅 每日挑战</p>
   </div>
   <div id="tank-select-screen">
     <h2>选 择 机 体</h2>
@@ -649,6 +668,10 @@ canvas {
     <button class="best-back-btn" onclick="hideBestiary()">返回</button>
   </div>
   <div id="instructions">WASD 移动 | 鼠标瞄准 | 左键射击 | R 重新开始</div>
+  <div id="modifier-screen">
+    <h2>选 择 改 造 器</h2>
+    <div class="mod-choices" id="modifier-choices"></div>
+  </div>
 </div>
 
 <script>
@@ -862,26 +885,170 @@ function sfxAchievement() {
 }
 
 // Background music - procedural bass pulse
-let musicInterval = null;
+let musicTimeout = null;
+let musicLowPass = null;
+function musicTick() {
+  if (!gameRunning || !audioCtx) { musicTimeout = null; return; }
+
+  const enemiesNearby = enemies.filter(e => {
+    const dx = e.x - player.x, dy = e.y - player.y;
+    return Math.sqrt(dx*dx+dy*dy) < 300;
+  }).length;
+  // Dynamic tempo based on enemies nearby
+  let tempo;
+  if (enemiesNearby > 4) tempo = 180;
+  else if (enemiesNearby > 2) tempo = 250;
+  else if (enemiesNearby > 0) tempo = 380;
+  else tempo = 650;
+
+  // Frequency tiers
+  let freq;
+  if (enemiesNearby > 4) freq = 45;
+  else if (enemiesNearby > 2) freq = 60;
+  else if (enemiesNearby > 0) freq = 78;
+  else freq = 104;
+
+  // HP-based filter: low HP = muffled sound
+  if (player.alive && player.hp / player.maxHp < 0.4) {
+    if (!musicLowPass) {
+      musicLowPass = audioCtx.createBiquadFilter();
+      musicLowPass.type = 'lowpass';
+      musicLowPass.frequency.value = 300;
+      musicLowPass.connect(audioNodes.musicGain);
+    }
+    const hpRatio = player.hp / player.maxHp;
+    musicLowPass.frequency.setValueAtTime(200 + hpRatio * 400, audioCtx.currentTime);
+  } else if (musicLowPass) {
+    musicLowPass.disconnect();
+    musicLowPass = null;
+  }
+
+  const gainNode = musicLowPass || audioNodes.musicGain;
+
+  // Wave intensity: more layers at higher waves
+  const waveLayers = Math.min(3, Math.floor(wave / 3));
+  const baseVol = 0.4;
+  for (let l = 0; l <= waveLayers; l++) {
+    const vol = baseVol * (1 - l * 0.25);
+    const f = freq * (1 + l * 0.5);
+    playTone(f, 0.12, l === 0 ? 'sine' : (l === 1 ? 'triangle' : 'sawtooth'), gainNode, vol, true);
+  }
+
+  musicTimeout = setTimeout(musicTick, tempo);
+}
+
 function startMusic() {
-  if (!audioCtx || musicInterval) return;
-  let beat = 0;
-  musicInterval = setInterval(() => {
-    if (!gameRunning || !audioCtx) { clearInterval(musicInterval); musicInterval = null; return; }
-    const enemiesNearby = enemies.filter(e => {
-      const dx = e.x - player.x, dy = e.y - player.y;
-      return Math.sqrt(dx*dx+dy*dy) < 300;
-    }).length;
-    const tempo = enemiesNearby > 2 ? 200 : (enemiesNearby > 0 ? 350 : 600);
-    const freq = enemiesNearby > 2 ? 55 : (enemiesNearby > 0 ? 73 : 98);
-    playTone(freq, 0.1, 'sine', audioNodes.musicGain, 0.4, true);
-    beat++;
-  }, 600);
+  if (!audioCtx || musicTimeout) return;
+  musicTick();
 }
 
 function stopMusic() {
-  if (musicInterval) { clearInterval(musicInterval); musicInterval = null; }
+  if (musicTimeout) { clearTimeout(musicTimeout); musicTimeout = null; }
+  if (musicLowPass) { musicLowPass.disconnect(); musicLowPass = null; }
 }
+
+// --- Daily Challenge ---
+function rng() { return seededRandom ? seededRandom() : Math.random(); }
+function getDailySeed() {
+  const d = new Date();
+  const dateStr = d.getFullYear() + '-' + (d.getMonth()+1).toString().padStart(2,'0') + '-' + d.getDate().toString().padStart(2,'0');
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) { hash = ((hash << 5) - hash) + dateStr.charCodeAt(i); hash |= 0; }
+  return Math.abs(hash);
+}
+function getDailyBestKey() { return 'tankbattle_daily_best_' + getDailySeed(); }
+function getDailyCompletedKey() { return 'tankbattle_daily_done_' + getDailySeed(); }
+
+function startDailyChallenge() {
+  const seed = getDailySeed();
+  seededRandom = mulberry32(seed);
+  isDailyChallenge = true;
+  // Fixed tank+difficulty based on seed
+  const tanks = ['spread','focus','wide','burst','sniper','homing'];
+  const diffs = DIFFICULTY_ORDER.filter(d => unlockedDifficulties.has(d));
+  currentTankType = tanks[seed % tanks.length];
+  currentDifficulty = diffs[Math.floor((seed % 100) / 100 * diffs.length)] || 'easy';
+  showTankSelect(currentDifficulty);
+  // Auto-select the daily tank
+  setTimeout(() => { document.querySelector('.tank-card.' + currentTankType)?.click(); }, 100);
+}
+
+// --- Wave Modifier System ---
+const MODIFIER_DEFS = [
+  { id:'dmg_up', name:'弹头强化', desc:'+30% 伤害', icon:'💥', apply(){ playerBulletDmgMul+=0.3; } },
+  { id:'spd_up', name:'机动优化', desc:'+20% 移动速度', icon:'💨', apply(){ playerSpeedMul+=0.2; } },
+  { id:'firerate', name:'射速提升', desc:'射击冷却-25%', icon:'🔥', apply(){ playerShootDelayMul-=0.25; } },
+  { id:'hp_up', name:'耐久强化', desc:'+2 最大HP', icon:'❤️', apply(){ if(player.alive){ player.maxHp+=2; player.hp+=2; } } },
+  { id:'more_pups', name:'补给增加', desc:'道具掉落+50%', icon:'🎁', apply(){ powerUpDropMul+=0.5; } },
+  { id:'extra_life', name:'备用生命', desc:'+1 条命', icon:'💖', apply(){ lives++; } },
+  { id:'bullet_spd', name:'弹速提升', desc:'+15% 子弹速度', icon:'🚀', apply(){ bulletSpeedMul+=0.15; } },
+  { id:'combo_bonus', name:'连击加成', desc:'连击奖励分×2', icon:'✨', apply(){ comboBonusMul*=2; } },
+  { id:'loot_double', name:'战利翻倍', desc:'敌人掉落双倍道具概率+30%', icon:'💰', apply(){ eliteDropMul+=0.3; } },
+  { id:'big_explosion', name:'大型爆炸', desc:'爆炸范围+50%', icon:'💢', apply(){ explosionRadiusMul+=0.5; } },
+];
+let activeModifiers = [];
+let playerBulletDmgMul = 1, playerSpeedMul = 1, playerShootDelayMul = 1;
+let powerUpDropMul = 1, bulletSpeedMul = 1, comboBonusMul = 1;
+let eliteDropMul = 1, explosionRadiusMul = 1;
+
+function showModifierChoice() {
+  const choices = [];
+  const available = [...MODIFIER_DEFS].filter(m => !activeModifiers.find(a => a.id === m.id));
+  for (let i = 0; i < 3; i++) {
+    if (available.length === 0) break;
+    const idx = Math.floor(rng() * available.length);
+    choices.push(available.splice(idx, 1)[0]);
+  }
+  const container = document.getElementById('modifier-screen');
+  const grid = document.getElementById('modifier-choices');
+  grid.innerHTML = choices.map(m =>
+    `<div class="mod-card" onclick="pickModifier('${m.id}')">
+      <span class="mod-icon">${m.icon}</span>
+      <div class="mod-name">${m.name}</div>
+      <div class="mod-desc">${m.desc}</div>
+    </div>`
+  ).join('');
+  container.style.display = 'flex';
+  gameRunning = false; // pause during choice
+}
+
+function pickModifier(id) {
+  const def = MODIFIER_DEFS.find(m => m.id === id);
+  if (!def) return;
+  def.apply();
+  activeModifiers.push(def);
+  document.getElementById('modifier-screen').style.display = 'none';
+  gameRunning = true;
+  startNextWave();
+  const toast = document.getElementById('achieve-toast');
+  toast.querySelector('.achieve-icon').textContent = def.icon;
+  toast.querySelector('.achieve-name').textContent = '改造器: ' + def.name;
+  toast.querySelector('.achieve-label').textContent = def.desc;
+  toast.querySelector('.achieve-name').style.color = '#0ff';
+  toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
+  toast.style.animation = 'toastIn 0.4s ease-out';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+}
+
+function resetModifiers() {
+  activeModifiers = [];
+  playerBulletDmgMul = 1; playerSpeedMul = 1; playerShootDelayMul = 1;
+  powerUpDropMul = 1; bulletSpeedMul = 1; comboBonusMul = 1;
+  eliteDropMul = 1; explosionRadiusMul = 1;
+}
+
+// --- Seeded RNG (mulberry32) ---
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+let seededRandom = null;
+let isDailyChallenge = false;
 
 // --- Difficulty Settings ---
 const difficultySettings = {
@@ -1109,7 +1276,7 @@ function onEnemyKilled(isElite) {
   if (comboCount > maxComboReached) maxComboReached = comboCount;
   comboTimer = COMBO_TIMEOUT;
   if (comboCount >= 5 && comboCount % 5 === 0) {
-    const bonusPoints = comboCount * 10;
+    const bonusPoints = Math.floor(comboCount * 10 * comboBonusMul);
     score += bonusPoints;
     sfxCombo(comboCount);
     const comboEl = document.getElementById('combo-display');
@@ -1223,6 +1390,28 @@ function spawnPowerUp(x, y) {
   });
 }
 
+// Power-up synergy pairs
+const SYNERGIES = {
+  'magnet+pierce': { name:'磁力穿刺', desc:'磁铁吸引+穿甲穿透', icon:'🧲🗡️' },
+  'explosive+big_bullet': { name:'巨型炸弹', desc:'爆炸溅射+巨型判定', icon:'💢💣' },
+  'vampire+thorns': { name:'吸血荆棘', desc:'击杀回血+接触反弹', icon:'🩸🌵' },
+  'freeze+rapid': { name:'寒冰风暴', desc:'冰冻减速+高速连射', icon:'❄️🔥' },
+  'railgun+pierce': { name:'超电磁炮', desc:'穿透脉冲+穿甲弹', icon:'🔫🗡️' },
+  'shield+thorns': { name:'反射护盾', desc:'无敌+荆棘反弹', icon:'🛡️🌵' },
+  'double_score+vampire': { name:'收割时刻', desc:'双倍积分+击杀回血', icon:'✨🩸' },
+  'magnet+double_score': { name:'财富磁铁', desc:'磁铁吸引+双倍积分', icon:'🧲✨' },
+};
+
+function checkSynergy(newType) {
+  for (const [pair, data] of Object.entries(SYNERGIES)) {
+    const [a, b] = pair.split('+');
+    if ((newType === a && buffs[b] > 0) || (newType === b && buffs[a] > 0)) {
+      return data;
+    }
+  }
+  return null;
+}
+
 function applyPowerUp(p) {
   sessionPowerUpsCollected++;
   if (p.rarity === 'legendary') sfxPowerUpRare(); else sfxPowerUp();
@@ -1231,13 +1420,24 @@ function applyPowerUp(p) {
     player.hp = Math.min(player.hp + healAmt, player.maxHp);
     return;
   }
+  // Check synergy before applying
+  const synergy = checkSynergy(p.type);
   buffs[p.type] = p.displayDuration || p.duration;
   const def = powerUpDefs.find(d => d.type === p.type);
   if (def) {
     const toast = document.getElementById('achieve-toast');
-    toast.querySelector('.achieve-icon').textContent = def.icon;
-    toast.querySelector('.achieve-name').textContent = '获得: ' + p.displayName;
-    toast.querySelector('.achieve-label').textContent = def.desc;
+    if (synergy) {
+      toast.querySelector('.achieve-icon').textContent = synergy.icon;
+      toast.querySelector('.achieve-name').textContent = '⚡ 协同: ' + synergy.name;
+      toast.querySelector('.achieve-label').textContent = synergy.desc;
+      toast.querySelector('.achieve-name').style.color = '#fd0';
+      sfxAchievement();
+    } else {
+      toast.querySelector('.achieve-icon').textContent = def.icon;
+      toast.querySelector('.achieve-name').textContent = '获得: ' + p.displayName;
+      toast.querySelector('.achieve-label').textContent = def.desc;
+      toast.querySelector('.achieve-name').style.color = '';
+    }
     toast.style.display = 'block';
     toast.style.animation = 'none';
     toast.offsetHeight;
@@ -1248,11 +1448,12 @@ function applyPowerUp(p) {
 }
 
 function getEffectiveSpeed() {
-  return player.speed * (buffs.speed > 0 ? 1.2 : 1);
+  return player.speed * (buffs.speed > 0 ? 1.2 : 1) * playerSpeedMul;
 }
 
 function getEffectiveShootDelay() {
-  return buffs.rapid > 0 ? Math.floor(player.shootDelay / 2) : player.shootDelay;
+  const base = buffs.rapid > 0 ? Math.floor(player.shootDelay / 2) : player.shootDelay;
+  return Math.max(8, Math.floor(base * (1 + playerShootDelayMul)));
 }
 
 function renderAchievements() {
@@ -1352,7 +1553,7 @@ let mouseDown = false;
 
 window.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
-  if (e.key.toLowerCase() === 'r') restartGame();
+  if (e.key.toLowerCase() === 'r') { if (gameOverFlag) quickRestart(); else if (gameRunning) restartGame(); }
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvas.addEventListener('mousemove', e => {
@@ -1635,6 +1836,9 @@ class PlayerTank extends Tank {
     if (buffs.pierce > 0) isPierce = true;
     if (buffs.ricochet > 0) { isRicochet = true; bounceCount = 3; }
 
+    // Modifier multipliers
+    baseSpeed *= bulletSpeedMul;
+
     // Tank-inherent special (only if no conflicting power-up active)
     if (isSpecial && spType) {
       switch(spType) {
@@ -1664,7 +1868,7 @@ class PlayerTank extends Tank {
     const halfSpread = spread * (count - 1) / 2;
     for (let i = 0; i < count; i++) {
       const angleOffset = count === 1 ? 0 : -halfSpread + i * spread;
-      const b = new Bullet(bx, by, this.turretAngle + angleOffset, baseSpeed, baseColor, true, def.bulletDamage);
+      const b = new Bullet(bx, by, this.turretAngle + angleOffset, baseSpeed, baseColor, true, Math.ceil(def.bulletDamage * playerBulletDmgMul));
       b.radius = baseRadius;
       b.ricochet = isRicochet;
       b.railgun = isRailgun;
@@ -2085,7 +2289,7 @@ class EnemyTank extends Tank {
       this.alive = false;
       spawnExplosion(this.x, this.y, 20, '#f80', '#f44');
       onEnemyKilled(this.isElite);
-      if (this.isElite && Math.random() < 0.7) {
+      if (this.isElite && rng() < 0.7 * (1 + eliteDropMul)) {
         spawnPowerUp(this.x, this.y);
       }
     }
@@ -2527,7 +2731,7 @@ function generateObstacles() {
   obstacles.length = 0;
   const count = 8 + level * 2;
   for (let i = 0; i < count; i++) {
-    const roll = Math.random();
+    const roll = rng();
     let obsType;
     if (roll < 0.45) obsType = 'wall';
     else if (roll < 0.65) obsType = 'bush';
@@ -2536,10 +2740,10 @@ function generateObstacles() {
     const def = OBSTACLE_TYPES[obsType];
     const sm = (obsType === 'water' || obsType === 'bush') ? 0.7 : 1.0;
     obstacles.push({
-      x: 40 + Math.random() * (W - 80),
-      y: 40 + Math.random() * (H - 80),
-      w: (35 + Math.random() * 50) * sm,
-      h: (35 + Math.random() * 50) * sm,
+      x: 40 + rng() * (W - 80),
+      y: 40 + rng() * (H - 80),
+      w: (35 + rng() * 50) * sm,
+      h: (35 + rng() * 50) * sm,
       type: obsType, passable: def.passable, slow: def.slow,
       color: def.color, stroke: def.stroke,
     });
@@ -2637,11 +2841,11 @@ function spawnEnemy() {
   let x, y, safe;
   do {
     safe = true;
-    const side = Math.floor(Math.random() * 4);
-    if (side === 0) { x = 40; y = Math.random() * H; }
-    else if (side === 1) { x = W - 40; y = Math.random() * H; }
-    else if (side === 2) { x = Math.random() * W; y = 40; }
-    else { x = Math.random() * W; y = H - 40; }
+    const side = Math.floor(rng() * 4);
+    if (side === 0) { x = 40; y = rng() * H; }
+    else if (side === 1) { x = W - 40; y = rng() * H; }
+    else if (side === 2) { x = rng() * W; y = 40; }
+    else { x = rng() * W; y = H - 40; }
     safe = !tankCollidesObstacle(x, y, 36, 36);
     const pdx = player.x - x, pdy = player.y - y;
     safe = safe && Math.sqrt(pdx*pdx + pdy*pdy) > 80;
@@ -2649,9 +2853,9 @@ function spawnEnemy() {
 
   // Chance to spawn elite (increases with level)
   const eliteChance = Math.min(0.35, 0.08 + level * 0.02);
-  if (level >= 2 && Math.random() < eliteChance) {
+  if (level >= 2 && rng() < eliteChance) {
     const maxIdx = Math.min(9, Math.floor((level + 1) / 2));
-    const idx = Math.floor(Math.random() * (maxIdx + 1));
+    const idx = Math.floor(rng() * (maxIdx + 1));
     const etype = eliteTypes[idx];
     enemies.push(new EliteEnemy(x, y, etype));
     return;
@@ -2754,9 +2958,14 @@ function update() {
     // Wave cleared - pause before next wave
     if (wavePause === 0) {
       showWaveNotification('第 ' + wave + ' 波 清除!', (wave % 3 === 0) ? '补给时间! 准备迎接下一波' : '');
+      // Show modifier choice every 2 waves (starting from wave 1)
+      if (wave >= 1 && wave % 2 === 0 && activeModifiers.length < 8) {
+        setTimeout(() => showModifierChoice(), 800);
+        return; // wait for modifier choice
+      }
     }
     wavePause++;
-    const pauseDuration = (wave % 3 === 0) ? 180 : 120; // longer rest every 3 waves
+    const pauseDuration = (wave % 3 === 0) ? 180 : 120;
     if (wavePause >= pauseDuration) {
       startNextWave();
     }
@@ -2937,6 +3146,33 @@ function draw() {
   // Enemies
   for (const enemy of enemies) enemy.draw(ctx);
 
+  // Enemy HP bar on crosshair hover
+  if (gameRunning) {
+    let nearestEnemy = null, nearestDist = 60;
+    for (const enemy of enemies) {
+      if (!enemy.alive) continue;
+      const edx = mouse.x - enemy.x, edy = mouse.y - enemy.y;
+      const ed = Math.sqrt(edx*edx + edy*edy);
+      if (ed < nearestDist) { nearestDist = ed; nearestEnemy = enemy; }
+    }
+    if (nearestEnemy) {
+      const ebw = 30, ebh = 3;
+      const hpRatio = nearestEnemy.hp / nearestEnemy.maxHp;
+      const ex = nearestEnemy.x - ebw/2, ey = nearestEnemy.y - 30;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(ex - 1, ey - 1, ebw + 2, ebh + 2);
+      ctx.fillStyle = '#333';
+      ctx.fillRect(ex, ey, ebw, ebh);
+      const hpColor = hpRatio > 0.5 ? '#0f0' : (hpRatio > 0.25 ? '#ff0' : '#f44');
+      ctx.fillStyle = hpColor;
+      ctx.fillRect(ex, ey, ebw * hpRatio, ebh);
+      if (nearestEnemy.isElite) {
+        ctx.fillStyle = '#ff0'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(nearestEnemy.eliteIcon, nearestEnemy.x, ey - 3);
+      }
+    }
+  }
+
   // Player
   if (player.alive) player.draw(ctx);
 
@@ -2984,6 +3220,25 @@ function endGame() {
   stopMusic();
   document.getElementById('final-score').textContent = score;
   document.getElementById('game-over').classList.add('visible');
+  // Show quick restart hint
+  const hint = document.getElementById('game-over');
+  if (!hint.querySelector('.quick-hint')) {
+    const span = document.createElement('p');
+    span.className = 'quick-hint';
+    span.style.cssText = 'color:#888;font-size:12px;margin-top:4px;';
+    span.textContent = '按 R 快捷重开';
+    hint.appendChild(span);
+  }
+}
+
+function quickRestart() {
+  if (!gameOverFlag) return;
+  document.getElementById('game-over').classList.remove('visible');
+  const hint = document.querySelector('.quick-hint');
+  if (hint) hint.remove();
+  const savedDiff = currentDifficulty;
+  const savedTank = currentTankType;
+  startGame(savedDiff, savedTank);
 }
 
 function restartGame() {
@@ -3006,6 +3261,8 @@ function restartGame() {
   particles.length = 0;
   spawnTimer = 0;
   difficultyTimer = 0;
+  resetModifiers();
+  isDailyChallenge = false; seededRandom = null;
   document.getElementById('wave-notify').classList.remove('show');
   document.getElementById('combo-display').classList.remove('active');
   document.getElementById('game-over').classList.remove('visible');
@@ -3048,6 +3305,8 @@ function startGame(difficulty, tankType) {
   spawnTimer = 0;
   difficultyTimer = 0;
   resetAchievementTracking();
+  resetModifiers();
+  isDailyChallenge = false; seededRandom = null;
   generateObstacles();
   document.getElementById('wave-notify').classList.remove('show');
   document.getElementById('combo-display').classList.remove('active');
