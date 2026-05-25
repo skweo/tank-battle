@@ -644,6 +644,213 @@ let comboCount = 0;
 let comboTimer = 0;
 const COMBO_TIMEOUT = 120; // 2 seconds at 60fps
 
+// --- Screen Shake ---
+let shakeIntensity = 0;
+let shakeDuration = 0;
+function triggerShake(intensity, duration) {
+  if (intensity > shakeIntensity) shakeIntensity = intensity;
+  shakeDuration = Math.max(shakeDuration, duration);
+}
+
+// --- Audio System ---
+let audioCtx = null;
+let audioNodes = {}; // category gain nodes
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Master gain
+  const masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.3;
+  masterGain.connect(audioCtx.destination);
+  // Category gains (mix hierarchy from game-audio skill)
+  const sfxGain = audioCtx.createGain(); sfxGain.gain.value = 0.7; sfxGain.connect(masterGain);
+  const uiGain = audioCtx.createGain(); uiGain.gain.value = 0.5; uiGain.connect(masterGain);
+  const musicGain = audioCtx.createGain(); musicGain.gain.value = 0.15; musicGain.connect(masterGain);
+  audioNodes = { masterGain, sfxGain, uiGain, musicGain };
+}
+
+function playTone(freq, duration, type, gainNode, vol=0.3, rampDown=true) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now);
+  g.gain.setValueAtTime(vol, now);
+  if (rampDown) g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+  else g.gain.setValueAtTime(vol, now + duration);
+  osc.connect(g);
+  g.connect(gainNode || audioNodes.sfxGain);
+  osc.start(now);
+  osc.stop(now + duration + 0.05);
+}
+
+function playNoise(duration, vol, gainNode) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const bufferSize = Math.floor(audioCtx.sampleRate * duration);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(vol, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(800, now);
+  src.connect(filter);
+  filter.connect(g);
+  g.connect(gainNode || audioNodes.sfxGain);
+  src.start(now);
+}
+
+// Sound effects
+function sfxShoot() {
+  if (!audioCtx) return;
+  playTone(800, 0.08, 'square', audioNodes.sfxGain, 0.12);
+  playTone(1200, 0.05, 'square', audioNodes.sfxGain, 0.08);
+}
+
+function sfxExplosion(small=false) {
+  if (!audioCtx) return;
+  const v = small ? 0.15 : 0.3;
+  playNoise(small ? 0.2 : 0.45, v, audioNodes.sfxGain);
+  playTone(60, small ? 0.15 : 0.35, 'sine', audioNodes.sfxGain, v * 0.8);
+  playTone(40, small ? 0.1 : 0.25, 'triangle', audioNodes.sfxGain, v * 0.5);
+}
+
+function sfxPowerUp() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  [400, 600, 900].forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f, now + i * 0.06);
+    g.gain.setValueAtTime(0.15, now + i * 0.06);
+    g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.12);
+    osc.connect(g); g.connect(audioNodes.sfxGain);
+    osc.start(now + i * 0.06);
+    osc.stop(now + i * 0.06 + 0.15);
+  });
+}
+
+function sfxPowerUpRare() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  [300, 500, 800, 1200].forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f, now + i * 0.05);
+    g.gain.setValueAtTime(0.18, now + i * 0.05);
+    g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.15);
+    osc.connect(g); g.connect(audioNodes.sfxGain);
+    osc.start(now + i * 0.05);
+    osc.stop(now + i * 0.05 + 0.18);
+  });
+}
+
+function sfxEnemyHit() {
+  if (!audioCtx) return;
+  playTone(200, 0.06, 'triangle', audioNodes.sfxGain, 0.1);
+  playTone(150, 0.08, 'sine', audioNodes.sfxGain, 0.08);
+}
+
+function sfxPlayerHurt() {
+  if (!audioCtx) return;
+  playNoise(0.25, 0.25, audioNodes.sfxGain);
+  playTone(100, 0.3, 'sawtooth', audioNodes.sfxGain, 0.2);
+  playTone(60, 0.4, 'sine', audioNodes.sfxGain, 0.3);
+}
+
+function sfxLevelUp() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  [523, 659, 784, 1047].forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(f, now + i * 0.1);
+    g.gain.setValueAtTime(0.2, now + i * 0.1);
+    g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.25);
+    osc.connect(g); g.connect(audioNodes.uiGain);
+    osc.start(now + i * 0.1);
+    osc.stop(now + i * 0.1 + 0.3);
+  });
+}
+
+function sfxWaveClear() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  [392, 523, 659, 784].forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(f, now + i * 0.12);
+    g.gain.setValueAtTime(0.18, now + i * 0.12);
+    g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.3);
+    osc.connect(g); g.connect(audioNodes.uiGain);
+    osc.start(now + i * 0.12);
+    osc.stop(now + i * 0.12 + 0.35);
+  });
+}
+
+function sfxCombo(level) {
+  if (!audioCtx) return;
+  const baseFreq = 400 + level * 30;
+  playTone(baseFreq, 0.12, 'square', audioNodes.sfxGain, Math.min(0.25, 0.08 + level * 0.02));
+  playTone(baseFreq * 1.5, 0.08, 'square', audioNodes.sfxGain, Math.min(0.2, 0.06 + level * 0.015));
+}
+
+function sfxUIClick() {
+  if (!audioCtx) return;
+  playTone(600, 0.04, 'sine', audioNodes.uiGain, 0.08);
+}
+
+function sfxAchievement() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  [523, 659, 784, 1047, 1319].forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f, now + i * 0.07);
+    g.gain.setValueAtTime(0.2, now + i * 0.07);
+    g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.2);
+    osc.connect(g); g.connect(audioNodes.uiGain);
+    osc.start(now + i * 0.07);
+    osc.stop(now + i * 0.07 + 0.22);
+  });
+}
+
+// Background music - procedural bass pulse
+let musicInterval = null;
+function startMusic() {
+  if (!audioCtx || musicInterval) return;
+  let beat = 0;
+  musicInterval = setInterval(() => {
+    if (!gameRunning || !audioCtx) { clearInterval(musicInterval); musicInterval = null; return; }
+    const enemiesNearby = enemies.filter(e => {
+      const dx = e.x - player.x, dy = e.y - player.y;
+      return Math.sqrt(dx*dx+dy*dy) < 300;
+    }).length;
+    const tempo = enemiesNearby > 2 ? 200 : (enemiesNearby > 0 ? 350 : 600);
+    const freq = enemiesNearby > 2 ? 55 : (enemiesNearby > 0 ? 73 : 98);
+    playTone(freq, 0.1, 'sine', audioNodes.musicGain, 0.4, true);
+    beat++;
+  }, 600);
+}
+
+function stopMusic() {
+  if (musicInterval) { clearInterval(musicInterval); musicInterval = null; }
+}
+
 // --- Difficulty Settings ---
 const difficultySettings = {
   easy:     { lives: 5, spawnRate: 400, enemyHpBonus: 0,  playerHp: 10, enemySpeedMul: 0.7,  label: '简单', unlockScore: 0 },
@@ -782,6 +989,7 @@ function unlockAchievement(id) {
   saveAchievements();
   const def = achievementsDef.find(a => a.id === id);
   if (!def) return;
+  sfxAchievement();
   const toast = document.getElementById('achieve-toast');
   toast.querySelector('.achieve-icon').textContent = def.icon;
   toast.querySelector('.achieve-name').textContent = def.name;
@@ -814,6 +1022,7 @@ function checkAchievements() {
 function onLevelUp() {
   if (!gotHitThisLevel) unlockAchievement('flawless');
   gotHitThisLevel = false;
+  sfxLevelUp();
 }
 
 function resetAchievementTracking() {
@@ -831,6 +1040,7 @@ function onEnemyKilled(isElite) {
   if (comboCount >= 5 && comboCount % 5 === 0) {
     const bonusPoints = comboCount * 10;
     score += bonusPoints;
+    sfxCombo(comboCount);
     const comboEl = document.getElementById('combo-display');
     document.getElementById('combo-text').textContent = comboCount + ' COMBO!';
     document.getElementById('combo-mult').textContent = '+' + bonusPoints + ' 奖励分';
@@ -867,6 +1077,7 @@ function showWaveNotification(text, sub) {
   waveNotificationTimer = 120;
   clearTimeout(el._timeout);
   el._timeout = setTimeout(() => { el.classList.remove('show'); }, 2000);
+  if (text.includes('清除')) sfxWaveClear();
 }
 
 function startNextWave() {
@@ -942,6 +1153,7 @@ function spawnPowerUp(x, y) {
 }
 
 function applyPowerUp(p) {
+  if (p.rarity === 'legendary') sfxPowerUpRare(); else sfxPowerUp();
   if (p.type === 'repair') {
     const healAmt = p.rarity === 'legendary' ? 5 : (p.rarity === 'rare' ? 3 : 2);
     player.hp = Math.min(player.hp + healAmt, player.maxHp);
@@ -1111,6 +1323,7 @@ function spawnExplosion(x, y, count, color1, color2) {
   for (let i = 0; i < count; i++) {
     particles.push(new Particle(x, y, Math.random() < 0.5 ? color1 : color2, 3 + Math.random() * 5));
   }
+  if (count >= 15) { sfxExplosion(count < 20); triggerShake(count >= 20 ? 6 : 3, count >= 20 ? 12 : 6); }
 }
 
 // --- Bullets ---
@@ -1318,6 +1531,7 @@ class PlayerTank extends Tank {
       b.bounces = buffs.ricochet > 0 ? 3 : 0;
       playerBullets.push(b);
     }
+    sfxShoot();
   }
   draw(ctx) {
     if (this.invincible > 0 && Math.floor(this.invincible / 4) % 2 === 0) return;
@@ -1542,6 +1756,7 @@ class PlayerTank extends Tank {
     this.invincible = 60;
     gotHitThisLevel = true;
     spawnExplosion(this.x, this.y, 8, '#f80', '#ff0');
+    sfxPlayerHurt();
     if (this.hp <= 0) {
       this.alive = false;
       spawnExplosion(this.x, this.y, 30, '#f44', '#f80');
@@ -1659,6 +1874,7 @@ class EnemyTank extends Tank {
       spawnExplosion(this.x, this.y, 8, '#8cf', '#fff');
     }
     spawnExplosion(this.x, this.y, 5, '#f80', '#ff0');
+    sfxEnemyHit();
     if (this.hp <= 0) {
       this.alive = false;
       spawnExplosion(this.x, this.y, 20, '#f80', '#f44');
@@ -2355,6 +2571,13 @@ function update() {
     if (buffs[key] > 0) buffs[key]--;
   }
 
+  // Update screen shake
+  if (shakeDuration > 0) {
+    shakeDuration--;
+    shakeIntensity *= 0.85;
+    if (shakeDuration <= 0) shakeIntensity = 0;
+  }
+
   // Update UI
   document.getElementById('score').textContent = score;
   document.getElementById('lives').textContent = lives;
@@ -2370,6 +2593,14 @@ function update() {
 
 function draw() {
   ctx.clearRect(0, 0, W, H);
+
+  // Screen shake
+  if (shakeIntensity > 0.1) {
+    ctx.save();
+    const sx = (Math.random() - 0.5) * shakeIntensity * 2;
+    const sy = (Math.random() - 0.5) * shakeIntensity * 2;
+    ctx.translate(sx, sy);
+  }
 
   // Ground
   drawGround(ctx);
@@ -2441,6 +2672,18 @@ function draw() {
     if (p.life > 0) p.draw(ctx);
   }
 
+  // Low HP vignette
+  if (player.alive && player.hp / player.maxHp < 0.4) {
+    const hpRatio = player.hp / player.maxHp;
+    const alpha = (0.4 - hpRatio) * 1.5;
+    const gradient = ctx.createRadialGradient(W/2, H/2, W*0.35, W/2, H/2, W*0.7);
+    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+    gradient.addColorStop(0.7, 'rgba(120,0,0,' + (alpha * 0.3) + ')');
+    gradient.addColorStop(1, 'rgba(80,0,0,' + (alpha * 0.6) + ')');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(-20, -20, W + 40, H + 40);
+  }
+
   // Crosshair
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 1;
@@ -2457,11 +2700,15 @@ function draw() {
   ctx.beginPath();
   ctx.arc(mouse.x, mouse.y, 2, 0, Math.PI * 2);
   ctx.fill();
+
+  // Restore shake transform
+  if (shakeIntensity > 0.1) ctx.restore();
 }
 
 function endGame() {
   gameOverFlag = true;
   gameRunning = false;
+  stopMusic();
   document.getElementById('final-score').textContent = score;
   document.getElementById('game-over').classList.add('visible');
 }
@@ -2472,6 +2719,7 @@ function restartGame() {
   level = 1;
   gameRunning = false;
   gameOverFlag = false;
+  stopMusic();
   wave = 1; waveEnemiesRemaining = 0; waveEnemiesTotal = 0; wavePause = 0; waveNotificationTimer = 0;
   comboCount = 0; comboTimer = 0;
   player = new PlayerTank(currentTankType);
@@ -2511,6 +2759,8 @@ function startGame(difficulty, tankType) {
   level = 1;
   gameRunning = true;
   gameOverFlag = false;
+  initAudio();
+  startMusic();
   wave = 0; waveEnemiesRemaining = 0; waveEnemiesTotal = 0; wavePause = 0; waveNotificationTimer = 0;
   comboCount = 0; comboTimer = 0;
   player = new PlayerTank(currentTankType);
