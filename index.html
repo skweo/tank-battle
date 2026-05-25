@@ -150,6 +150,56 @@ canvas {
 #start-screen .diff-btn.extreme:hover { box-shadow: 0 0 20px rgba(160,64,255,0.4); }
 #start-screen .diff-btn.nightmare { border-color: #f44; color: #f88; }
 #start-screen .diff-btn.nightmare:hover { box-shadow: 0 0 20px rgba(255,0,0,0.5); }
+#wave-notify {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ff0;
+  font-size: 36px;
+  font-weight: bold;
+  letter-spacing: 6px;
+  text-shadow: 0 0 20px rgba(255,255,0,0.8), 0 0 40px rgba(255,200,0,0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 5;
+}
+#wave-notify.show { opacity: 1; }
+#wave-notify .wave-sub {
+  font-size: 14px;
+  color: #aaa;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-top: 4px;
+}
+#combo-display {
+  position: absolute;
+  top: 120px;
+  right: 20px;
+  color: #ff0;
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 0 0 15px rgba(255,200,0,0.8);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.2s ease-out;
+  z-index: 5;
+}
+#combo-display.active {
+  opacity: 1;
+  transform: scale(1);
+}
+#combo-display .combo-mult {
+  font-size: 14px;
+  color: #f80;
+}
+.powerup-rare { animation: rarePulse 0.6s ease-in-out infinite alternate; }
+.powerup-legendary { animation: legendaryPulse 0.4s ease-in-out infinite alternate; }
+@keyframes rarePulse { from { filter: drop-shadow(0 0 4px #6af); } to { filter: drop-shadow(0 0 12px #6af); } }
+@keyframes legendaryPulse { from { filter: drop-shadow(0 0 6px #fd0); } to { filter: drop-shadow(0 0 18px #fd0); transform: scale(1.1); } }
+@keyframes comboPulse { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 #instructions {
   position: absolute;
   bottom: 12px;
@@ -501,6 +551,8 @@ canvas {
     <span class="achieve-name"></span>
     <span class="achieve-label">成就已解锁!</span>
   </div>
+  <div id="wave-notify"><span id="wave-text"></span><div class="wave-sub" id="wave-sub"></div></div>
+  <div id="combo-display"><span id="combo-text"></span><div class="combo-mult" id="combo-mult"></div></div>
   <div id="start-screen">
     <h1>坦 克 大 战</h1>
     <p class="subtitle">T A N K &nbsp; B A T T L E</p>
@@ -583,6 +635,14 @@ let level = 1;
 let gameRunning = true;
 let gameOverFlag = false;
 let currentDifficulty = 'normal';
+let wave = 1;
+let waveEnemiesRemaining = 0;
+let waveEnemiesTotal = 0;
+let wavePause = 0;
+let waveNotificationTimer = 0;
+let comboCount = 0;
+let comboTimer = 0;
+const COMBO_TIMEOUT = 120; // 2 seconds at 60fps
 
 // --- Difficulty Settings ---
 const difficultySettings = {
@@ -761,7 +821,73 @@ function resetAchievementTracking() {
   gotHitThisLevel = false;
 }
 
+function onEnemyKilled(isElite) {
+  sessionKills++;
+  waveEnemiesRemaining = Math.max(0, waveEnemiesRemaining - 1);
+
+  // Combo system
+  comboCount++;
+  comboTimer = COMBO_TIMEOUT;
+  if (comboCount >= 5 && comboCount % 5 === 0) {
+    const bonusPoints = comboCount * 10;
+    score += bonusPoints;
+    const comboEl = document.getElementById('combo-display');
+    document.getElementById('combo-text').textContent = comboCount + ' COMBO!';
+    document.getElementById('combo-mult').textContent = '+' + bonusPoints + ' 奖励分';
+    comboEl.classList.add('active');
+    comboEl.style.animation = 'none';
+    comboEl.offsetHeight;
+    comboEl.style.animation = 'comboPulse 0.3s ease-out';
+    clearTimeout(comboEl._timeout);
+    comboEl._timeout = setTimeout(() => { comboEl.classList.remove('active'); }, 1800);
+  } else if (comboCount >= 3) {
+    const comboEl = document.getElementById('combo-display');
+    document.getElementById('combo-text').textContent = comboCount + ' COMBO!';
+    document.getElementById('combo-mult').textContent = '';
+    comboEl.classList.add('active');
+    clearTimeout(comboEl._timeout);
+    comboEl._timeout = setTimeout(() => { comboEl.classList.remove('active'); }, 1200);
+  }
+
+  // Score
+  const basePoints = isElite ? 300 : 100;
+  const pts = buffs.double_score > 0 ? basePoints * 2 : basePoints;
+  score += pts;
+  checkAchievements();
+  if (buffs.vampire > 0 && player.alive) {
+    player.hp = Math.min(player.hp + 1, player.maxHp);
+  }
+}
+
+function showWaveNotification(text, sub) {
+  document.getElementById('wave-text').textContent = text;
+  document.getElementById('wave-sub').textContent = sub || '';
+  const el = document.getElementById('wave-notify');
+  el.classList.add('show');
+  waveNotificationTimer = 120;
+  clearTimeout(el._timeout);
+  el._timeout = setTimeout(() => { el.classList.remove('show'); }, 2000);
+}
+
+function startNextWave() {
+  wave++;
+  const enemiesPerWave = 3 + wave;
+  waveEnemiesTotal = enemiesPerWave;
+  waveEnemiesRemaining = enemiesPerWave;
+  wavePause = 0;
+  // Spawn initial wave enemies
+  for (let i = 0; i < 2; i++) spawnEnemy();
+  // Every 3 waves, show extra rest notification
+  const sub = (wave % 3 === 0) ? '补给时间! 收集道具准备下一波' : '准备迎战!';
+  showWaveNotification('第 ' + wave + ' 波', sub);
+}
+
 // --- Power-ups ---
+const RARITY_CONFIG = {
+  common: { weight: 60, durationMul: 1.0, descSuffix: '', glowColor: null, size: 10 },
+  rare:   { weight: 30, durationMul: 1.5, descSuffix: ' [稀有]', glowColor: '#6af', size: 13 },
+  legendary: { weight: 10, durationMul: 2.5, descSuffix: ' [传说]', glowColor: '#fd0', size: 16 },
+};
 const powerUpDefs = [
   { type: 'speed',    name: '加强履带', icon: '⚡', color: '#4af', desc: '移速×1.2', duration: 600 },
   { type: 'railgun',  name: '电磁炮',   icon: '🔫', color: '#a4f', desc: '穿透脉冲', duration: 480 },
@@ -780,6 +906,12 @@ const powerUpDefs = [
   { type: 'invisible',name: '光学迷彩', icon: '👻', color: '#aaa', desc: '敌人索敌减半', duration: 480 },
   { type: 'thorns',   name: '荆棘护甲', icon: '🌵', color: '#8f8', desc: '反弹接触伤害', duration: 360 },
 ];
+function getRandomRarity() {
+  const r = Math.random() * 100;
+  if (r < 10) return 'legendary';
+  if (r < 40) return 'rare';
+  return 'common';
+}
 
 const powerUps = [];
 let powerUpSpawnTimer = 0;
@@ -796,24 +928,31 @@ function spawnPowerUp(x, y) {
   const def = powerUpDefs[Math.floor(Math.random() * powerUpDefs.length)];
   // Don't spawn inside obstacles
   if (tankCollidesObstacle(x, y, 20, 20)) return;
+  const rarity = getRandomRarity();
+  const rc = RARITY_CONFIG[rarity];
   powerUps.push({
     x: x, y: y, type: def.type, name: def.name,
     icon: def.icon, color: def.color, duration: def.duration,
-    life: 600, // despawn after 10 seconds
+    life: 600, rarity: rarity,
+    displayDuration: def.duration > 0 ? Math.floor(def.duration * rc.durationMul) : 0,
+    displayName: def.name + rc.descSuffix,
+    glowColor: rc.glowColor,
+    size: rc.size,
   });
 }
 
 function applyPowerUp(p) {
   if (p.type === 'repair') {
-    player.hp = Math.min(player.hp + 2, player.maxHp);
+    const healAmt = p.rarity === 'legendary' ? 5 : (p.rarity === 'rare' ? 3 : 2);
+    player.hp = Math.min(player.hp + healAmt, player.maxHp);
     return;
   }
-  buffs[p.type] = p.duration;
+  buffs[p.type] = p.displayDuration || p.duration;
   const def = powerUpDefs.find(d => d.type === p.type);
   if (def) {
     const toast = document.getElementById('achieve-toast');
     toast.querySelector('.achieve-icon').textContent = def.icon;
-    toast.querySelector('.achieve-name').textContent = '获得: ' + def.name;
+    toast.querySelector('.achieve-name').textContent = '获得: ' + p.displayName;
     toast.querySelector('.achieve-label').textContent = def.desc;
     toast.style.display = 'block';
     toast.style.animation = 'none';
@@ -1480,13 +1619,7 @@ class EnemyTank extends Tank {
         this.hp = 0;
         this.alive = false;
         spawnExplosion(this.x, this.y, 20, '#8f8', '#0f0');
-        const basePoints = this.isElite ? 300 : 100;
-        score += buffs.double_score > 0 ? basePoints * 2 : basePoints;
-        sessionKills++;
-        checkAchievements();
-        if (buffs.vampire > 0 && player.alive) {
-          player.hp = Math.min(player.hp + 1, player.maxHp);
-        }
+        onEnemyKilled(this.isElite);
       } else {
         this.hp = 0;
         this.alive = false;
@@ -1529,14 +1662,7 @@ class EnemyTank extends Tank {
     if (this.hp <= 0) {
       this.alive = false;
       spawnExplosion(this.x, this.y, 20, '#f80', '#f44');
-      const basePoints = this.isElite ? 300 : 100;
-      const points = buffs.double_score > 0 ? basePoints * 2 : basePoints;
-      score += points;
-      sessionKills++;
-      checkAchievements();
-      if (buffs.vampire > 0 && player.alive) {
-        player.hp = Math.min(player.hp + 1, player.maxHp);
-      }
+      onEnemyKilled(this.isElite);
       if (this.isElite && Math.random() < 0.7) {
         spawnPowerUp(this.x, this.y);
       }
@@ -2135,14 +2261,41 @@ function update() {
   enemyBullets = enemyBullets.filter(b => b.alive);
   enemies = enemies.filter(e => e.alive);
 
-  // Spawn enemies
-  spawnTimer++;
-  const diff = difficultySettings[currentDifficulty];
-  const spawnRate = Math.max(40, diff.spawnRate - level * 8);
-  const maxEnemies = 3 + level;
-  if (spawnTimer >= spawnRate && enemies.length < maxEnemies) {
-    spawnTimer = 0;
-    spawnEnemy();
+  // Wave logic
+  if (waveEnemiesRemaining <= 0 && enemies.length === 0) {
+    // Wave cleared - pause before next wave
+    if (wavePause === 0) {
+      showWaveNotification('第 ' + wave + ' 波 清除!', (wave % 3 === 0) ? '补给时间! 准备迎接下一波' : '');
+    }
+    wavePause++;
+    const pauseDuration = (wave % 3 === 0) ? 180 : 120; // longer rest every 3 waves
+    if (wavePause >= pauseDuration) {
+      startNextWave();
+    }
+  } else {
+    // Active wave - spawn remaining enemies
+    spawnTimer++;
+    const diff = difficultySettings[currentDifficulty];
+    const spawnRate = Math.max(40, diff.spawnRate - level * 8);
+    const maxEnemies = Math.min(3 + level, 10);
+    if (spawnTimer >= spawnRate && enemies.length < maxEnemies && enemies.length < waveEnemiesRemaining + 2) {
+      spawnTimer = 0;
+      spawnEnemy();
+    }
+  }
+
+  // Combo timer
+  if (comboTimer > 0) {
+    comboTimer--;
+    if (comboTimer <= 0) comboCount = 0;
+  }
+
+  // Wave notification timer
+  if (waveNotificationTimer > 0) {
+    waveNotificationTimer--;
+    if (waveNotificationTimer <= 0) {
+      document.getElementById('wave-notify').classList.remove('show');
+    }
   }
 
   // Increase difficulty
@@ -2152,6 +2305,8 @@ function update() {
     level++;
     onLevelUp();
     checkAchievements();
+    waveEnemiesRemaining++;
+    waveEnemiesTotal++;
     spawnEnemy();
   }
 
@@ -2244,15 +2399,26 @@ function draw() {
     const t = Date.now() / 1000;
     ctx.save();
     ctx.globalAlpha = 0.7 + Math.sin(t * 3 + p.x) * 0.3;
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur = 10 + Math.sin(t * 4) * 4;
+    const glowC = p.glowColor || p.color;
+    ctx.shadowColor = glowC;
+    ctx.shadowBlur = (p.glowColor ? 16 : 10) + Math.sin(t * 4) * 4;
+    const sz = p.size || 10;
     // Glow circle
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, sz, 0, Math.PI * 2);
     ctx.fill();
+    // Rarity ring
+    if (p.glowColor) {
+      ctx.strokeStyle = p.glowColor;
+      ctx.lineWidth = p.rarity === 'legendary' ? 2.5 : 1.5;
+      ctx.shadowBlur = p.rarity === 'legendary' ? 20 : 12;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, sz + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     // Icon
-    ctx.font = '16px sans-serif';
+    ctx.font = (p.rarity === 'legendary' ? '20px' : '16px') + ' sans-serif';
     ctx.shadowBlur = 0;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -2306,6 +2472,8 @@ function restartGame() {
   level = 1;
   gameRunning = false;
   gameOverFlag = false;
+  wave = 1; waveEnemiesRemaining = 0; waveEnemiesTotal = 0; wavePause = 0; waveNotificationTimer = 0;
+  comboCount = 0; comboTimer = 0;
   player = new PlayerTank(currentTankType);
   enemies = [];
   playerBullets = [];
@@ -2317,6 +2485,8 @@ function restartGame() {
   particles.length = 0;
   spawnTimer = 0;
   difficultyTimer = 0;
+  document.getElementById('wave-notify').classList.remove('show');
+  document.getElementById('combo-display').classList.remove('active');
   document.getElementById('game-over').classList.remove('visible');
   document.getElementById('start-screen').style.display = 'flex';
   renderDifficultyButtons();
@@ -2341,6 +2511,8 @@ function startGame(difficulty, tankType) {
   level = 1;
   gameRunning = true;
   gameOverFlag = false;
+  wave = 0; waveEnemiesRemaining = 0; waveEnemiesTotal = 0; wavePause = 0; waveNotificationTimer = 0;
+  comboCount = 0; comboTimer = 0;
   player = new PlayerTank(currentTankType);
   enemies = [];
   playerBullets = [];
@@ -2354,7 +2526,9 @@ function startGame(difficulty, tankType) {
   difficultyTimer = 0;
   resetAchievementTracking();
   generateObstacles();
-  for (let i = 0; i < 2; i++) spawnEnemy();
+  document.getElementById('wave-notify').classList.remove('show');
+  document.getElementById('combo-display').classList.remove('active');
+  startNextWave();
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('tank-select-screen').style.display = 'none';
   document.getElementById('game-over').classList.remove('visible');
