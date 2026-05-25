@@ -3566,6 +3566,7 @@ function renderLabUI() {
   if (!grid) return;
   const tankKeys = Object.keys(tankTypes);
   const icons = {spread:'☆',focus:'★',wide:'❋',burst:'✦',sniper:'◈',homing:'◎'};
+  const selected = labSelectedTank;
   grid.innerHTML = tankKeys.map(k => {
     const unlocked = unlockedTanks.has(k);
     const defs = TANK_UPGRADE_DEFS[k] || [];
@@ -3573,15 +3574,15 @@ function renderLabUI() {
     const totalUpg = defs.reduce((s,d) => s + ((tankUpgrades[k] && tankUpgrades[k][d.id]) || 0), 0);
     const evolved = evolvedTanks.has(k);
     const evoName = evolved ? TANK_EVOLUTION[k].name : '';
-    const selected = labSelectedTank === k;
+    const isSelected = (selected === k);
     const cond = TANK_UNLOCK_CONDITIONS[k];
     const label = unlocked ? (evolved ? `✦${evoName}` : tankTypes[k].name) : (cond.cost+'💎');
-    return `<div class="lab-tank-card ${unlocked?'':'locked'} ${selected?'selected':''} ${evolved?'evolved':''}" onclick="${unlocked?'selectLabTank(\''+k+'\')':'tryUnlockFromLab(\''+k+'\')'}">
+    return `<div class="lab-tank-card ${unlocked?'':'locked'} ${isSelected?'selected':''} ${evolved?'evolved':''}" onclick="${unlocked?'selectLabTank(\''+k+'\')':'tryUnlockFromLab(\''+k+'\')'}">
       <span class="lab-tank-icon">${unlocked ? (evolved ? TANK_EVOLUTION[k].icon : icons[k]) : '🔒'}</span>
       <div class="lab-tank-name">${unlocked ? tankTypes[k].name : '???'}</div>
       <div class="lab-tank-dots">${unlocked ? '★'.repeat(totalUpg)+'☆'.repeat(maxUpg-totalUpg) : label}</div>
       ${evolved ? '<div class="lab-evo-badge">進化</div>' : ''}
-      ${selected ? '<div style="font-size:8px;color:#da0;margin-top:1px;">▼ 当前</div>' : ''}
+      ${isSelected ? '<div style="font-size:8px;color:#da0;margin-top:1px;">▼ 当前</div>' : ''}
     </div>`;
   }).join('');
   // Detail panel
@@ -3627,7 +3628,7 @@ function renderLabUI() {
       </div>`;
     }
     detail.innerHTML = `
-      <div style="color:#f49800;font-size:16px;font-weight:500;text-align:center;letter-spacing:2px;">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${selected ? '✅ 出战中' : ''}</div>
+      <div style="color:#f49800;font-size:16px;font-weight:500;text-align:center;letter-spacing:2px;">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${(selected===k && selected===currentTankType) ? '✅ 出战中' : ''}</div>
       ${evoHTML}
       <div style="margin:8px 0;">${statsHTML}</div>
       <div style="font-size:10px;color:#8a94a4;text-align:center;">💎 ${coreFragments} · ${defs.length}项升级 · ${evolved?'已达最终形态':(allMaxed?'满级可进化!':'')}</div>`;
