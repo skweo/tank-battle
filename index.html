@@ -1736,7 +1736,7 @@ function renderBestiary() {
         case 'flame': desc = '扇形五连火焰弹幕'; break;
         case 'summoner': desc = '周期性召唤小兵增援'; break;
         case 'stealth': desc = '周期性隐身，降低被命中率'; break;
-        case 'splitter': desc = '定期自我复制，击杀后分裂'; break;
+        case 'splitter': desc = '定期自我增殖，越拖越多'; break;
         case 'regen': desc = '周期性自动恢复生命值'; break;
         case 'laser': desc = '高速穿透激光束'; break;
         case 'miner': desc = '布置触碰爆炸的地雷'; break;
@@ -2980,13 +2980,6 @@ class EliteEnemy extends EnemyTank {
     }
     const dead = super.hit(bullet);
     if (dead && this.special === 'splitter') {
-      for (let i = 0; i < 2; i++) {
-        const sx = this.x + (Math.random() - 0.5) * 80;
-        const sy = this.y + (Math.random() - 0.5) * 80;
-        const nx = Math.max(30, Math.min(W - 30, sx));
-        const ny = Math.max(30, Math.min(H - 30, sy));
-        enemies.push(new EliteEnemy(nx, ny, eliteTypes[6])); // spawn 2 new splitters
-      }
       spawnExplosion(this.x, this.y, 15, '#c84', '#fb0');
     }
     return dead;
