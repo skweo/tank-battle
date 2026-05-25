@@ -650,42 +650,42 @@ canvas { display: block; background: #0a0f18; }
     <h2>选 择 机 体</h2>
     <div class="tank-cards">
       <div class="tank-card spread" onclick="startGame(currentDifficulty, 'spread')">
-        <span class="tank-icon">☆</span>
+        <span class="tank-icon">⬣</span>
         <div class="tank-name">扩散型</div>
         <div class="tank-subtitle">博丽灵梦式</div>
         <div class="tank-desc">3方向扩散弹幕</div>
         <div class="tank-detail">中等速度 · 标准血量<br>每5发穿透弹 · 均衡型</div>
       </div>
       <div class="tank-card focus" onclick="startGame(currentDifficulty, 'focus')">
-        <span class="tank-icon">★</span>
+        <span class="tank-icon">▸</span>
         <div class="tank-name">集中型</div>
         <div class="tank-subtitle">雾雨魔理沙式</div>
         <div class="tank-desc">高速集中火力</div>
         <div class="tank-detail">快速移动 · 较低血量<br>强力单发 · 每4发电磁炮</div>
       </div>
       <div class="tank-card wide" onclick="startGame(currentDifficulty, 'wide')">
-        <span class="tank-icon">❋</span>
+        <span class="tank-icon">◫</span>
         <div class="tank-name">广域型</div>
         <div class="tank-subtitle">十六夜咲夜式</div>
         <div class="tank-desc">5方向广域压制</div>
         <div class="tank-detail">低速移动 · 较高血量<br>5发广域 · 每6发冰冻弹</div>
       </div>
       <div class="tank-card burst" onclick="startGame(currentDifficulty, 'burst')">
-        <span class="tank-icon">✦</span>
+        <span class="tank-icon">✹</span>
         <div class="tank-name">爆裂型</div>
         <div class="tank-subtitle">芙兰朵露式</div>
         <div class="tank-desc">7方向爆裂弹幕</div>
         <div class="tank-detail">标准速度 · 标准血量<br>7发爆裂 · 每5发爆炸弹</div>
       </div>
       <div class="tank-card sniper" onclick="startGame(currentDifficulty, 'sniper')">
-        <span class="tank-icon">◈</span>
+        <span class="tank-icon">⟐</span>
         <div class="tank-name">狙击型</div>
         <div class="tank-subtitle">八意永琳式</div>
         <div class="tank-desc">超远程高伤狙击</div>
         <div class="tank-detail">极慢移动 · 较低血量<br>单发高伤 · 每3发穿甲弹</div>
       </div>
       <div class="tank-card homing" onclick="startGame(currentDifficulty, 'homing')">
-        <span class="tank-icon">◎</span>
+        <span class="tank-icon">◉</span>
         <div class="tank-name">追踪型</div>
         <div class="tank-subtitle">东风谷早苗式</div>
         <div class="tank-desc">追踪弹幕</div>
@@ -1937,6 +1937,274 @@ function spawnExplosion(x, y, count, color1, color2) {
   if (count >= 15) { sfxExplosion(count < 20); triggerShake(count >= 20 ? 6 : 3, count >= 20 ? 12 : 6); }
 }
 
+function withGlow(ctx, color, blur, drawFn) {
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = blur;
+  drawFn();
+  ctx.restore();
+}
+
+function drawArmorPanel(ctx, x, y, w, h, fill, stroke, notch) {
+  const cut = notch || 3;
+  ctx.beginPath();
+  ctx.moveTo(x + cut, y);
+  ctx.lineTo(x + w - cut, y);
+  ctx.lineTo(x + w, y + cut);
+  ctx.lineTo(x + w, y + h - cut);
+  ctx.lineTo(x + w - cut, y + h);
+  ctx.lineTo(x + cut, y + h);
+  ctx.lineTo(x, y + h - cut);
+  ctx.lineTo(x, y + cut);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+}
+
+function drawTechCore(ctx, x, y, r, inner, outer) {
+  const pulse = Math.sin(Date.now() / 180 + x * 0.05 + y * 0.05) * 0.2 + 0.8;
+  withGlow(ctx, outer, 10 * pulse, () => {
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, inner);
+    grad.addColorStop(0.55, outer);
+    grad.addColorStop(1, 'rgba(255,255,255,0.08)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x, y, r + 1.5, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawTankTracks(ctx, leftX, rightX, y, h, w, treadColor, accentColor) {
+  ctx.fillStyle = '#101317';
+  ctx.fillRect(leftX, y, w, h);
+  ctx.fillRect(rightX, y, w, h);
+  ctx.fillStyle = treadColor;
+  ctx.fillRect(leftX + 1, y + 2, w - 2, h - 4);
+  ctx.fillRect(rightX + 1, y + 2, w - 2, h - 4);
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 0.8;
+  for (let ty = y + 4; ty < y + h - 2; ty += 5) {
+    ctx.beginPath(); ctx.moveTo(leftX + 1.5, ty); ctx.lineTo(leftX + w - 1.5, ty); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rightX + 1.5, ty); ctx.lineTo(rightX + w - 1.5, ty); ctx.stroke();
+  }
+}
+
+function drawWeaponBarrel(ctx, x, y, w, h, fill, stroke, tipColor) {
+  drawArmorPanel(ctx, x, y, w, h, fill, stroke, 2);
+  if (tipColor) {
+    ctx.fillStyle = tipColor;
+    ctx.fillRect(x + w - 3, y + 1, 3, Math.max(1, h - 2));
+  }
+}
+
+function traceHexCell(ctx, radius, inset) {
+  const cut = inset || 0;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 3;
+    const r = i % 2 === 0 ? radius : Math.max(4, radius - cut);
+    const px = Math.cos(a) * r;
+    const py = Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+}
+
+function drawTechModuleShell(ctx, outer, inner, accentColor, glowColor) {
+  const shellGrad = ctx.createRadialGradient(0, 0, inner * 0.1, 0, 0, outer);
+  shellGrad.addColorStop(0, 'rgba(255,255,255,0.18)');
+  shellGrad.addColorStop(0.42, accentColor);
+  shellGrad.addColorStop(1, 'rgba(8,14,20,0.96)');
+  ctx.fillStyle = shellGrad;
+  traceHexCell(ctx, outer, 4);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(220,235,255,0.22)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(8,16,22,0.75)';
+  ctx.beginPath();
+  ctx.arc(0, 0, inner, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = glowColor || accentColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, inner + 2, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawPowerUpGlyph(ctx, p, size) {
+  const x = p.x;
+  const y = p.y;
+  const s = size;
+  const pulse = Math.sin(Date.now() / 220 + x * 0.04) * 0.18 + 0.82;
+  ctx.strokeStyle = '#dce7f5';
+  ctx.fillStyle = '#f3f8ff';
+  ctx.lineWidth = 1.4;
+  switch (p.type) {
+    case 'speed':
+      ctx.beginPath(); ctx.moveTo(x - s * 0.2, y - s * 0.55); ctx.lineTo(x + s * 0.05, y - s * 0.1); ctx.lineTo(x - s * 0.02, y - s * 0.1); ctx.lineTo(x + s * 0.22, y + s * 0.55); ctx.lineTo(x - s * 0.08, y + s * 0.1); ctx.lineTo(x + s * 0.02, y + s * 0.1); ctx.closePath(); ctx.fill();
+      break;
+    case 'railgun':
+      drawWeaponBarrel(ctx, x - s * 0.55, y - s * 0.18, s * 1.05, s * 0.36, '#c4a3ff', '#5f2e9e', '#f2e7ff');
+      ctx.beginPath(); ctx.arc(x - s * 0.45, y, s * 0.12, 0, Math.PI * 2); ctx.fill();
+      break;
+    case 'ricochet':
+      ctx.beginPath(); ctx.arc(x, y, s * 0.32, 0, Math.PI * 1.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + s * 0.18, y - s * 0.28); ctx.lineTo(x + s * 0.46, y - s * 0.28); ctx.lineTo(x + s * 0.34, y - s * 0.52); ctx.stroke();
+      break;
+    case 'shield':
+      ctx.beginPath(); ctx.moveTo(x, y - s * 0.58); ctx.lineTo(x + s * 0.46, y - s * 0.2); ctx.lineTo(x + s * 0.28, y + s * 0.46); ctx.lineTo(x, y + s * 0.62); ctx.lineTo(x - s * 0.28, y + s * 0.46); ctx.lineTo(x - s * 0.46, y - s * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+      break;
+    case 'rapid':
+      for (let i = -1; i <= 1; i++) drawWeaponBarrel(ctx, x - s * 0.52, y + i * s * 0.2 - s * 0.09, s * 1.04, s * 0.18, '#ff8c78', '#6f1f1f', '#fff4d8');
+      break;
+    case 'repair':
+      ctx.fillRect(x - s * 0.12, y - s * 0.5, s * 0.24, s);
+      ctx.fillRect(x - s * 0.5, y - s * 0.12, s, s * 0.24);
+      break;
+    case 'freeze':
+      for (let i = 0; i < 3; i++) {
+        const a = i * Math.PI / 3;
+        ctx.beginPath();
+        ctx.moveTo(x - Math.cos(a) * s * 0.52, y - Math.sin(a) * s * 0.52);
+        ctx.lineTo(x + Math.cos(a) * s * 0.52, y + Math.sin(a) * s * 0.52);
+        ctx.stroke();
+      }
+      break;
+    case 'multishot':
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath(); ctx.arc(x + i * s * 0.28, y + Math.abs(i) * s * 0.04, s * 0.14, 0, Math.PI * 2); ctx.fill();
+      }
+      break;
+    case 'magnet':
+      ctx.beginPath(); ctx.moveTo(x - s * 0.42, y - s * 0.45); ctx.lineTo(x - s * 0.1, y - s * 0.45); ctx.lineTo(x - s * 0.1, y + s * 0.18); ctx.arc(x, y + s * 0.18, s * 0.1, Math.PI, 0); ctx.lineTo(x + s * 0.1, y - s * 0.45); ctx.lineTo(x + s * 0.42, y - s * 0.45); ctx.lineTo(x + s * 0.42, y + s * 0.28); ctx.arc(x, y + s * 0.28, s * 0.42, 0, Math.PI, true); ctx.closePath(); ctx.fill();
+      break;
+    case 'pierce':
+      ctx.beginPath(); ctx.moveTo(x - s * 0.45, y + s * 0.25); ctx.lineTo(x + s * 0.1, y - s * 0.32); ctx.lineTo(x + s * 0.45, y - s * 0.25); ctx.lineTo(x - s * 0.1, y + s * 0.32); ctx.closePath(); ctx.fill(); ctx.stroke();
+      break;
+    case 'vampire':
+      ctx.beginPath(); ctx.moveTo(x, y + s * 0.56); ctx.bezierCurveTo(x + s * 0.44, y + s * 0.18, x + s * 0.44, y - s * 0.28, x, y - s * 0.56); ctx.bezierCurveTo(x - s * 0.44, y - s * 0.28, x - s * 0.44, y + s * 0.18, x, y + s * 0.56); ctx.fill();
+      break;
+    case 'double_score':
+      ctx.font = 'bold ' + Math.floor(s * 1.1) + 'px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('x2', x, y);
+      break;
+    case 'big_bullet':
+      ctx.beginPath(); ctx.arc(x - s * 0.12, y, s * 0.28, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(x - s * 0.12, y - s * 0.2, s * 0.42, s * 0.4);
+      break;
+    case 'explosive':
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4;
+        ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * s * 0.14, y + Math.sin(a) * s * 0.14); ctx.lineTo(x + Math.cos(a) * s * 0.54, y + Math.sin(a) * s * 0.54); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(x, y, s * 0.18, 0, Math.PI * 2); ctx.fill();
+      break;
+    case 'invisible':
+      ctx.beginPath(); ctx.ellipse(x, y, s * 0.58, s * 0.34, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, s * 0.16, 0, Math.PI * 2); ctx.fill();
+      break;
+    case 'thorns':
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * s * 0.58, y + Math.sin(a) * s * 0.58); ctx.stroke();
+      }
+      break;
+    case 'overdrive':
+      drawTechCore(ctx, x, y, s * 0.28, '#fff4ca', '#ff9838');
+      ctx.beginPath(); ctx.moveTo(x - s * 0.5, y + s * 0.28); ctx.lineTo(x + s * 0.5, y + s * 0.28); ctx.stroke();
+      break;
+    case 'timewarp':
+      ctx.beginPath(); ctx.arc(x, y, s * 0.48, -Math.PI * 0.75, Math.PI * 1.15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - s * 0.24); ctx.lineTo(x + s * 0.22, y + s * 0.08); ctx.stroke();
+      break;
+    case 'goldrush':
+      drawTechCore(ctx, x, y, s * 0.34, '#fff7b0', '#f8b400');
+      ctx.strokeStyle = '#4a3000';
+      ctx.beginPath(); ctx.arc(x, y, s * 0.34, 0, Math.PI * 2); ctx.stroke();
+      break;
+    default:
+      ctx.beginPath(); ctx.arc(x, y, s * 0.3 * pulse, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawBuffBadge(ctx, type, x, y, size, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  const outer = size;
+  const inner = Math.max(3.5, size * 0.56);
+  withGlow(ctx, color, 5, () => {
+    drawTechModuleShell(ctx, outer, inner, color, color);
+  });
+  ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(-outer * 0.55, 0);
+  ctx.lineTo(outer * 0.55, 0);
+  ctx.stroke();
+  drawPowerUpGlyph(ctx, { type, x: 0, y: 0 }, inner * 0.88);
+  ctx.restore();
+}
+
+function drawSupplyChest(ctx, chest, t) {
+  const pulse = Math.sin(t * 3.6 + chest.x * 0.08) * 0.5 + 0.5;
+  const frame = chest.isBossChest ? '#ffe47b' : '#d59a54';
+  const body = chest.isBossChest ? '#5f4310' : '#4d3120';
+  const lid = chest.isBossChest ? '#b57b17' : '#8a5634';
+  const glow = chest.isBossChest ? '#ffd64d' : '#f49800';
+  ctx.save();
+  ctx.translate(chest.x, chest.y);
+  withGlow(ctx, glow, 10 + pulse * 6, () => {
+    drawArmorPanel(ctx, -15, -10, 30, 20, body, frame, 4);
+  });
+  drawArmorPanel(ctx, -13, -9, 26, 8, lid, frame, 3);
+  drawArmorPanel(ctx, -11, 0, 22, 7, 'rgba(18,22,28,0.86)', frame, 3);
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillRect(-10, -7, 20, 2);
+  ctx.fillStyle = chest.isBossChest ? '#7a5918' : '#6f4429';
+  ctx.fillRect(-17, -7, 3, 14);
+  ctx.fillRect(14, -7, 3, 14);
+  ctx.strokeStyle = 'rgba(255,240,210,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-9, -12);
+  ctx.lineTo(-3, -15);
+  ctx.lineTo(3, -15);
+  ctx.lineTo(9, -12);
+  ctx.stroke();
+  drawTechCore(ctx, 0, -1, chest.isBossChest ? 4.3 : 3.5, '#fff6d4', glow);
+  ctx.strokeStyle = glow;
+  ctx.lineWidth = chest.isBossChest ? 1.4 : 1;
+  ctx.beginPath();
+  ctx.arc(0, -16, chest.isBossChest ? 6 + pulse * 1.8 : 4.5 + pulse * 1.2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-4, -16);
+  ctx.lineTo(4, -16);
+  ctx.moveTo(0, -20);
+  ctx.lineTo(0, -12);
+  ctx.stroke();
+  if (chest.isBossChest) {
+    ctx.strokeStyle = 'rgba(255,232,140,0.32)';
+    ctx.beginPath();
+    ctx.arc(0, 0, 19 + pulse * 1.6, -Math.PI * 0.18, Math.PI * 0.86);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 // --- Bullets ---
 class Bullet {
   constructor(x, y, angle, speed, color, fromPlayer, damage) {
@@ -2264,29 +2532,30 @@ class PlayerTank extends Tank {
       ctx.fillRect(this.x - cw/2, this.y + 20, cw * chargeRatio, ch);
     }
 
-    // Buff indicator dots
+    // Buff indicator badges
     const activeBuffs = [];
-    if (buffs.speed > 0) activeBuffs.push({icon:'⚡',c:'#4af'});
-    if (buffs.railgun > 0) activeBuffs.push({icon:'🔫',c:'#a4f'});
-    if (buffs.ricochet > 0) activeBuffs.push({icon:'💫',c:'#fa4'});
-    if (buffs.shield > 0) activeBuffs.push({icon:'🛡️',c:'#4ff'});
-    if (buffs.rapid > 0) activeBuffs.push({icon:'🔥',c:'#f44'});
-    if (buffs.freeze > 0) activeBuffs.push({icon:'❄️',c:'#8cf'});
-    if (buffs.multishot > 0) activeBuffs.push({icon:'💥',c:'#f8f'});
-    if (buffs.magnet > 0) activeBuffs.push({icon:'🧲',c:'#c8f'});
-    if (buffs.pierce > 0) activeBuffs.push({icon:'🗡️',c:'#ff8'});
-    if (buffs.vampire > 0) activeBuffs.push({icon:'🩸',c:'#f66'});
-    if (buffs.double_score > 0) activeBuffs.push({icon:'✨',c:'#ff0'});
-    if (buffs.big_bullet > 0) activeBuffs.push({icon:'💣',c:'#f80'});
-    if (buffs.explosive > 0) activeBuffs.push({icon:'💢',c:'#f84'});
-    if (buffs.invisible > 0) activeBuffs.push({icon:'👻',c:'#aaa'});
-    if (buffs.thorns > 0) activeBuffs.push({icon:'🌵',c:'#8f8'});
+    if (buffs.speed > 0) activeBuffs.push({type:'speed', c:'#4af'});
+    if (buffs.railgun > 0) activeBuffs.push({type:'railgun', c:'#a4f'});
+    if (buffs.ricochet > 0) activeBuffs.push({type:'ricochet', c:'#fa4'});
+    if (buffs.shield > 0) activeBuffs.push({type:'shield', c:'#4ff'});
+    if (buffs.rapid > 0) activeBuffs.push({type:'rapid', c:'#f44'});
+    if (buffs.freeze > 0) activeBuffs.push({type:'freeze', c:'#8cf'});
+    if (buffs.multishot > 0) activeBuffs.push({type:'multishot', c:'#f8f'});
+    if (buffs.magnet > 0) activeBuffs.push({type:'magnet', c:'#c8f'});
+    if (buffs.pierce > 0) activeBuffs.push({type:'pierce', c:'#ff8'});
+    if (buffs.vampire > 0) activeBuffs.push({type:'vampire', c:'#f66'});
+    if (buffs.double_score > 0) activeBuffs.push({type:'double_score', c:'#ff0'});
+    if (buffs.big_bullet > 0) activeBuffs.push({type:'big_bullet', c:'#f80'});
+    if (buffs.explosive > 0) activeBuffs.push({type:'explosive', c:'#f84'});
+    if (buffs.invisible > 0) activeBuffs.push({type:'invisible', c:'#aaa'});
+    if (buffs.thorns > 0) activeBuffs.push({type:'thorns', c:'#8f8'});
+    if (buffs.overdrive > 0) activeBuffs.push({type:'overdrive', c:'#ff9a42'});
+    if (buffs.timewarp > 0) activeBuffs.push({type:'timewarp', c:'#9fe2ff'});
+    if (buffs.goldrush > 0) activeBuffs.push({type:'goldrush', c:'#ffd95c'});
     for (let i = 0; i < activeBuffs.length; i++) {
-      ctx.font = '10px sans-serif';
-      ctx.fillStyle = activeBuffs[i].c;
       const row = Math.floor(i / 8);
       const col = i % 8;
-      ctx.fillText(activeBuffs[i].icon, this.x - 28 + col * 8, this.y - 28 + row * 10);
+      drawBuffBadge(ctx, activeBuffs[i].type, this.x - 28 + col * 8, this.y - 28 + row * 10, 4.8, activeBuffs[i].c);
     }
     ctx.restore();
   }
@@ -2295,191 +2564,136 @@ class PlayerTank extends Tank {
     ctx.save();
     ctx.translate(x, y);
     const body = color, turretC = turretColor;
+    const t = Date.now() / 220;
 
     switch(tankType) {
 
-    case 'spread': { // 扩散型 - classic wide tank with triple barrel hints
-      // Tracks
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(-19, -13, 7, 26); ctx.fillRect(12, -13, 7, 26);
-      ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-      for (let i = -11; i < 13; i += 5) {
-        ctx.beginPath(); ctx.moveTo(-18, i); ctx.lineTo(-14, i); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(13, i); ctx.lineTo(17, i); ctx.stroke();
-      }
-      // Body
-      ctx.fillStyle = body; ctx.fillRect(-15, -11, 30, 22);
-      ctx.strokeStyle = '#600'; ctx.lineWidth = 2; ctx.strokeRect(-15, -11, 30, 22);
-      ctx.fillStyle = '#a33'; ctx.fillRect(-10, -7, 20, 14);
-      // Turret base
-      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#600'; ctx.lineWidth = 1.5; ctx.stroke();
-      // Triple barrel hint
+    case 'spread': {
+      drawTankTracks(ctx, -19, 13, -13, 26, 7, '#2b0f12', '#5a2228');
+      drawArmorPanel(ctx, -16, -11, 32, 22, body, '#6a1818', 4);
+      drawArmorPanel(ctx, -10, -7, 20, 14, '#9f2f35', '#ff7a7a', 3);
+      ctx.strokeStyle = 'rgba(255,210,210,0.22)';
+      ctx.beginPath(); ctx.moveTo(-7, 0); ctx.lineTo(7, 0); ctx.stroke();
+      drawTechCore(ctx, 0, 0, 5.5, '#ffd0d0', '#ff5b5b');
       ctx.save(); ctx.rotate(turretAngle);
-      ctx.fillStyle = turretC;
-      ctx.fillRect(2, -4, 7, 3); ctx.fillRect(2, -1, 7, 3); ctx.fillRect(2, 2, 7, 3);
-      ctx.strokeStyle = '#600'; ctx.lineWidth = 1;
-      ctx.strokeRect(2, -4, 7, 3); ctx.strokeRect(2, -1, 7, 3); ctx.strokeRect(2, 2, 7, 3);
+      for (let i = -1; i <= 1; i++) {
+        drawWeaponBarrel(ctx, 2, i * 4 - 1.5, 13, 3, turretC, '#71161d', '#fff1f1');
+      }
+      ctx.strokeStyle = 'rgba(255,150,150,0.35)';
+      ctx.beginPath(); ctx.moveTo(6, -6); ctx.lineTo(16, 0); ctx.lineTo(6, 6); ctx.stroke();
       ctx.restore();
       break;
     }
 
-    case 'focus': { // 集中型 - sleek aerodynamic, single powerful barrel with energy glow
-      // Tracks - narrow, swept
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(-14, -10, 4, 20); ctx.fillRect(10, -10, 4, 20);
-      // Body - diamond/arrow shape
+    case 'focus': {
+      drawTankTracks(ctx, -14, 10, -10, 20, 4, '#3b3410', '#6f6220');
       ctx.fillStyle = body; ctx.beginPath();
       ctx.moveTo(16, 0); ctx.lineTo(0, -11); ctx.lineTo(-14, -4); ctx.lineTo(-14, 4); ctx.lineTo(0, 11); ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#540'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = '#da4'; ctx.beginPath(); ctx.arc(2, 0, 5, 0, Math.PI*2); ctx.fill();
-      // Energy core
-      const fpulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
-      ctx.fillStyle = '#ff0'; ctx.shadowColor = '#ff0'; ctx.shadowBlur = 6 * fpulse;
-      ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 0;
-      // Long powerful barrel
+      ctx.strokeStyle = '#6c5a12'; ctx.lineWidth = 2; ctx.stroke();
+      drawArmorPanel(ctx, -7, -5, 17, 10, '#d1a13a', '#fff0a6', 2);
+      drawTechCore(ctx, 1, 0, 4, '#fff8bd', '#ffe349');
+      ctx.strokeStyle = 'rgba(255,245,170,0.4)';
+      ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(12, 0); ctx.stroke();
       ctx.save(); ctx.rotate(turretAngle);
-      ctx.fillStyle = turretC;
-      ctx.fillRect(3, -2.5, 20, 5);
-      ctx.strokeStyle = '#540'; ctx.lineWidth = 1.5; ctx.strokeRect(3, -2.5, 20, 5);
-      ctx.fillStyle = '#fe0'; ctx.fillRect(20, -1.5, 4, 3);
+      drawWeaponBarrel(ctx, 3, -3, 22, 6, turretC, '#5c4810', '#fff7c0');
+      withGlow(ctx, '#ffe85a', 10, () => {
+        ctx.fillStyle = '#ffe85a';
+        ctx.fillRect(22, -2, 5, 4);
+      });
       ctx.restore();
       break;
     }
 
-    case 'wide': { // 广域型 - wide body, fan-shaped barrel array
-      // Wide tracks
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(-21, -12, 6, 24); ctx.fillRect(15, -12, 6, 24);
-      for (let i = -10; i < 12; i += 5) {
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(-20, i); ctx.lineTo(-16, i); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(16, i); ctx.lineTo(20, i); ctx.stroke();
+    case 'wide': {
+      drawTankTracks(ctx, -21, 15, -12, 24, 6, '#10263c', '#24486d');
+      drawArmorPanel(ctx, -18, -10, 36, 20, body, '#19557b', 4);
+      drawArmorPanel(ctx, -13, -6, 26, 12, '#5ec0ff', '#d1f3ff', 3);
+      for (let i = -1; i <= 1; i++) {
+        ctx.strokeStyle = 'rgba(210,245,255,0.22)';
+        ctx.beginPath(); ctx.moveTo(-11, i * 4); ctx.lineTo(11, i * 4); ctx.stroke();
       }
-      // Wide body
-      ctx.fillStyle = body; ctx.fillRect(-17, -10, 34, 20);
-      ctx.strokeStyle = '#148'; ctx.lineWidth = 2; ctx.strokeRect(-17, -10, 34, 20);
-      ctx.fillStyle = '#5bf'; ctx.fillRect(-12, -6, 24, 12);
-      // Turret with fan vents
-      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#148'; ctx.lineWidth = 1.5; ctx.stroke();
-      // 5 barrel fan
+      drawTechCore(ctx, 0, 0, 6, '#d8fbff', '#68e5ff');
       ctx.save(); ctx.rotate(turretAngle);
       for (let i = -2; i <= 2; i++) {
         const ba = i * 0.16;
         ctx.save(); ctx.rotate(ba);
-        ctx.fillStyle = turretC; ctx.fillRect(4, -1.5, 9, 3);
-        ctx.strokeStyle = '#148'; ctx.lineWidth = 0.8; ctx.strokeRect(4, -1.5, 9, 3);
+        drawWeaponBarrel(ctx, 4, -2, 11, 4, turretC, '#1b4a69', '#e5fbff');
         ctx.restore();
       }
       ctx.restore();
       break;
     }
 
-    case 'burst': { // 爆裂型 - heavy armored, 7-barrel cluster, bulky
-      // Heavy wide tracks with armor plates
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(-22, -14, 8, 28); ctx.fillRect(14, -14, 8, 28);
-      for (let i = -12; i < 14; i += 4) {
-        ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(-21, i); ctx.lineTo(-16, i); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(15, i); ctx.lineTo(20, i); ctx.stroke();
-      }
-      // Armored body - angular
-      ctx.fillStyle = body; ctx.fillRect(-18, -12, 36, 24);
-      ctx.strokeStyle = '#520'; ctx.lineWidth = 3; ctx.strokeRect(-18, -12, 36, 24);
-      ctx.fillStyle = '#c52'; ctx.fillRect(-14, -8, 28, 16);
-      // Armor rivets
-      for (let rx = -16; rx <= 14; rx += 7) {
-        for (let ry = -10; ry <= 8; ry += 6) {
-          ctx.fillStyle = '#630'; ctx.beginPath(); ctx.arc(rx, ry, 1.2, 0, Math.PI*2); ctx.fill();
+    case 'burst': {
+      drawTankTracks(ctx, -22, 14, -14, 28, 8, '#321512', '#703128');
+      drawArmorPanel(ctx, -19, -12, 38, 24, body, '#6f2215', 4);
+      drawArmorPanel(ctx, -14, -8, 28, 16, '#cf623a', '#ffc097', 3);
+      for (let rx = -13; rx <= 11; rx += 6) {
+        for (let ry = -8; ry <= 6; ry += 5) {
+          ctx.fillStyle = '#78311e';
+          ctx.beginPath(); ctx.arc(rx, ry, 1.1, 0, Math.PI * 2); ctx.fill();
         }
       }
-      // Large turret
-      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#520'; ctx.lineWidth = 2; ctx.stroke();
-      // 7-barrel cluster
+      drawTechCore(ctx, 0, 0, 7, '#ffd5be', '#ff8f48');
       ctx.save(); ctx.rotate(turretAngle);
       for (let i = -3; i <= 3; i++) {
-        ctx.fillStyle = turretC; ctx.fillRect(5, -6 + i * 3.5, 8, 2.5);
-        ctx.strokeStyle = '#520'; ctx.lineWidth = 0.6; ctx.strokeRect(5, -6 + i * 3.5, 8, 2.5);
+        drawWeaponBarrel(ctx, 5, -6.5 + i * 3.5, 10, 2.8, turretC, '#662416', '#fff0d0');
       }
-      ctx.fillStyle = '#f80'; ctx.fillRect(12, -8, 4, 16);
+      withGlow(ctx, '#ff9a42', 10, () => {
+        ctx.strokeStyle = '#ff9a42';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(-8, -10); ctx.lineTo(15, 0); ctx.lineTo(-8, 10); ctx.stroke();
+      });
       ctx.restore();
-      // Heat vents
-      ctx.strokeStyle = '#f84'; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
       for (let v = -1; v <= 1; v += 2) {
+        ctx.strokeStyle = 'rgba(255,180,120,0.35)';
+        ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(v * 15, -10); ctx.lineTo(v * 18, -14); ctx.stroke();
       }
-      ctx.globalAlpha = 1;
       break;
     }
 
-    case 'sniper': { // 狙击型 - elongated thin hull, very long barrel, scope
-      // Thin narrow tracks
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(-12, -9, 3, 18); ctx.fillRect(9, -9, 3, 18);
-      // Elongated body
-      ctx.fillStyle = body; ctx.fillRect(-10, -8, 12, 16);
-      ctx.fillStyle = '#c8f'; ctx.fillRect(2, -6, 8, 12);
-      ctx.strokeStyle = '#428'; ctx.lineWidth = 2; ctx.strokeRect(-10, -8, 12, 16);
-      // Scope/sensor dome
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-2, -3, 3, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#428'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle = '#a4f'; ctx.beginPath(); ctx.arc(-2, -3, 1.5, 0, Math.PI*2); ctx.fill();
-      // Turret
-      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(3, 0, 6, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#428'; ctx.lineWidth = 1.5; ctx.stroke();
-      // Very long sniper barrel
+    case 'sniper': {
+      drawTankTracks(ctx, -12, 9, -9, 18, 3, '#221733', '#48305d');
+      drawArmorPanel(ctx, -11, -8, 14, 16, body, '#4d2a76', 3);
+      drawArmorPanel(ctx, 2, -6, 10, 12, '#d3a7ff', '#f1ddff', 3);
+      drawTechCore(ctx, -1.5, -3, 3.2, '#ffffff', '#c36bff');
+      ctx.strokeStyle = 'rgba(236,219,255,0.26)';
+      ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(9, 0); ctx.stroke();
       ctx.save(); ctx.rotate(turretAngle);
       const grad = ctx.createLinearGradient(6, 0, 30, 0);
-      grad.addColorStop(0, turretC); grad.addColorStop(1, '#e8d');
+      grad.addColorStop(0, turretC); grad.addColorStop(1, '#f6deff');
       ctx.fillStyle = grad;
-      ctx.fillRect(6, -2, 24, 4);
-      ctx.strokeStyle = '#428'; ctx.lineWidth = 1; ctx.strokeRect(6, -2, 24, 4);
-      // Barrel tip glow
-      const spulse = Math.sin(Date.now() / 150) * 0.3 + 0.7;
-      ctx.fillStyle = '#fff'; ctx.shadowColor = '#a4f'; ctx.shadowBlur = 4 * spulse;
-      ctx.fillRect(28, -2.5, 4, 5);
-      ctx.shadowBlur = 0;
+      drawArmorPanel(ctx, 6, -2.4, 26, 4.8, grad, '#4b2b79', 2);
+      withGlow(ctx, '#d872ff', 10, () => {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(29, -3, 4, 6);
+      });
+      ctx.strokeStyle = 'rgba(222,174,255,0.35)';
+      ctx.beginPath(); ctx.moveTo(10, -4.5); ctx.lineTo(22, -4.5); ctx.stroke();
       ctx.restore();
       break;
     }
 
-    case 'homing': { // 追踪型 - sleek with sensor, dual barrels
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(-15, -11, 4, 22); ctx.fillRect(11, -11, 4, 22);
-      ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-      for (let i = -9; i < 11; i += 5) {
-        ctx.beginPath(); ctx.moveTo(-14, i); ctx.lineTo(-12, i); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(12, i); ctx.lineTo(14, i); ctx.stroke();
-      }
+    case 'homing': {
+      drawTankTracks(ctx, -15, 11, -11, 22, 4, '#241227', '#55255a');
       ctx.fillStyle = body; ctx.beginPath();
       ctx.moveTo(18, 0); ctx.lineTo(8, -10); ctx.lineTo(-10, -8);
       ctx.lineTo(-12, 0); ctx.lineTo(-10, 8); ctx.lineTo(8, 10); ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#609'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = '#d8d';
-      ctx.beginPath(); ctx.arc(-4, -4, 6, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#609'; ctx.lineWidth = 1; ctx.stroke();
-      const hpulse = Math.sin(Date.now() / 180) * 0.3 + 0.7;
-      ctx.fillStyle = '#fff'; ctx.shadowColor = '#f8f'; ctx.shadowBlur = 5 * hpulse;
-      ctx.beginPath(); ctx.arc(-4, -4, 2.5, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(2, 0, 7, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#609'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = '#6b2870'; ctx.lineWidth = 2; ctx.stroke();
+      drawTechCore(ctx, -4, -4, 5.5, '#ffe6ff', '#ff8eff');
+      drawTechCore(ctx, 2, 0, 4.8, '#ffe0ff', '#d96cff');
       ctx.save(); ctx.rotate(turretAngle);
-      ctx.fillStyle = turretC;
-      ctx.fillRect(5, -4, 12, 3); ctx.fillRect(5, 1, 12, 3);
-      ctx.strokeStyle = '#609'; ctx.lineWidth = 1;
-      ctx.strokeRect(5, -4, 12, 3); ctx.strokeRect(5, 1, 12, 3);
-      ctx.fillStyle = '#f8f'; ctx.beginPath(); ctx.arc(14, -2, 3, 0, Math.PI*2); ctx.fill();
+      drawWeaponBarrel(ctx, 5, -4.2, 14, 3.4, turretC, '#612365', '#fff3ff');
+      drawWeaponBarrel(ctx, 5, 0.8, 14, 3.4, turretC, '#612365', '#fff3ff');
+      drawTechCore(ctx, 15, -2, 2.7, '#ffffff', '#ff8eff');
       ctx.restore();
-      ctx.strokeStyle = '#f8f'; ctx.globalAlpha = 0.15 + Math.sin(Date.now() / 300) * 0.1;
-      ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.stroke();
-      ctx.globalAlpha = 1;
+      ctx.strokeStyle = 'rgba(255,136,255,0.28)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, 24 + Math.sin(t) * 1.5, -Math.PI * 0.2, Math.PI * 0.8); ctx.stroke();
       break;
     }
 
@@ -3637,7 +3851,7 @@ function renderLabUI() {
   const detail = document.getElementById('lab-detail');
   if (!grid) return;
   const tankKeys = Object.keys(tankTypes);
-  const icons = {spread:'☆',focus:'★',wide:'❋',burst:'✦',sniper:'◈',homing:'◎'};
+  const icons = {spread:'⬣',focus:'▸',wide:'◫',burst:'✹',sniper:'⟐',homing:'◉'};
   const selected = labSelectedTank;
   grid.innerHTML = tankKeys.map(k => {
     const unlocked = unlockedTanks.has(k);
@@ -4327,26 +4541,28 @@ function draw() {
     ctx.shadowColor = glowC;
     ctx.shadowBlur = (p.glowColor ? 16 : 10) + Math.sin(t * 4) * 4;
     const sz = p.size || 10;
-    // Glow circle
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, sz, 0, Math.PI * 2);
-    ctx.fill();
-    // Rarity ring
+    const rotate = t * 1.2 + p.x * 0.01;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(rotate);
+    const outer = sz + 5;
+    const inner = Math.max(6, sz - 2);
+    drawTechModuleShell(ctx, outer, inner, p.color, glowC);
     if (p.glowColor) {
       ctx.strokeStyle = p.glowColor;
       ctx.lineWidth = p.rarity === 'legendary' ? 2.5 : 1.5;
       ctx.shadowBlur = p.rarity === 'legendary' ? 20 : 12;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, sz + 3, 0, Math.PI * 2);
+      ctx.arc(0, 0, outer + 2, 0, Math.PI * 2);
       ctx.stroke();
     }
-    // Icon
-    ctx.font = (p.rarity === 'legendary' ? '20px' : '16px') + ' sans-serif';
     ctx.shadowBlur = 0;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(p.icon, p.x, p.y);
+    for (let i = 0; i < 3; i++) {
+      const a = i * Math.PI * 2 / 3 + t * 0.8;
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(Math.cos(a) * (inner - 1) - 1, Math.sin(a) * (inner - 1) - 1, 2, 2);
+    }
+    ctx.rotate(-rotate);
+    drawPowerUpGlyph(ctx, { ...p, x:0, y:0 }, inner * 0.95);
     ctx.restore();
   }
 
@@ -4354,19 +4570,7 @@ function draw() {
   for (const c of chests) {
     if (c.opened) continue;
     const ct = Date.now() / 1000;
-    ctx.save();
-    ctx.shadowColor = c.isBossChest ? '#fd0' : '#a80';
-    ctx.shadowBlur = 10 + Math.sin(ct * 3 + c.x) * 4;
-    ctx.fillStyle = c.isBossChest ? '#da0' : '#964';
-    ctx.fillRect(c.x - 12, c.y - 10, 24, 20);
-    ctx.fillStyle = c.isBossChest ? '#fd0' : '#c84';
-    ctx.fillRect(c.x - 8, c.y - 6, 16, 12);
-    ctx.fillStyle = c.isBossChest ? '#ff0' : '#fc0';
-    ctx.beginPath(); ctx.arc(c.x, c.y - 3, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(c.isBossChest ? '🎁' : '📦', c.x, c.y - 14);
-    ctx.restore();
+    drawSupplyChest(ctx, c, ct);
   }
 
   // Bullets
