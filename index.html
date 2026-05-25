@@ -810,6 +810,7 @@ canvas {
       <button class="best-tab active" id="tab-powerups" onclick="switchBestiaryTab('powerups')">道具</button>
       <button class="best-tab" id="tab-elites" onclick="switchBestiaryTab('elites')">精英敌人</button>
       <button class="best-tab" id="tab-bosses" onclick="switchBestiaryTab('bosses')">Boss</button>
+      <button class="best-tab" id="tab-fusions" onclick="switchBestiaryTab('fusions')">融合</button>
     </div>
     <div class="best-grid" id="bestiary-grid"></div>
     <button class="best-back-btn" onclick="hideBestiary()">返回</button>
@@ -1848,11 +1849,17 @@ function renderBestiary() {
       }
       return { icon: e.icon, name: e.name, desc: desc, tag: '精英' };
     });
-  } else {
+  } else if (bestiaryTab === 'bosses') {
     items = BOSS_TYPES.map(b => ({
       icon: b.icon, name: b.name,
       desc: b.desc + ' · ' + b.phases.map(p => p.name).join(' → '),
       tag: 'HP:' + b.hp,
+    }));
+  } else {
+    items = FUSION_RECIPES.map(f => ({
+      icon: f.icon, name: f.name,
+      desc: f.desc,
+      tag: f.requires.map(r => powerUpDefs.find(p => p.type === r)?.name || r).join(' + '),
     }));
   }
   grid.innerHTML = items.map(it =>
@@ -1872,6 +1879,7 @@ function switchBestiaryTab(tab) {
   document.getElementById('tab-powerups').classList.toggle('active', tab === 'powerups');
   document.getElementById('tab-elites').classList.toggle('active', tab === 'elites');
   document.getElementById('tab-bosses').classList.toggle('active', tab === 'bosses');
+  document.getElementById('tab-fusions').classList.toggle('active', tab === 'fusions');
   renderBestiary();
 }
 
@@ -1880,6 +1888,7 @@ function showBestiary() {
   document.getElementById('tab-powerups').classList.add('active');
   document.getElementById('tab-elites').classList.remove('active');
   document.getElementById('tab-bosses').classList.remove('active');
+  document.getElementById('tab-fusions').classList.remove('active');
   renderBestiary();
   document.getElementById('bestiary-screen').style.display = 'flex';
   document.getElementById('start-screen').style.display = 'none';
@@ -3604,7 +3613,6 @@ function applyTankUpgrades(tankType) {
 function renderLabUI() {
   const grid = document.getElementById('lab-tank-grid');
   if (!grid) return;
-  try {
   const tankKeys = Object.keys(tankTypes);
   const icons = {spread:'☆',focus:'★',wide:'❋',burst:'✦',sniper:'◈',homing:'◎'};
   grid.innerHTML = tankKeys.map(k => {
@@ -3668,7 +3676,6 @@ function renderLabUI() {
         <span style="font-size:10px;color:#666;">${nextUpg ? '升级强化后更强' : evolved ? '已达最终形态' : '可进化!'}</span>
       </div>`;
   }
-  } catch(e) { console.error('Lab render error:', e); }
 }
 function selectLabTank(tank) {
   labSelectedTank = tank;
