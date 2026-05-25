@@ -1350,17 +1350,19 @@ function startNextWave() {
   // Earn fragments for previous wave clear
   if (wave > 1) earnFragments(Math.floor(wave / 2) + 1);
 
-  // Boss wave every 5 waves
-  if (wave % 5 === 0) {
+  // Boss wave every 4 waves (starting from wave 4)
+  if (wave >= 4 && wave % 4 === 0) {
     isBossWave = true;
-    waveEnemiesTotal = 1; waveEnemiesRemaining = 1;
+    waveEnemiesTotal = 3; waveEnemiesRemaining = 3; // boss + 2 small adds
     wavePause = 0;
-    const bossIdx = Math.floor(wave / 5 - 1) % BOSS_TYPES.length;
+    const bossIdx = (Math.floor(wave / 4) - 1) % BOSS_TYPES.length;
     const bossDef = BOSS_TYPES[bossIdx];
     const bx = W/2, by = H/3;
     bossRef = new BossEnemy(bx, by, bossDef);
     enemies.push(bossRef);
-    showWaveNotification('BOSS: ' + bossDef.name, '第 ' + wave + ' 波 - Boss战!');
+    // Spawn 2 smaller enemies alongside boss
+    for (let i = 0; i < 2; i++) spawnEnemy();
+    showWaveNotification('BOSS: ' + bossDef.name, '第 ' + wave + ' 波 - 击破Boss!');
     return;
   }
 
