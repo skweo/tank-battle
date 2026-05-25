@@ -3829,62 +3829,78 @@ const obstacles = [];
 
 // --- Obstacle Types ---
 const OBSTACLE_TYPES = {
-  wall:   { color:'#555', stroke:'#777', passable:false, slow:0 },
-  bush:   { color:'#2a5a2a', stroke:'#3a7a3a', passable:true, slow:0.5 },
-  water:  { color:'#224488', stroke:'#3366aa', passable:true, slow:0.3 },
-  rubble: { color:'#665544', stroke:'#887766', passable:false, slow:0 },
+  wall:   { color:'#4a4a4a', stroke:'#6a6a6a', passable:false, slow:0, minW:40, maxW:80, minH:30, maxH:60, weight:25 },
+  bush:   { color:'#2a4a2a', stroke:'#3a6a3a', passable:true, slow:0.5, minW:25, maxW:55, minH:20, maxH:45, weight:15 },
+  water:  { color:'#1a3366', stroke:'#2255aa', passable:true, slow:0.3, minW:30, maxW:70, minH:25, maxH:55, weight:12 },
+  rubble: { color:'#554433', stroke:'#776655', passable:false, slow:0, minW:25, maxW:50, minH:20, maxH:40, weight:15 },
+  crate:  { color:'#8a6a3a', stroke:'#aa8a5a', passable:false, slow:0, minW:18, maxW:28, minH:18, maxH:28, weight:12 },
+  crystal:{ color:'#3a2a5a', stroke:'#7a5aaa', passable:false, slow:0, minW:15, maxW:25, minH:20, maxH:35, weight:8 },
+  metal:  { color:'#445566', stroke:'#667788', passable:false, slow:0, minW:35, maxW:60, minH:25, maxH:45, weight:8 },
+  bunker: { color:'#3a3028', stroke:'#5a5048', passable:false, slow:0, minW:50, maxW:90, minH:35, maxH:55, weight:5 },
 };
 
-// --- Obstacles ---
 function generateObstacles() {
   obstacles.length = 0;
-  const count = 10 + level * 2;
+  const count = 12 + level * 3;
+  const totalWeight = Object.values(OBSTACLE_TYPES).reduce((s, d) => s + d.weight, 0);
+
   for (let i = 0; i < count; i++) {
-    const roll = rng();
-    let obsType;
-    if (roll < 0.45) obsType = 'wall';
-    else if (roll < 0.65) obsType = 'bush';
-    else if (roll < 0.80) obsType = 'water';
-    else obsType = 'rubble';
+    const roll = rng() * totalWeight;
+    let cumulative = 0, obsType = 'wall';
+    for (const [key, def] of Object.entries(OBSTACLE_TYPES)) {
+      cumulative += def.weight;
+      if (roll < cumulative) { obsType = key; break; }
+    }
     const def = OBSTACLE_TYPES[obsType];
-    const sm = (obsType === 'water' || obsType === 'bush') ? 0.7 : 1.0;
-    obstacles.push({
-      x: 40 + rng() * (W - 80),
-      y: 40 + rng() * (H - 80),
-      w: (35 + rng() * 50) * sm,
-      h: (35 + rng() * 50) * sm,
-      type: obsType, passable: def.passable, slow: def.slow,
-      color: def.color, stroke: def.stroke,
-    });
+    const ox = 40 + rng() * (W - 80);
+    const oy = 40 + rng() * (H - 80);
+    const ow = def.minW + rng() * (def.maxW - def.minW);
+    const oh = def.minH + rng() * (def.maxH - def.minH);
+    obstacles.push({ x: ox, y: oy, w: ow, h: oh, type: obsType, passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke });
+
+    // 30% chance to spawn 1-2 smaller obstacles nearby (cluster effect)
+    if (rng() < 0.3) {
+      for (let j = 0; j < 1 + Math.floor(rng() * 2); j++) {
+        const cx = ox + (rng() - 0.5) * 60;
+        const cy = oy + (rng() - 0.5) * 60;
+        if (cx < 30 || cx > W - 30 || cy < 30 || cy > H - 30) continue;
+        const ctype = obsType === 'wall' ? (rng() < 0.5 ? 'crate' : 'rubble') : obsType;
+        const cd = OBSTACLE_TYPES[ctype];
+        const cw = cd.minW + rng() * (cd.maxW - cd.minW) * 0.7;
+        const ch = cd.minH + rng() * (cd.maxH - cd.minH) * 0.7;
+        obstacles.push({ x: cx, y: cy, w: cw, h: ch, type: ctype, passable: cd.passable, slow: cd.slow, color: cd.color, stroke: cd.stroke });
+      }
+    }
   }
 }
 
 function drawObstacles(ctx) {
   for (const obs of obstacles) {
-    ctx.fillStyle = obs.color;
-    ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-    ctx.strokeStyle = obs.stroke;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
     if (obs.type === 'wall') {
-      ctx.strokeStyle = '#666'; ctx.lineWidth = 0.5;
-      for (let gx = obs.x + 5; gx < obs.x + obs.w; gx += 5) {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = '#555'; ctx.lineWidth = 0.5;
+      for (let gx = obs.x + 5; gx < obs.x + obs.w; gx += 6) {
         ctx.beginPath(); ctx.moveTo(gx, obs.y); ctx.lineTo(gx, obs.y + obs.h); ctx.stroke();
       }
-      for (let gy = obs.y + 5; gy < obs.y + obs.h; gy += 5) {
+      for (let gy = obs.y + 5; gy < obs.y + obs.h; gy += 6) {
         ctx.beginPath(); ctx.moveTo(obs.x, gy); ctx.lineTo(obs.x + obs.w, gy); ctx.stroke();
       }
     } else if (obs.type === 'bush') {
-      ctx.fillStyle = '#3a8a3a';
-      for (let j = 0; j < 8; j++) {
-        const bx = obs.x + 4 + Math.random() * (obs.w - 8);
-        const by = obs.y + 4 + Math.random() * (obs.h - 8);
-        ctx.beginPath(); ctx.arc(bx, by, 2 + Math.random() * 3, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.fillStyle = '#3a7a3a';
+      for (let j = 0; j < 10; j++) {
+        const bx = obs.x + 3 + rng() * (obs.w - 6);
+        const by = obs.y + 3 + rng() * (obs.h - 6);
+        ctx.beginPath(); ctx.arc(bx, by, 2 + rng() * 3, 0, Math.PI*2); ctx.fill();
       }
     } else if (obs.type === 'water') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
       ctx.strokeStyle = '#4488cc'; ctx.lineWidth = 1;
       const t = Date.now() / 1000;
-      for (let wy = obs.y + 4; wy < obs.y + obs.h; wy += 8) {
+      for (let wy = obs.y + 3; wy < obs.y + obs.h; wy += 7) {
         ctx.beginPath();
         for (let wx = obs.x + 2; wx < obs.x + obs.w; wx += 2) {
           const wy2 = wy + Math.sin(t + wy * 0.1 + wx * 0.05) * 2;
@@ -3893,11 +3909,57 @@ function drawObstacles(ctx) {
         ctx.stroke();
       }
     } else if (obs.type === 'rubble') {
-      ctx.fillStyle = '#776655';
-      ctx.fillRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h/2 - 2);
-      ctx.fillRect(obs.x + obs.w/3, obs.y + obs.h/2, obs.w/2, obs.h/2 - 3);
-      ctx.strokeStyle = '#998877'; ctx.lineWidth = 1;
-      ctx.strokeRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h/2 - 2);
+      ctx.fillStyle = '#443322'; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.fillStyle = obs.color;
+      ctx.beginPath(); ctx.moveTo(obs.x, obs.y + obs.h);
+      ctx.lineTo(obs.x + obs.w * 0.3, obs.y); ctx.lineTo(obs.x + obs.w * 0.7, obs.y + obs.h * 0.4);
+      ctx.lineTo(obs.x + obs.w, obs.y); ctx.lineTo(obs.x + obs.w * 0.6, obs.y + obs.h);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1; ctx.stroke();
+    } else if (obs.type === 'crate') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = '#6a4a2a'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(obs.x, obs.y); ctx.lineTo(obs.x + obs.w, obs.y + obs.h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(obs.x + obs.w, obs.y); ctx.lineTo(obs.x, obs.y + obs.h); ctx.stroke();
+      ctx.fillStyle = '#aa8a5a'; ctx.fillRect(obs.x + obs.w/2 - 4, obs.y + obs.h/2 - 4, 8, 8);
+    } else if (obs.type === 'crystal') {
+      // Diamond-shaped crystal
+      ctx.fillStyle = obs.color; ctx.beginPath();
+      ctx.moveTo(obs.x + obs.w/2, obs.y);
+      ctx.lineTo(obs.x + obs.w, obs.y + obs.h/2);
+      ctx.lineTo(obs.x + obs.w/2, obs.y + obs.h);
+      ctx.lineTo(obs.x, obs.y + obs.h/2);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.3;
+      ctx.beginPath(); ctx.arc(obs.x + obs.w/2, obs.y + obs.h/3, 3, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (obs.type === 'metal') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      // Rivets
+      ctx.fillStyle = '#8899aa';
+      for (let rx = obs.x + 6; rx < obs.x + obs.w; rx += 14) {
+        for (let ry = obs.y + 6; ry < obs.y + obs.h; ry += 14) {
+          ctx.beginPath(); ctx.arc(rx, ry, 2, 0, Math.PI*2); ctx.fill();
+        }
+      }
+      ctx.strokeStyle = '#556678'; ctx.lineWidth = 1;
+      ctx.strokeRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h - 6);
+    } else if (obs.type === 'bunker') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 3; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      // Gun slit
+      ctx.fillStyle = '#111';
+      ctx.fillRect(obs.x + obs.w/2 - 12, obs.y - 2, 24, 6);
+      ctx.strokeStyle = '#888'; ctx.lineWidth = 1;
+      ctx.strokeRect(obs.x + obs.w/2 - 12, obs.y - 2, 24, 6);
+      // Concrete lines
+      ctx.strokeStyle = '#4a4038'; ctx.lineWidth = 0.5;
+      for (let ly = obs.y + obs.h * 0.4; ly < obs.y + obs.h; ly += obs.h * 0.3) {
+        ctx.beginPath(); ctx.moveTo(obs.x, ly); ctx.lineTo(obs.x + obs.w, ly); ctx.stroke();
+      }
     }
   }
 }
