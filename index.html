@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.11 fix UI audio unlock and button feedback volume */
+/* v3.7.12 fix restart loop freeze after returning home */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -9049,7 +9049,8 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
 // --- Ground decoration ---
 function drawGround(ctx) {
   // Biome tint
-  const biome = (wave - 1) % 5;
+  const safeWave = Math.max(1, Number.isFinite(wave) ? wave : 1);
+  const biome = (safeWave - 1) % 5;
   const tints = ['#0d1117','#101510','#0d1020','#1a0e0c','#0c1111'];
   const grad = ctx.createLinearGradient(0, 0, W, H);
   grad.addColorStop(0, tints[biome]);
@@ -9081,8 +9082,8 @@ function drawGround(ctx) {
   ctx.strokeStyle = biome === 2 ? '#8ce8ff' : '#f49800';
   ctx.lineWidth = 1;
   for (let i = 0; i < 7; i++) {
-    const cx = ((i * 233 + wave * 47) % (W + 180)) - 90;
-    const cy = ((i * 149 + wave * 31) % (H + 120)) - 60;
+    const cx = ((i * 233 + safeWave * 47) % (W + 180)) - 90;
+    const cy = ((i * 149 + safeWave * 31) % (H + 120)) - 60;
     const r = 34 + (i % 4) * 18;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -9102,8 +9103,8 @@ function drawGround(ctx) {
   ctx.fillStyle = biome === 3 ? '#442016' : '#1a2530';
   ctx.strokeStyle = 'rgba(232,237,242,0.06)';
   for (let i = 0; i < 14; i++) {
-    const px = ((i * 181 + wave * 29) % W);
-    const py = ((i * 97 + wave * 61) % H);
+    const px = ((i * 181 + safeWave * 29) % W);
+    const py = ((i * 97 + safeWave * 61) % H);
     const pw = 54 + (i % 5) * 24;
     const ph = 14 + (i % 3) * 8;
     ctx.save();
@@ -9118,8 +9119,8 @@ function drawGround(ctx) {
   // Decorative scatter
   ctx.fillStyle = biome === 1 ? 'rgba(45,85,45,0.32)' : (biome === 2 ? 'rgba(80,110,170,0.20)' : 'rgba(120,90,55,0.18)');
   for (let i = 0; i < 42; i++) {
-    const sx = ((i * 137 + wave * 53) % W);
-    const sy = ((i * 251 + wave * 37) % H);
+    const sx = ((i * 137 + safeWave * 53) % W);
+    const sy = ((i * 251 + safeWave * 37) % H);
     ctx.beginPath();
     if (biome === 1) {
       ctx.arc(sx, sy, 2 + (i % 3), 0, Math.PI * 2); // grass tufts
@@ -9318,6 +9319,11 @@ function update() {
 }
 
 function draw() {
+  if (ctx.setTransform) ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = 1;
   ctx.clearRect(0, 0, W, H);
 
   // Screen shake
@@ -9738,19 +9744,36 @@ function startGame(difficulty, tankType, options = {}) {
   document.getElementById('level').textContent = level;
   updateRunXpHud();
   gameRunning = true;
+  ensureGameLoopScheduled();
   startMusic();
 }
 
 init();
 
 // --- Main Loop ---
-function gameLoop() {
-  update();
-  draw();
+let lastLoopErrorAt = 0;
+let gameLoopScheduled = false;
+function ensureGameLoopScheduled() {
+  if (gameLoopScheduled) return;
+  gameLoopScheduled = true;
   requestAnimationFrame(gameLoop);
 }
+function gameLoop() {
+  gameLoopScheduled = false;
+  try {
+    update();
+    draw();
+  } catch (err) {
+    const now = Date.now();
+    if (now - lastLoopErrorAt > 1000) {
+      console.error('[Gengetsu Senki] game loop recovered:', err);
+      lastLoopErrorAt = now;
+    }
+  }
+  ensureGameLoopScheduled();
+}
 
-gameLoop();
+ensureGameLoopScheduled();
 </script>
 </body>
 </html>
