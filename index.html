@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.3 split bestiary archive navigation */
+/* v3.7.4 bugfix: contact damage and tank unlock flow */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -2570,14 +2570,15 @@ function checkDailyTarget() {
     const toast = document.getElementById('achieve-toast');
     toast.querySelector('.achieve-icon').textContent = 'DAY';
     toast.querySelector('.achieve-name').textContent = '每日目标达成!';
+    updateTankUnlockProgress({ dailyClears: 1 }, false);
     if (!dailyCompletedToday) {
       coreFragments += dailyTarget.reward;
-      saveProgression();
       markDailyChallengeCompleted();
       toast.querySelector('.achieve-label').textContent = '奖励 +' + dailyTarget.reward + ' 月光石';
     } else {
       toast.querySelector('.achieve-label').textContent = '今日奖励已领取';
     }
+    saveProgression();
     toast.querySelector('.achieve-name').style.color = '#fd0';
     toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
     toast.style.animation = 'toastIn 0.4s ease-out';
@@ -2822,7 +2823,7 @@ function renderDifficultyButtons() {
     const unlocked = unlockedDifficulties.has(key);
     const cls = classes[idx] || '';
     if (unlocked) {
-      return `<button class="diff-btn ${cls}" onclick="startGame('${key}')">${diff.label}</button>`;
+      return `<button class="diff-btn ${cls}" onclick="showTankSelect('${key}')">${diff.label}</button>`;
     } else {
       return `<button class="diff-btn ${cls} locked" disabled>LOCK ${diff.label}<br><span class="lock-hint">${diff.label}模式获得${diff.unlockScore}分解锁</span></button>`;
     }
@@ -2863,12 +2864,14 @@ function showTankSelect(difficulty) {
       </div>`;
     } else {
       const cond = TANK_UNLOCK_CONDITIONS[key];
+      const unlockStatus = getTankUnlockConditionStatus(key);
+      const unlockHint = unlockStatus.met ? '条件已达成 · 点击解锁' : (cond.cost > 0 ? cond.cost + ' MS 解锁' : cond.desc);
       return `<div class="tank-card ${key} locked-card" onclick="if(tryUnlockTank('${key}')){showTankSelect(currentDifficulty);}">
         <span class="tank-icon">LOCK</span>
         <div class="tank-name">???</div>
         <div class="tank-subtitle">未解锁</div>
-        <div class="tank-desc">${cond.cost > 0 ? cond.cost+' MS 解锁' : cond.desc}</div>
-        <div class="tank-detail">${cond.desc}</div>
+        <div class="tank-desc">${unlockHint}</div>
+        <div class="tank-detail">${cond.desc}${unlockStatus.met ? ' · ' + unlockStatus.label : ''}</div>
       </div>`;
     }
   }).join('');
@@ -3275,8 +3278,15 @@ function resetAchievementTracking() {
 function onEnemyKilled(enemyOrElite) {
   const killedEnemy = typeof enemyOrElite === 'object' ? enemyOrElite : null;
   const isElite = killedEnemy ? !!killedEnemy.isElite : !!enemyOrElite;
+  const isBossKill = !!(killedEnemy && killedEnemy.bossDef);
+  const nextBossKills = (tankUnlockProgress.bossKills || 0) + (isBossKill ? 1 : 0);
   sessionKills++;
   if (isElite) sessionEliteKills++;
+  updateTankUnlockProgress({
+    maxEliteKills: sessionEliteKills,
+    bossKills: nextBossKills,
+    borderEcho: nextBossKills >= 2,
+  }, false);
   waveEnemiesRemaining = Math.max(0, waveEnemiesRemaining - 1);
   addRunXp(getRunXpReward(killedEnemy));
 
@@ -3390,6 +3400,8 @@ function getEndingStory() {
 function clearDifficulty() {
   if (difficultyCleared) return;
   difficultyCleared = true;
+  updateTankUnlockProgress({ borderEcho: true, maxWave: wave }, false);
+  saveProgression();
   showWaveNotification('难 度 通 关', difficultySettings[currentDifficulty].label + '战线已完成，首领档案归档');
   const idx = DIFFICULTY_ORDER.indexOf(currentDifficulty);
   if (idx >= 0 && idx < DIFFICULTY_ORDER.length - 1) {
@@ -3401,6 +3413,10 @@ function clearDifficulty() {
 
 function startNextWave() {
   wave++;
+  updateTankUnlockProgress({
+    maxWave: wave,
+    borderEcho: wave >= 12,
+  }, true);
   // Earn fragments for previous wave clear
   if (wave > 1) earnFragments(wave + 1);
 
@@ -5515,10 +5531,7 @@ class EnemyTank extends Tank {
         this.alive = false;
         spawnExplosion(this.x, this.y, 20, '#f80', '#ff0');
         onEnemyKilled(this);
-        if (!player.hit()) {
-          player.hp = 0;
-          player.alive = false;
-        }
+        player.hit();
       }
     }
   }
@@ -6553,10 +6566,7 @@ class BossEnemy extends EliteEnemy {
 
     if (dist < 40) {
       triggerShake(8, 10);
-      if (!player.hit()) {
-        player.hp = 0;
-        player.alive = false;
-      }
+      player.hit();
       const knock = 18;
       this.pushPlayer((dx / dist) * knock, (dy / dist) * knock);
     }
@@ -7043,6 +7053,7 @@ class BossEnemy extends EliteEnemy {
 // --- Meta-Progression: Tank Unlocks + Per-Tank Upgrades + Evolution ---
 const FRAGMENT_KEY = 'tankbattle_fragments';
 const TANK_UNLOCK_KEY = 'tankbattle_tank_unlocks';
+const TANK_UNLOCK_PROGRESS_KEY = 'tankbattle_tank_unlock_progress';
 const TANK_UPGRADE_KEY = 'tankbattle_tank_upgrades';
 const TANK_EVOLVE_KEY = 'tankbattle_tank_evolved';
 const LEADERBOARD_KEY = 'tankbattle_leaderboard';
@@ -7050,6 +7061,7 @@ let leaderboardData = {};
 let leaderboardTab = 'easy';
 let coreFragments = 0;
 let unlockedTanks = new Set(['spread']);
+let tankUnlockProgress = { maxWave: 0, maxEliteKills: 0, bossKills: 0, dailyClears: 0, borderEcho: false };
 let tankUpgrades = {};   // { spread: {hp:0,dmg:0,spd:0,special:0}, ... }
 let evolvedTanks = new Set();
 let labSelectedTank = 'spread';
@@ -7211,10 +7223,13 @@ function loadProgression() {
     const ul = localStorage.getItem(TANK_UNLOCK_KEY);
     if (ul) unlockedTanks = new Set(JSON.parse(ul));
     else unlockedTanks = new Set(['spread']);
+    const tp = localStorage.getItem(TANK_UNLOCK_PROGRESS_KEY);
+    tankUnlockProgress = normalizeTankUnlockProgress(tp ? JSON.parse(tp) : {});
     const ug = localStorage.getItem(TANK_UPGRADE_KEY);
     tankUpgrades = ug ? JSON.parse(ug) : {};
     const ev = localStorage.getItem(TANK_EVOLVE_KEY);
     evolvedTanks = ev ? new Set(JSON.parse(ev)) : new Set();
+    syncTankUnlockProgressFromAchievements(false);
     migrateProgressionIfNeeded();
     // Ensure all tanks have upgrade entries
     Object.keys(tankTypes).forEach(k => {
@@ -7228,6 +7243,7 @@ function saveProgression() {
   try {
     localStorage.setItem(FRAGMENT_KEY, coreFragments.toString());
     localStorage.setItem(TANK_UNLOCK_KEY, JSON.stringify([...unlockedTanks]));
+    localStorage.setItem(TANK_UNLOCK_PROGRESS_KEY, JSON.stringify(tankUnlockProgress));
     localStorage.setItem(TANK_UPGRADE_KEY, JSON.stringify(tankUpgrades));
     localStorage.setItem(TANK_EVOLVE_KEY, JSON.stringify([...evolvedTanks]));
     localStorage.setItem(TANK_PROGRESS_KEY, String(PROGRESSION_VERSION));
@@ -7236,12 +7252,68 @@ function saveProgression() {
 function resetProgression() {
   coreFragments = 0;
   unlockedTanks = new Set(['spread']);
+  tankUnlockProgress = getDefaultTankUnlockProgress();
   tankUpgrades = {};
   evolvedTanks = new Set();
   Object.keys(tankTypes).forEach(k => {
     tankUpgrades[k] = {};
     (TANK_UPGRADE_DEFS[k]||[]).forEach(d => { tankUpgrades[k][d.id] = 0; });
   });
+}
+
+function getDefaultTankUnlockProgress() {
+  return { maxWave: 0, maxEliteKills: 0, bossKills: 0, dailyClears: 0, borderEcho: false };
+}
+
+function normalizeTankUnlockProgress(raw) {
+  const base = getDefaultTankUnlockProgress();
+  const data = raw && typeof raw === 'object' ? raw : {};
+  return {
+    maxWave: Math.max(0, parseInt(data.maxWave, 10) || base.maxWave),
+    maxEliteKills: Math.max(0, parseInt(data.maxEliteKills, 10) || base.maxEliteKills),
+    bossKills: Math.max(0, parseInt(data.bossKills, 10) || base.bossKills),
+    dailyClears: Math.max(0, parseInt(data.dailyClears, 10) || base.dailyClears),
+    borderEcho: !!data.borderEcho,
+  };
+}
+
+function updateTankUnlockProgress(updates, persist = true) {
+  tankUnlockProgress = normalizeTankUnlockProgress(tankUnlockProgress);
+  let changed = false;
+  Object.entries(updates || {}).forEach(([key, value]) => {
+    if (key === 'borderEcho') {
+      const next = !!value || tankUnlockProgress.borderEcho;
+      if (next !== tankUnlockProgress.borderEcho) {
+        tankUnlockProgress.borderEcho = next;
+        changed = true;
+      }
+      return;
+    }
+    const next = Math.max(tankUnlockProgress[key] || 0, parseInt(value, 10) || 0);
+    if (next !== tankUnlockProgress[key]) {
+      tankUnlockProgress[key] = next;
+      changed = true;
+    }
+  });
+  if (changed && persist) saveProgression();
+  return changed;
+}
+
+function syncTankUnlockProgressFromAchievements(persist = true) {
+  const updates = {};
+  if (unlockedAchievements.has('survivor')) updates.maxWave = 5;
+  if (unlockedAchievements.has('tenacious')) updates.maxWave = 10;
+  if (unlockedAchievements.has('wave_15')) updates.maxWave = 15;
+  if (unlockedAchievements.has('wave_20')) updates.maxWave = 20;
+  if (unlockedAchievements.has('wave_25')) updates.maxWave = 25;
+  if (unlockedAchievements.has('wave_30')) updates.maxWave = 30;
+  if (unlockedAchievements.has('elite_hunter')) updates.maxEliteKills = 10;
+  if (unlockedAchievements.has('elite_hunter_25')) updates.maxEliteKills = 25;
+  if (unlockedAchievements.has('elite_hunter_40')) updates.maxEliteKills = 40;
+  if (unlockedAchievements.has('boss_breaker') || unlockedAchievements.has('wave_15')) updates.bossKills = 1;
+  if (unlockedAchievements.has('daily_clear')) updates.dailyClears = 1;
+  if (unlockedAchievements.has('boss_breaker') || unlockedAchievements.has('wave_15')) updates.borderEcho = true;
+  return updateTankUnlockProgress(updates, persist);
 }
 
 function getEvolutionLevel(tank) {
@@ -7301,18 +7373,49 @@ function earnFragments(amount) {
 
 function canUnlockTank(tankType) {
   if (unlockedTanks.has(tankType)) return true;
-  return false;
+  const cond = TANK_UNLOCK_CONDITIONS[tankType];
+  if (!cond) return false;
+  if (cond.cost === 0) return true;
+  return getTankUnlockConditionStatus(tankType).met || coreFragments >= cond.cost;
 }
+
+function getTankUnlockConditionStatus(tankType) {
+  tankUnlockProgress = normalizeTankUnlockProgress(tankUnlockProgress);
+  const maxWaveSeen = Math.max(tankUnlockProgress.maxWave || 0, wave || 0);
+  const maxEliteSeen = Math.max(tankUnlockProgress.maxEliteKills || 0, sessionEliteKills || 0);
+  const dailyDone = (tankUnlockProgress.dailyClears || 0) > 0 || dailyCompletedToday || dailyTargetAchieved;
+  const borderEchoSeen = tankUnlockProgress.borderEcho || maxWaveSeen >= 12 || (tankUnlockProgress.bossKills || 0) >= 2;
+  switch (tankType) {
+    case 'spread': return { met: true, label: '初始机体' };
+    case 'focus': return { met: maxWaveSeen >= 5, label: '已到达第5波' };
+    case 'wide': return { met: maxWaveSeen >= 8, label: '已到达第8波' };
+    case 'burst': return { met: maxEliteSeen >= 5, label: '单局精英击杀已达5' };
+    case 'sniper': return { met: (tankUnlockProgress.bossKills || 0) >= 1, label: 'Boss击杀记录已归档' };
+    case 'homing': return { met: dailyDone, label: '每日挑战已完成' };
+    case 'border': return { met: borderEchoSeen, label: '境界残响已观测' };
+    default: return { met: false, label: '' };
+  }
+}
+
 function tryUnlockTank(tankType) {
   if (unlockedTanks.has(tankType)) return true;
   const cond = TANK_UNLOCK_CONDITIONS[tankType];
-  if (!cond || cond.cost === 0) return true;
+  if (!cond) return false;
+  if (cond.cost === 0 || getTankUnlockConditionStatus(tankType).met) {
+    unlockedTanks.add(tankType);
+    saveProgression();
+    checkAchievements();
+    sfxAchievement();
+    showAchievementToast('KEY', '机体解锁', (tankTypes[tankType]?.name || tankType) + ' 已授权出击', '#f6e5aa');
+    return true;
+  }
   if (coreFragments >= cond.cost) {
     coreFragments -= cond.cost;
     unlockedTanks.add(tankType);
     saveProgression();
     checkAchievements();
     sfxAchievement();
+    showAchievementToast('MS', '机体解锁', (tankTypes[tankType]?.name || tankType) + ' 已授权出击', '#f6e5aa');
     return true;
   }
   return false;
@@ -7598,11 +7701,13 @@ function renderLabUI() {
   if (!unlocked) {
     const cond = TANK_UNLOCK_CONDITIONS[k];
     const mark = LAB_TANK_MARKS[k] || LAB_TANK_MARKS.spread;
+    const unlockStatus = getTankUnlockConditionStatus(k);
+    const unlockButtonText = unlockStatus.met ? 'AUTHORIZE / 条件解锁' : `UNSEAL / ${cond.cost} MS`;
     detail.innerHTML = `<div class="lab-locked-panel">
       <div class="lab-locked-title">LOCKED / ${escapeHtml(mark.code)}</div>
       <canvas class="lab-preview-canvas" id="lab-preview-canvas" width="240" height="170" data-tank="${escapeHtml(k)}" data-evo="0"></canvas>
-      <div class="lab-locked-desc">${escapeHtml(tankTypes[k].name)} · ${escapeHtml(mark.role)}<br>${escapeHtml(cond.desc)}</div>
-      ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">UNSEAL / ${cond.cost} MS</button>` : ''}</div>`;
+      <div class="lab-locked-desc">${escapeHtml(tankTypes[k].name)} · ${escapeHtml(mark.role)}<br>${escapeHtml(cond.desc)}${unlockStatus.met ? '<br>' + escapeHtml(unlockStatus.label) : ''}</div>
+      ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">${escapeHtml(unlockButtonText)}</button>` : ''}</div>`;
   } else {
     const status = getTankStageStatus(k);
     const defs = TANK_UPGRADE_DEFS[k] || [];
@@ -8406,10 +8511,7 @@ function update() {
       if (mx * mx + my * my < 30 * 30) {
         sessionMinesTriggered = true;
         spawnExplosion(mines[i].x, mines[i].y, 15, '#f80', '#ff0');
-        if (!player.hit()) {
-          player.hp = 0;
-          player.alive = false;
-        }
+        player.hit();
         mines.splice(i, 1);
       }
     }
