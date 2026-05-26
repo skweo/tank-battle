@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.6 bullet clash power resolution */
+/* v3.7.7 fix stale run callbacks after returning home */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -2203,6 +2203,8 @@ let modifierChoiceMode = 'level';
 let runBossesSeen = new Set();
 let lastBossName = null;
 let difficultyCleared = false;
+let activeRunId = 0;
+let pendingEndGameTimer = null;
 
 // --- Screen Shake ---
 let shakeIntensity = 0;
@@ -3431,6 +3433,7 @@ function getEndingStory() {
 function clearDifficulty() {
   if (difficultyCleared) return;
   difficultyCleared = true;
+  const runId = activeRunId;
   updateTankUnlockProgress({ borderEcho: true, maxWave: wave }, false);
   saveProgression();
   showWaveNotification('难 度 通 关', difficultySettings[currentDifficulty].label + '战线已完成，首领档案归档');
@@ -3439,7 +3442,12 @@ function clearDifficulty() {
     unlockedDifficulties.add(DIFFICULTY_ORDER[idx + 1]);
     saveUnlocks();
   }
-  setTimeout(() => endGame(true), 650);
+  if (pendingEndGameTimer) clearTimeout(pendingEndGameTimer);
+  pendingEndGameTimer = setTimeout(() => {
+    pendingEndGameTimer = null;
+    if (runId !== activeRunId) return;
+    endGame(true, runId);
+  }, 650);
 }
 
 function startNextWave() {
@@ -8973,7 +8981,8 @@ function draw() {
   if (shakeIntensity > 0.1) ctx.restore();
 }
 
-function endGame(victory = false) {
+function endGame(victory = false, runId = activeRunId) {
+  if (runId !== activeRunId) return;
   gameOverFlag = true;
   gameRunning = false;
   isPaused = false;
@@ -9011,14 +9020,11 @@ function endGame(victory = false) {
 
 function quickRestart() {
   if (!gameOverFlag) return;
-  const gameOverPanel = document.getElementById('game-over');
-  gameOverPanel.classList.remove('visible', 'victory');
-  document.getElementById('pause-screen').style.display = 'none';
-  isPaused = false;
-  const hint = document.querySelector('.quick-hint');
-  if (hint) hint.remove();
   const savedDiff = currentDifficulty;
   const savedTank = currentTankType;
+  hideRunOverlays(false);
+  clearInputState();
+  isPaused = false;
   if (isDailyChallenge) {
     const seed = getDailySeed();
     loadDailyChallengeStatus();
@@ -9065,6 +9071,41 @@ function checkBulletBulletCollisions() {
   }
 }
 
+function cancelPendingRunCallbacks() {
+  if (pendingEndGameTimer) {
+    clearTimeout(pendingEndGameTimer);
+    pendingEndGameTimer = null;
+  }
+}
+
+function clearInputState() {
+  mouseDown = false;
+  Object.keys(keys).forEach(k => { keys[k] = false; });
+}
+
+function hideRunOverlays(showStart = false) {
+  ['pause-screen','modifier-screen','tank-select-screen','achievements-screen','bestiary-screen','lab-screen','leaderboard-screen'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const gameOverPanel = document.getElementById('game-over');
+  if (gameOverPanel) gameOverPanel.classList.remove('visible', 'victory');
+  const startScreen = document.getElementById('start-screen');
+  if (startScreen) startScreen.style.display = showStart ? 'flex' : 'none';
+  const waveNotify = document.getElementById('wave-notify');
+  if (waveNotify) {
+    clearTimeout(waveNotify._timeout);
+    waveNotify.classList.remove('show');
+  }
+  const comboEl = document.getElementById('combo-display');
+  if (comboEl) {
+    clearTimeout(comboEl._timeout);
+    comboEl.classList.remove('active');
+  }
+  const hint = document.querySelector('.quick-hint');
+  if (hint) hint.remove();
+}
+
 function resetRunState() {
   isPaused = false;
   wave = 0;
@@ -9078,6 +9119,7 @@ function resetRunState() {
   enemies = [];
   playerBullets = [];
   enemyBullets = [];
+  obstacles.length = 0;
   mines.length = 0;
   powerUps.length = 0;
   chests.length = 0;
@@ -9110,6 +9152,8 @@ function resetRunState() {
 }
 
 function restartGame() {
+  activeRunId++;
+  cancelPendingRunCallbacks();
   score = 0;
   lives = 3;
   level = 1;
@@ -9117,7 +9161,9 @@ function restartGame() {
   gameOverFlag = false;
   isPaused = false;
   stopMusic();
+  clearInputState();
   resetRunState();
+  hideRunOverlays(true);
   isDailyChallenge = false;
   seededRandom = null;
   dailyTarget = null;
@@ -9125,14 +9171,7 @@ function restartGame() {
   dailyCompletedToday = false;
   dailyBestScore = 0;
   player = new PlayerTank(currentTankType);
-  document.getElementById('wave-notify').classList.remove('show');
-  document.getElementById('combo-display').classList.remove('active');
   document.getElementById('daily-target').style.display = 'none';
-  document.getElementById('game-over').classList.remove('visible', 'victory');
-  document.getElementById('pause-screen').style.display = 'none';
-  const hint = document.querySelector('.quick-hint');
-  if (hint) hint.remove();
-  document.getElementById('start-screen').style.display = 'flex';
   renderDifficultyButtons();
 }
 
@@ -9162,19 +9201,23 @@ function scaleToFit() {
 }
 
 function startGame(difficulty, tankType, options = {}) {
+  activeRunId++;
+  cancelPendingRunCallbacks();
+  stopMusic();
+  clearInputState();
+  hideRunOverlays(false);
   currentDifficulty = difficulty;
   if (tankType) currentTankType = tankType;
   // Ensure selected tank is unlocked
   if (!unlockedTanks.has(currentTankType)) currentTankType = 'spread';
-  const diff = difficultySettings[difficulty];
+  const diff = difficultySettings[difficulty] || difficultySettings.normal;
   lives = diff.lives;
   score = 0;
   level = 1;
-  gameRunning = true;
+  gameRunning = false;
   gameOverFlag = false;
   isPaused = false;
   initAudio();
-  startMusic();
   resetRunState();
   if (options.dailyChallenge) {
     isDailyChallenge = true;
@@ -9195,18 +9238,14 @@ function startGame(difficulty, tankType, options = {}) {
   applyTankUpgrades(currentTankType);
   positionPlayerSafely(220);
   resetAchievementTracking();
-  document.getElementById('wave-notify').classList.remove('show');
-  document.getElementById('combo-display').classList.remove('active');
   renderDailyTarget();
   startNextWave();
-  document.getElementById('start-screen').style.display = 'none';
-  document.getElementById('tank-select-screen').style.display = 'none';
-  document.getElementById('game-over').classList.remove('visible');
-  document.getElementById('pause-screen').style.display = 'none';
   document.getElementById('lives').textContent = lives;
   document.getElementById('score').textContent = score;
   document.getElementById('level').textContent = level;
   updateRunXpHud();
+  gameRunning = true;
+  startMusic();
 }
 
 init();
