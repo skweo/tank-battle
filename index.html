@@ -789,7 +789,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.6.12 battle pause overlay */
+/* v3.6.13 bestiary fix and tiered achievements */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -2285,7 +2285,12 @@ const achievementsDef = [
   { id: 'nightmare_survivor', name: '梦魇存活者', desc: '梦魇难度到达第5关', icon: '☄', reward: 28 },
   { id: 'boss_witness', name: '首领目击者', desc: '抵达第4波并直面Boss', icon: '⬢', reward: 14 },
   { id: 'boss_breaker', name: '破城记录', desc: '抵达第12波，多次突破Boss战线', icon: '⬣', reward: 26 },
-  { id: 'untouched_combo', name: '无伤连祷', desc: '未受伤时达成15连击', icon: '✶', reward: 18 },
+  { id: 'untouched_combo', name: '无伤连祷', desc: '未受伤时达成15连击', icon: '✶', tier: 'elite' },
+  { id: 'wave_30', name: '长夜尽头', desc: '到达第30波', icon: '◫', tier: 'mythic' },
+  { id: 'score_30000', name: '碎月铭刻', desc: '单局得分达到30000', icon: '▧', tier: 'mythic' },
+  { id: 'combo_75', name: '弹道圣裁', desc: '达成75连击', icon: '✷', tier: 'mythic' },
+  { id: 'elite_hunter_40', name: '肃清令执行者', desc: '单局消灭40个精英敌人', icon: '⬗', tier: 'mythic' },
+  { id: 'fusion_first', name: '首次融合协议', desc: '首次触发任意融合道具', icon: '⟡', tier: 'elite' },
 ];
 
 const ACHIEVEMENT_LORE = {
@@ -2333,14 +2338,18 @@ const ACHIEVEMENT_LORE = {
   boss_witness: '第一次看见首领时，雷达会慢半拍。机器也需要一点时间理解恐惧。',
   boss_breaker: '第十二波之后，Boss不再像敌人，更像灾害。破城者学会向灾害开火。',
   untouched_combo: '十五连击且未受伤，像在弹雨中完成一段仪式。圣城拒绝承认这不是神迹。',
+  wave_30: '第三十波之后，夜色不再变深。因为记录员已经找不到比“长夜”更黑的词。',
+  score_30000: '三万分会被刻入碎月链路的冷备份。即使终端烧毁，这串数字也会继续发光。',
+  combo_75: '七十五连击像一次审判，弹道在空中排成圣裁纹章。敌人只来得及听见结论。',
+  elite_hunter_40: '四十个精英信标熄灭后，灰域会短暂安静。那不是和平，只是敌方在重新点名。',
+  fusion_first: '第一次融合协议启动时，机体会发出不属于任何工厂的钟声。研究室称其为可控异常。',
 };
 
-const ACHIEVEMENT_RARITY = [
-  { min: 30, label: 'MYTH', className: 'myth', color: '#f6e5aa' },
-  { min: 20, label: 'EPIC', className: 'epic', color: '#8ce8ff' },
-  { min: 12, label: 'RARE', className: 'rare', color: '#f49800' },
-  { min: 0, label: 'STD', className: 'standard', color: '#7f92aa' },
-];
+const ACHIEVEMENT_TIERS = {
+  standard: { label: 'STANDARD', className: 'standard', color: '#7f92aa', reward: 8 },
+  elite: { label: 'ELITE', className: 'elite', color: '#f49800', reward: 18 },
+  mythic: { label: 'MYTHIC', className: 'myth', color: '#f6e5aa', reward: 32 },
+};
 
 const STORAGE_KEY = 'tankbattle_achievements';
 const UNLOCK_KEY = 'tankbattle_unlocks';
@@ -2375,8 +2384,20 @@ function saveAchievementRewards() {
   } catch(e) {}
 }
 
+function inferAchievementTier(def) {
+  if (def && def.tier && ACHIEVEMENT_TIERS[def.tier]) return def.tier;
+  const reward = (def && def.reward) || 0;
+  if (reward >= 26) return 'mythic';
+  if (reward >= 14) return 'elite';
+  return 'standard';
+}
+
+function getAchievementTier(def) {
+  return ACHIEVEMENT_TIERS[inferAchievementTier(def)] || ACHIEVEMENT_TIERS.standard;
+}
+
 function getAchievementReward(def) {
-  return Math.max(1, (def && def.reward) || 5);
+  return getAchievementTier(def).reward;
 }
 
 function getAchievementIndex(id) {
@@ -2389,8 +2410,7 @@ function getAchievementCode(def) {
 }
 
 function getAchievementRarity(def) {
-  const reward = getAchievementReward(def);
-  return ACHIEVEMENT_RARITY.find(r => reward >= r.min) || ACHIEVEMENT_RARITY[ACHIEVEMENT_RARITY.length - 1];
+  return getAchievementTier(def);
 }
 
 function getAchievementSeal(def) {
@@ -2527,13 +2547,16 @@ function checkAchievements() {
   if (score >= 5000) unlockAchievement('score_5000');
   if (score >= 10000) unlockAchievement('score_10000');
   if (score >= 20000) unlockAchievement('score_20000');
+  if (score >= 30000) unlockAchievement('score_30000');
   if (currentDifficulty === 'hard' && level >= 5) unlockAchievement('hardcore');
   if (currentDifficulty === 'nightmare' && level >= 5) unlockAchievement('nightmare_survivor');
   if (maxComboReached >= 20) unlockAchievement('combo_20');
   if (maxComboReached >= 35) unlockAchievement('combo_35');
   if (maxComboReached >= 50) unlockAchievement('combo_50');
+  if (maxComboReached >= 75) unlockAchievement('combo_75');
   if (sessionEliteKills >= 10) unlockAchievement('elite_hunter');
   if (sessionEliteKills >= 25) unlockAchievement('elite_hunter_25');
+  if (sessionEliteKills >= 40) unlockAchievement('elite_hunter_40');
   if (sessionPowerUpsCollected >= 20) unlockAchievement('powerup_collector');
   if (sessionPowerUpsCollected >= 40) unlockAchievement('powerup_collector_40');
   if (coreFragments >= 500) unlockAchievement('fragment_500');
@@ -2542,6 +2565,7 @@ function checkAchievements() {
   if (wave >= 12) unlockAchievement('boss_breaker');
   if (wave >= 20) unlockAchievement('wave_20');
   if (wave >= 25) unlockAchievement('wave_25');
+  if (wave >= 30) unlockAchievement('wave_30');
   if (!sessionGotHit && maxComboReached >= 15) unlockAchievement('untouched_combo');
   if (dailyTargetAchieved) unlockAchievement('daily_clear');
   if (Object.keys(tankTypes).every(k => unlockedTanks.has(k))) unlockAchievement('all_tanks_unlocked');
@@ -2813,6 +2837,7 @@ function checkFusion(newType) {
 
 function applyPowerUp(p) {
   sessionPowerUpsCollected++;
+  discoverBestiary('powerups', p.type);
   if (p.rarity === 'legendary') sfxPowerUpRare(); else sfxPowerUp();
   if (p.type === 'repair') {
     const healAmt = p.rarity === 'legendary' ? 3 : (p.rarity === 'rare' ? 2 : 1);
@@ -2825,6 +2850,8 @@ function applyPowerUp(p) {
   const def = powerUpDefs.find(d => d.type === p.type);
 
   if (fusion) {
+    discoverBestiary('fusions', fusion.id);
+    unlockAchievement('fusion_first');
     // Remove original buffs, apply fusion
     fusion.requires.forEach(r => buffs[r] = 0);
     fusion.apply();
@@ -2933,6 +2960,7 @@ function renderAchievements() {
     const rarity = getAchievementRarity(a);
     const code = getAchievementCode(a);
     const seal = getAchievementSeal(a);
+    const tierName = rarity.label + ' · 奖励 ' + reward + ' 月光石';
     const lore = unlocked ? (ACHIEVEMENT_LORE[a.id] || '该战绩尚未完成解密。记录员只留下一个空白编号，等待新的驾驶员补全。') : '档案加密中。完成该成就后，机装研究室才会开放战绩记录。';
     const statusText = unlocked ? (claimed ? 'ARCHIVED' : 'CLAIM READY') : 'ENCRYPTED';
     const rewardHtml = unlocked
@@ -2948,7 +2976,7 @@ function renderAchievements() {
       <div class="ach-info">
         <div class="ach-topline">
           <span class="ach-code">${escapeHtml(code)}</span>
-          <span class="ach-rarity">${escapeHtml(rarity.label)}</span>
+          <span class="ach-rarity">${escapeHtml(tierName)}</span>
           <span class="ach-status">${escapeHtml(statusText)}</span>
         </div>
         <div class="ach-name">${unlocked ? escapeHtml(a.name) : '未解锁战绩'}</div>
@@ -2974,6 +3002,48 @@ function hideAchievements() {
 
 // --- Bestiary ---
 let bestiaryTab = 'powerups';
+const BESTIARY_DISCOVERY_KEY = 'tankbattle_bestiary_discovered';
+let discoveredBestiary = {
+  powerups: new Set(),
+  elites: new Set(),
+  bosses: new Set(),
+  fusions: new Set(),
+};
+
+function loadBestiaryDiscovery() {
+  try {
+    const raw = localStorage.getItem(BESTIARY_DISCOVERY_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      discoveredBestiary = {
+        powerups: new Set(data.powerups || []),
+        elites: new Set(data.elites || []),
+        bosses: new Set(data.bosses || []),
+        fusions: new Set(data.fusions || []),
+      };
+    }
+  } catch(e) {
+    discoveredBestiary = { powerups: new Set(), elites: new Set(), bosses: new Set(), fusions: new Set() };
+  }
+}
+
+function saveBestiaryDiscovery() {
+  try {
+    localStorage.setItem(BESTIARY_DISCOVERY_KEY, JSON.stringify({
+      powerups: [...discoveredBestiary.powerups],
+      elites: [...discoveredBestiary.elites],
+      bosses: [...discoveredBestiary.bosses],
+      fusions: [...discoveredBestiary.fusions],
+    }));
+  } catch(e) {}
+}
+
+function discoverBestiary(kind, id) {
+  if (!kind || !id || !discoveredBestiary[kind]) return;
+  if (discoveredBestiary[kind].has(id)) return;
+  discoveredBestiary[kind].add(id);
+  saveBestiaryDiscovery();
+}
 
 function renderBestiary() {
   const grid = document.getElementById('bestiary-grid');
@@ -4430,6 +4500,8 @@ class EliteEnemy extends EnemyTank {
     this.special = eliteDef.special;
     this.eliteIcon = eliteDef.icon;
     this.eliteName = eliteDef.name;
+    if (eliteDef.special === 'boss') discoverBestiary('bosses', eliteDef.name);
+    else discoverBestiary('elites', eliteDef.special);
     this.shootDelay = 60 + rng() * 40;
     if (eliteDef.special === 'sniper') {
       this.shootDelay = 40 + rng() * 30;
@@ -6997,6 +7069,7 @@ function restartGame() {
 function init() {
   loadAchievements();
   loadAchievementRewards();
+  loadBestiaryDiscovery();
   loadUnlocks();
   loadProgression();
   loadLeaderboard();
