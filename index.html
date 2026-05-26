@@ -67,6 +67,7 @@ canvas { display: block; background: #0a0f18; }
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
 }
 #game-over p { color: #e8ecf0; font-size: 18px; font-family: 'Segoe UI','Microsoft YaHei',sans-serif; }
+#game-over .game-over-actions { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; justify-content: center; }
 #game-over button {
   pointer-events: all; padding: 10px 36px; font-size: 15px;
   background: rgba(22,28,38,0.9); color: #f49800; border: 1px solid rgba(244,152,0,0.3);
@@ -74,6 +75,7 @@ canvas { display: block; background: #0a0f18; }
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
   letter-spacing: 3px;
 }
+#game-over button.retry-btn { color: #f6e5aa; border-color: rgba(244,152,0,0.44); background: rgba(244,152,0,0.13); }
 #game-over button:hover { background: rgba(40,48,58,0.9); border-color: rgba(244,152,0,0.6); }
 #start-screen {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -763,7 +765,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.6.10 achievement dossier terminal */
+/* v3.6.11 expanded battlefield and progression pass */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -1224,6 +1226,19 @@ canvas { background: #070d13; }
   border-color: var(--threat, #f49800);
   transform: translateX(3px);
 }
+#bestiary-screen .best-row.locked {
+  filter: saturate(0.55);
+  background:
+    linear-gradient(90deg, rgba(88,103,122,0.12), transparent 40%),
+    linear-gradient(135deg, rgba(8,12,18,0.84), rgba(5,9,14,0.68));
+}
+#bestiary-screen .best-row.locked .bst-name,
+#bestiary-screen .best-row.locked .bst-desc { color: #58677a; }
+#bestiary-screen .best-row .locked-emblem {
+  color: #58677a;
+  border-color: rgba(107,125,149,0.16);
+  box-shadow: none;
+}
 #bestiary-screen .best-row:focus {
   outline: 1px solid rgba(246,229,170,0.35);
   outline-offset: 2px;
@@ -1530,7 +1545,10 @@ canvas { background: #070d13; }
   <div id="game-over">
     <h1>游戏结束</h1>
     <p>最终得分: <span id="final-score">0</span></p>
-    <button onclick="restartGame()">重新开始</button>
+    <div class="game-over-actions">
+      <button onclick="restartGame()">返回主页</button>
+      <button class="retry-btn" onclick="quickRestart()">再来一局</button>
+    </div>
   </div>
   <div id="achieve-toast">
     <span class="achieve-icon"></span>
@@ -1646,8 +1664,8 @@ canvas { background: #070d13; }
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const W = 1000;
-const H = 680;
+const W = 1180;
+const H = 780;
 canvas.width = W;
 canvas.height = H;
 
@@ -2559,9 +2577,9 @@ function onEnemyKilled(isElite) {
   // Score + fragment drops
   const basePoints = isElite ? 300 : 100;
   let pts = buffs.double_score > 0 ? basePoints * 2 : basePoints;
-  if (buffs.goldrush > 0) pts *= 3;
+  if (buffs.goldrush > 0) pts *= 2;
   score += pts;
-  coreFragments += (isElite ? 3 : 1) * (buffs.goldrush > 0 ? 3 : 1);
+  coreFragments += (isElite ? 3 : 1) * (buffs.goldrush > 0 ? 2 : 1);
   saveProgression();
   checkAchievements();
   if (buffs.vampire > 0 && player.alive) {
@@ -2580,6 +2598,26 @@ function showWaveNotification(text, sub) {
   if (text.includes('清除')) sfxWaveClear();
 }
 
+function getWaveEnemyBudget(waveNo) {
+  return Math.min(36, 3 + Math.floor(waveNo * 1.45) + Math.floor(waveNo * waveNo / 18));
+}
+
+function getBossSupportCount(waveNo) {
+  return Math.min(9, 3 + Math.floor(waveNo / 4));
+}
+
+function getWaveSpawnBurst(waveNo) {
+  return Math.min(6, 2 + Math.floor(waveNo / 5));
+}
+
+function getWaveConcurrentEnemyCap() {
+  return Math.min(18, 5 + Math.floor(wave / 2) + Math.floor(level / 3));
+}
+
+function getWaveSpawnRate(diff) {
+  return Math.max(24, diff.spawnRate - wave * 12 - level * 5);
+}
+
 function startNextWave() {
   wave++;
   // Earn fragments for previous wave clear
@@ -2588,7 +2626,7 @@ function startNextWave() {
   // Boss wave every 4 waves (starting from wave 4)
   if (wave >= 4 && wave % 4 === 0) {
     isBossWave = true;
-    const bossSupportCount = wave >= 12 ? 4 : 3;
+    const bossSupportCount = getBossSupportCount(wave);
     waveEnemiesTotal = 1 + bossSupportCount;
     waveEnemiesRemaining = 1 + bossSupportCount;
     wavePause = 0;
@@ -2617,46 +2655,47 @@ function startNextWave() {
     isBossWave = false;
   }
   bossRef = null;
-  const enemiesPerWave = 2 + Math.floor(wave / 2);
+  const enemiesPerWave = getWaveEnemyBudget(wave);
   waveEnemiesTotal = enemiesPerWave;
   waveEnemiesRemaining = enemiesPerWave;
   wavePause = 0;
-  for (let i = 0; i < 2; i++) spawnEnemy();
+  const firstBurst = Math.min(getWaveSpawnBurst(wave), waveEnemiesRemaining);
+  for (let i = 0; i < firstBurst; i++) spawnEnemy();
   const sub = (wave % 3 === 0) ? '补给时间! 收集道具准备下一波' : '准备迎战!';
   showWaveNotification('第 ' + wave + ' 波', sub);
 }
 
 // --- Power-ups ---
 const RARITY_CONFIG = {
-  common: { weight: 60, durationMul: 1.0, descSuffix: '', glowColor: null, size: 10 },
-  rare:   { weight: 30, durationMul: 1.5, descSuffix: ' [稀有]', glowColor: '#6af', size: 13 },
-  legendary: { weight: 10, durationMul: 2.5, descSuffix: ' [传说]', glowColor: '#fd0', size: 16 },
+  common: { weight: 68, durationMul: 0.78, descSuffix: '', glowColor: null, size: 10 },
+  rare:   { weight: 25, durationMul: 1.05, descSuffix: ' [稀有]', glowColor: '#6af', size: 12 },
+  legendary: { weight: 7, durationMul: 1.45, descSuffix: ' [传说]', glowColor: '#fd0', size: 14 },
 };
 const powerUpDefs = [
-  { type: 'speed',    name: '加强履带', icon: '⚡', color: '#4af', desc: '移速×1.2', duration: 900 },
-  { type: 'railgun',  name: '电磁炮',   icon: '🔫', color: '#a4f', desc: '穿透脉冲', duration: 720 },
-  { type: 'ricochet', name: '反弹弹',   icon: '💫', color: '#fa4', desc: '子弹弹射', duration: 900 },
-  { type: 'shield',   name: '能量护盾', icon: '🛡️', color: '#4ff', desc: '临时无敌', duration: 420 },
-  { type: 'rapid',    name: '急速连射', icon: '🔥', color: '#f44', desc: '射速翻倍', duration: 660 },
-  { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复3HP', duration: 0 },
-  { type: 'freeze',   name: '冰冻弹',   icon: '❄️', color: '#8cf', desc: '减缓敌人', duration: 540 },
-  { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '子弹+2发', duration: 780 },
-  { type: 'magnet',   name: '磁铁',     icon: '🧲', color: '#c8f', desc: '自动吸取道具', duration: 720 },
-  { type: 'pierce',   name: '穿甲弹',   icon: '🗡️', color: '#ff8', desc: '子弹穿透敌人', duration: 660 },
-  { type: 'vampire',  name: '生命汲取', icon: '🩸', color: '#f66', desc: '击杀恢复1HP', duration: 720 },
-  { type: 'double_score', name: '双倍积分', icon: '✨', color: '#ff0', desc: '积分翻倍', duration: 720 },
-  { type: 'big_bullet', name: '巨型子弹', icon: '💣', color: '#f80', desc: '子弹判定扩大', duration: 660 },
-  { type: 'explosive',name: '爆炸弹',   icon: '💢', color: '#f84', desc: '子弹爆炸溅射', duration: 660 },
-  { type: 'invisible',name: '光学迷彩', icon: '👻', color: '#aaa', desc: '敌人索敌减半', duration: 720 },
-  { type: 'thorns',   name: '荆棘护甲', icon: '🌵', color: '#8f8', desc: '反弹接触伤害', duration: 540 },
-  { type: 'overdrive', name: '火力全开', icon: '🔥', color: '#f80', desc: '子弹伤害+1', duration: 600 },
-  { type: 'timewarp', name: '时间减缓', icon: '⏳', color: '#8cf', desc: '敌方弹速减半', duration: 480 },
-  { type: 'goldrush', name: '黄金时刻', icon: '💰', color: '#fd0', desc: '分数和碎片×3', duration: 360 },
+  { type: 'speed',    name: '加强履带', icon: '⚡', color: '#4af', desc: '移速×1.12', duration: 660 },
+  { type: 'railgun',  name: '电磁炮',   icon: '🔫', color: '#a4f', desc: '短时穿透脉冲', duration: 540 },
+  { type: 'ricochet', name: '反弹弹',   icon: '💫', color: '#fa4', desc: '子弹弹射', duration: 660 },
+  { type: 'shield',   name: '能量护盾', icon: '🛡️', color: '#4ff', desc: '短时无敌', duration: 300 },
+  { type: 'rapid',    name: '急速连射', icon: '🔥', color: '#f44', desc: '射速提升', duration: 480 },
+  { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复少量HP', duration: 0 },
+  { type: 'freeze',   name: '冰冻弹',   icon: '❄️', color: '#8cf', desc: '短时减缓敌人', duration: 420 },
+  { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '子弹+2发', duration: 540 },
+  { type: 'magnet',   name: '磁铁',     icon: '🧲', color: '#c8f', desc: '吸取范围提升', duration: 540 },
+  { type: 'pierce',   name: '穿甲弹',   icon: '🗡️', color: '#ff8', desc: '子弹穿透敌人', duration: 480 },
+  { type: 'vampire',  name: '生命汲取', icon: '🩸', color: '#f66', desc: '击杀概率恢复HP', duration: 540 },
+  { type: 'double_score', name: '双倍积分', icon: '✨', color: '#ff0', desc: '积分×1.5', duration: 540 },
+  { type: 'big_bullet', name: '巨型子弹', icon: '💣', color: '#f80', desc: '子弹判定扩大', duration: 480 },
+  { type: 'explosive',name: '爆炸弹',   icon: '💢', color: '#f84', desc: '子弹爆炸溅射', duration: 480 },
+  { type: 'invisible',name: '光学迷彩', icon: '👻', color: '#aaa', desc: '敌人索敌降低', duration: 540 },
+  { type: 'thorns',   name: '荆棘护甲', icon: '🌵', color: '#8f8', desc: '反弹接触伤害', duration: 420 },
+  { type: 'overdrive', name: '火力全开', icon: '🔥', color: '#f80', desc: '短时伤害+1', duration: 420 },
+  { type: 'timewarp', name: '时间减缓', icon: '⏳', color: '#8cf', desc: '敌方弹速降低', duration: 360 },
+  { type: 'goldrush', name: '黄金时刻', icon: '💰', color: '#fd0', desc: '分数和碎片×2', duration: 300 },
 ];
 function getRandomRarity() {
   const r = rng() * 100;
-  if (r < 10) return 'legendary';
-  if (r < 40) return 'rare';
+  if (r < RARITY_CONFIG.legendary.weight) return 'legendary';
+  if (r < RARITY_CONFIG.legendary.weight + RARITY_CONFIG.rare.weight) return 'rare';
   return 'common';
 }
 
@@ -2684,7 +2723,7 @@ function spawnPowerUp(x, y) {
     x: x, y: y, type: def.type, name: def.name,
     icon: def.icon, color: def.color, duration: def.duration,
     life: 900, rarity: rarity,
-    displayDuration: def.duration > 0 ? Math.floor(def.duration * rc.durationMul * 1.3) : 0,
+    displayDuration: def.duration > 0 ? Math.floor(def.duration * rc.durationMul) : 0,
     displayName: def.name + rc.descSuffix,
     glowColor: rc.glowColor,
     size: rc.size,
@@ -2716,15 +2755,15 @@ function checkSynergy(newType) {
 // --- Item Fusion Recipes ---
 const FUSION_RECIPES = [
   { id:'gold_magnet', name:'黄金磁铁', icon:'🧲✨', desc:'自动吸取+4倍积分', requires:['magnet','double_score'],
-    apply(){ buffs.magnet=900; buffs.double_score=900; if(buffs.goldrush) buffs.goldrush+=600; else buffs.goldrush=600; } },
+    apply(){ buffs.magnet=660; buffs.double_score=660; if(buffs.goldrush) buffs.goldrush+=360; else buffs.goldrush=360; } },
   { id:'railgun_plus', name:'超电磁炮', icon:'🔫🗡️', desc:'穿透+穿甲+高速弹', requires:['railgun','pierce'],
-    apply(){ buffs.railgun=900; buffs.pierce=900; } },
+    apply(){ buffs.railgun=660; buffs.pierce=660; } },
   { id:'frost_blast', name:'冰火爆裂', icon:'❄️💢', desc:'冰冻+爆炸+大范围', requires:['freeze','explosive'],
-    apply(){ buffs.freeze=900; buffs.explosive=900; explosionRadiusMul+=0.3; } },
+    apply(){ buffs.freeze=660; buffs.explosive=660; explosionRadiusMul+=0.2; } },
   { id:'undying_thorns', name:'不死荆棘', icon:'🩸🌵', desc:'吸血+荆棘+HP上限+3', requires:['vampire','thorns'],
-    apply(){ buffs.vampire=900; buffs.thorns=900; player.maxHp+=3; player.hp+=3; } },
+    apply(){ buffs.vampire=660; buffs.thorns=660; player.maxHp+=1; player.hp=Math.min(player.maxHp, player.hp+2); } },
   { id:'bullet_storm', name:'弹幕风暴', icon:'💣💥', desc:'巨型子弹+5方向弹幕', requires:['big_bullet','multishot'],
-    apply(){ buffs.big_bullet=900; buffs.multishot=900; } },
+    apply(){ buffs.big_bullet=660; buffs.multishot=660; } },
 ];
 
 function checkFusion(newType) {
@@ -2741,7 +2780,7 @@ function applyPowerUp(p) {
   sessionPowerUpsCollected++;
   if (p.rarity === 'legendary') sfxPowerUpRare(); else sfxPowerUp();
   if (p.type === 'repair') {
-    const healAmt = p.rarity === 'legendary' ? 5 : (p.rarity === 'rare' ? 3 : 2);
+    const healAmt = p.rarity === 'legendary' ? 3 : (p.rarity === 'rare' ? 2 : 1);
     player.hp = Math.min(player.hp + healAmt, player.maxHp);
     return;
   }
@@ -2842,11 +2881,11 @@ function getExplosionRadius() {
 }
 
 function getEffectiveSpeed() {
-  return player.speed * (buffs.speed > 0 ? 1.2 : 1) * playerSpeedMul;
+  return player.speed * (buffs.speed > 0 ? 1.12 : 1) * playerSpeedMul;
 }
 
 function getEffectiveShootDelay() {
-  const base = buffs.rapid > 0 ? Math.floor(player.shootDelay / 2) : player.shootDelay;
+  const base = buffs.rapid > 0 ? Math.floor(player.shootDelay * 0.65) : player.shootDelay;
   return Math.max(8, Math.floor(base * playerShootDelayMul));
 }
 
@@ -2859,7 +2898,7 @@ function renderAchievements() {
     const rarity = getAchievementRarity(a);
     const code = getAchievementCode(a);
     const seal = getAchievementSeal(a);
-    const lore = ACHIEVEMENT_LORE[a.id] || '该战绩尚未完成解密。记录员只留下一个空白编号，等待新的驾驶员补全。';
+    const lore = unlocked ? (ACHIEVEMENT_LORE[a.id] || '该战绩尚未完成解密。记录员只留下一个空白编号，等待新的驾驶员补全。') : '档案加密中。完成该成就后，机装研究室才会开放战绩记录。';
     const statusText = unlocked ? (claimed ? 'ARCHIVED' : 'CLAIM READY') : 'ENCRYPTED';
     const rewardHtml = unlocked
       ? (claimed
@@ -2877,7 +2916,7 @@ function renderAchievements() {
           <span class="ach-rarity">${escapeHtml(rarity.label)}</span>
           <span class="ach-status">${escapeHtml(statusText)}</span>
         </div>
-        <div class="ach-name">${a.name}</div>
+        <div class="ach-name">${unlocked ? escapeHtml(a.name) : '未解锁战绩'}</div>
         <div class="ach-desc">${unlocked ? a.desc : '???'}</div>
         <div class="ach-lore"><span>战绩档案</span>${escapeHtml(lore)}</div>
       </div>
@@ -2911,6 +2950,9 @@ function renderBestiary() {
       tag: p.duration > 0 ? (p.duration/60).toFixed(0) + '秒' : '即时',
       subTag: '拾取强化',
       lore: BESTIARY_LORE.powerups[p.type],
+      unlocked: discoveredBestiary.powerups.has(p.type),
+      lockedName: '未解析模块',
+      lockedDesc: '???',
     }));
   } else if (bestiaryTab === 'elites') {
     items = eliteTypes.map(e => {
@@ -2920,6 +2962,9 @@ function renderBestiary() {
         name: e.name, desc: getEliteDescription(e.special), tag: '精英',
         subTag: 'HP ' + e.hp + ' · SPD ' + e.speed,
         lore: BESTIARY_LORE.elites[e.special],
+        unlocked: discoveredBestiary.elites.has(e.special),
+        lockedName: '未知精英单位',
+        lockedDesc: '???',
       };
     });
   } else if (bestiaryTab === 'bosses') {
@@ -2931,15 +2976,21 @@ function renderBestiary() {
       tag: 'HP ' + b.hp,
       subTag: b.phases.length + '阶段战术',
       lore: BESTIARY_LORE.bosses[b.name],
+      unlocked: discoveredBestiary.bosses.has(b.name),
+      lockedName: '未识别首领',
+      lockedDesc: '???',
     }));
   } else {
     items = FUSION_RECIPES.map(f => ({
-      glyph: getEnemyVisualProfile('fusion').glyph, color: getEnemyVisualProfile('fusion').color, classLabel: 'FUSION',
+      glyph: getEnemyVisualProfile('fusion').glyph, color: '#f6e5aa', classLabel: 'RELIC-FUSION',
       name: f.name, fusionId: f.id,
       desc: f.desc,
       tag: f.requires.map(r => powerUpDefs.find(p => p.type === r)?.name || r).join(' + '),
       subTag: '组合协议',
       lore: BESTIARY_LORE.fusions[f.id],
+      unlocked: discoveredBestiary.fusions.has(f.id),
+      lockedName: '未解密融合协议',
+      lockedDesc: '???',
     }));
   }
   grid.innerHTML = items.map(buildBestiaryRow).join('');
@@ -3272,6 +3323,13 @@ function drawPowerUpGlyph(ctx, p, size) {
 
 function drawFusionGlyph(ctx, fusionId, x, y, size) {
   const s = size;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(246,229,170,0.55)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x, y, s * 0.72, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
   switch (fusionId) {
     case 'gold_magnet':
       drawPowerUpGlyph(ctx, { type:'magnet', x: x - s * 0.18, y }, s * 0.78);
@@ -3305,6 +3363,7 @@ function drawFusionGlyph(ctx, fusionId, x, y, size) {
 }
 
 function getBestiaryVisual(item) {
+  if (item.unlocked === false) return `<div class="bst-emblem locked-emblem">?</div>`;
   if (item.fusionId) return `<canvas class="bst-preview-canvas" width="36" height="36" data-kind="fusion" data-id="${escapeHtml(item.fusionId)}"></canvas>`;
   if (item.powerType) return `<canvas class="bst-preview-canvas" width="36" height="36" data-kind="powerup" data-id="${escapeHtml(item.powerType)}"></canvas>`;
   return `<div class="bst-emblem">${escapeHtml(item.glyph || '◇')}</div>`;
@@ -3326,8 +3385,8 @@ function renderBestiaryCanvases() {
       drawTechModuleShell(ctx, 15, 9, accent, accent);
       drawPowerUpGlyph(ctx, { type:id, x:0, y:0 }, 8.4);
     } else if (kind === 'fusion') {
-      drawTechModuleShell(ctx, 15, 9, '#f3a8ff', '#f3a8ff');
-      drawFusionGlyph(ctx, id, 0, 0, 10);
+      drawFusionRelicShell(ctx, 16, 9, '#f3a8ff', '#f6e5aa');
+      drawFusionGlyph(ctx, id, 0, 0, 9.5);
     }
     ctx.restore();
   });
@@ -3348,6 +3407,44 @@ function drawBuffBadge(ctx, type, x, y, size, color) {
   ctx.lineTo(outer * 0.55, 0);
   ctx.stroke();
   drawPowerUpGlyph(ctx, { type, x: 0, y: 0 }, inner * 0.88);
+  ctx.restore();
+}
+
+function drawFusionRelicShell(ctx, outer, inner, accentColor, glowColor) {
+  ctx.save();
+  const pulse = Math.sin(Date.now() / 360) * 0.5 + 0.5;
+  ctx.strokeStyle = accentColor;
+  ctx.fillStyle = 'rgba(16,8,22,0.94)';
+  ctx.lineWidth = 1.6;
+  withGlow(ctx, glowColor || accentColor, 12 + pulse * 8, () => {
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 4;
+      const r = i % 2 === 0 ? outer : outer * 0.72;
+      const px = Math.cos(a) * r;
+      const py = Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  });
+  ctx.strokeStyle = 'rgba(246,229,170,0.45)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, inner + 4, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = accentColor;
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2 + Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * (inner + 2), Math.sin(a) * (inner + 2));
+    ctx.lineTo(Math.cos(a) * (outer + 4), Math.sin(a) * (outer + 4));
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(246,229,170,0.16)';
+  ctx.fillRect(-outer * 0.55, -1, outer * 1.1, 2);
+  ctx.fillRect(-1, -outer * 0.55, 2, outer * 1.1);
   ctx.restore();
 }
 
@@ -3497,19 +3594,25 @@ function escapeHtml(text) {
 }
 
 function buildBestiaryRow(it) {
-  return `<div class="best-row" tabindex="0" style="--threat:${escapeHtml(it.color || '#f49800')}">
+  const unlocked = it.unlocked !== false;
+  const name = unlocked ? it.name : (it.lockedName || '未解锁档案');
+  const desc = unlocked ? it.desc : (it.lockedDesc || '???');
+  const lore = unlocked ? it.lore : '档案加密中。遭遇、拾取或完成对应协议后，图鉴将自动解锁记录。';
+  const tag = unlocked ? it.tag : 'LOCKED';
+  const subTag = unlocked ? it.subTag : '资料封存';
+  return `<div class="best-row ${unlocked ? 'unlocked' : 'locked'}" tabindex="0" style="--threat:${escapeHtml(unlocked ? (it.color || '#f49800') : '#58677a')}">
     <div class="bst-icon">${getBestiaryVisual(it)}</div>
     <div class="bst-info">
       <div class="bst-head">
-        <div class="bst-name">${escapeHtml(it.name)}</div>
+        <div class="bst-name">${escapeHtml(name)}</div>
         <div class="bst-class">${escapeHtml(it.classLabel || '')}</div>
       </div>
-      <div class="bst-desc">${escapeHtml(it.desc)}</div>
+      <div class="bst-desc">${escapeHtml(desc)}</div>
       <div class="bst-meta">
-        <span class="bst-tag">${escapeHtml(it.tag || '')}</span>
-        ${it.subTag ? `<span class="bst-tag">${escapeHtml(it.subTag)}</span>` : ''}
+        <span class="bst-tag">${escapeHtml(tag || '')}</span>
+        ${subTag ? `<span class="bst-tag">${escapeHtml(subTag)}</span>` : ''}
       </div>
-      ${it.lore ? `<div class="bst-lore"><span>档案</span>${escapeHtml(it.lore)}</div>` : ''}
+      ${lore ? `<div class="bst-lore"><span>档案</span>${escapeHtml(lore)}</div>` : ''}
     </div>
   </div>`;
 }
@@ -6240,21 +6343,22 @@ function spawnEnemy() {
   }
 
   // Chance to spawn elite (increases with level)
-  const eliteChance = Math.min(0.35, 0.08 + level * 0.02);
-  if (level >= 2 && rng() < eliteChance) {
-    const maxIdx = Math.min(11, Math.floor((level + 1) / 2));
+  const eliteChance = Math.min(0.55, 0.06 + wave * 0.018 + level * 0.012);
+  if (wave >= 3 && rng() < eliteChance) {
+    const maxIdx = Math.min(11, Math.floor((wave + level) / 3));
     const idx = Math.floor(rng() * (maxIdx + 1));
     const etype = eliteTypes[idx];
     enemies.push(new EliteEnemy(x, y, etype));
     return;
   }
 
-  const maxIdx = Math.min(3, Math.floor(level / 2));
+  const maxIdx = Math.min(3, Math.floor((wave + level) / 4));
   const idx = Math.floor(rng() * (maxIdx + 1));
   const type = enemyTypes[idx];
   const diff = difficultySettings[currentDifficulty];
-  const hp = Math.max(1, type.hp + Math.floor(level / 3) + diff.enemyHpBonus);
-  enemies.push(new EnemyTank(x, y, type.color, type.turret, type.speed * diff.enemySpeedMul, hp, type.kind));
+  const hp = Math.max(1, type.hp + Math.floor(wave / 4) + Math.floor(level / 4) + diff.enemyHpBonus);
+  const speedMul = diff.enemySpeedMul * (1 + Math.min(0.28, wave * 0.008));
+  enemies.push(new EnemyTank(x, y, type.color, type.turret, type.speed * speedMul, hp, type.kind));
 }
 
 // --- Collision detection ---
@@ -6298,24 +6402,74 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
 function drawGround(ctx) {
   // Biome tint
   const biome = (wave - 1) % 5;
-  const tints = ['#111','#111511','#111118','#181111','#111111'];
-  ctx.fillStyle = tints[biome];
+  const tints = ['#0d1117','#101510','#0d1020','#1a0e0c','#0c1111'];
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, tints[biome]);
+  grad.addColorStop(0.48, biome === 2 ? '#10172a' : '#0a0e14');
+  grad.addColorStop(1, biome === 3 ? '#23110c' : '#06090d');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Distant sacred-tech glow
+  const glow = ctx.createRadialGradient(W * 0.76, H * 0.2, 20, W * 0.76, H * 0.2, W * 0.45);
+  glow.addColorStop(0, biome === 3 ? 'rgba(244,120,60,0.14)' : 'rgba(244,152,0,0.10)');
+  glow.addColorStop(0.38, 'rgba(140,232,255,0.035)');
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
   // Grid pattern
-  ctx.strokeStyle = biome === 1 ? '#1a2a1a' : (biome === 2 ? '#1a1a2a' : '#1e1e1e');
-  ctx.lineWidth = 0.5;
-  for (let x = 0; x < W; x += 30) {
+  ctx.strokeStyle = biome === 1 ? 'rgba(62,95,62,0.22)' : (biome === 2 ? 'rgba(95,120,180,0.20)' : 'rgba(244,152,0,0.11)');
+  ctx.lineWidth = 0.6;
+  for (let x = 0; x < W; x += 40) {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
-  for (let y = 0; y < H; y += 30) {
+  for (let y = 0; y < H; y += 40) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
 
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = biome === 2 ? '#8ce8ff' : '#f49800';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 7; i++) {
+    const cx = ((i * 233 + wave * 47) % (W + 180)) - 90;
+    const cy = ((i * 149 + wave * 31) % (H + 120)) - 60;
+    const r = 34 + (i % 4) * 18;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.72, cy);
+    ctx.lineTo(cx + r * 0.72, cy);
+    ctx.moveTo(cx, cy - r * 0.72);
+    ctx.lineTo(cx, cy + r * 0.72);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Ruined road plates
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = biome === 3 ? '#442016' : '#1a2530';
+  ctx.strokeStyle = 'rgba(232,237,242,0.06)';
+  for (let i = 0; i < 14; i++) {
+    const px = ((i * 181 + wave * 29) % W);
+    const py = ((i * 97 + wave * 61) % H);
+    const pw = 54 + (i % 5) * 24;
+    const ph = 14 + (i % 3) * 8;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(((i % 7) - 3) * 0.08);
+    ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+    ctx.strokeRect(-pw / 2, -ph / 2, pw, ph);
+    ctx.restore();
+  }
+  ctx.restore();
+
   // Decorative scatter
-  if (!gameRunning) return;
-  ctx.fillStyle = biome === 1 ? 'rgba(20,40,20,0.3)' : (biome === 2 ? 'rgba(20,20,50,0.2)' : 'rgba(30,25,20,0.2)');
-  for (let i = 0; i < 15; i++) {
+  ctx.fillStyle = biome === 1 ? 'rgba(45,85,45,0.32)' : (biome === 2 ? 'rgba(80,110,170,0.20)' : 'rgba(120,90,55,0.18)');
+  for (let i = 0; i < 42; i++) {
     const sx = ((i * 137 + wave * 53) % W);
     const sy = ((i * 251 + wave * 37) % H);
     ctx.beginPath();
@@ -6386,11 +6540,12 @@ function update() {
     // Active wave - spawn remaining enemies
     spawnTimer++;
     const diff = difficultySettings[currentDifficulty];
-    const spawnRate = Math.max(40, diff.spawnRate - level * 8);
-    const maxEnemies = Math.min(3 + level, 10);
-    if (spawnTimer >= spawnRate && enemies.length < maxEnemies && enemies.length < waveEnemiesRemaining + 2) {
+    const spawnRate = getWaveSpawnRate(diff);
+    const maxEnemies = getWaveConcurrentEnemyCap();
+    if (spawnTimer >= spawnRate && enemies.length < maxEnemies && enemies.length < waveEnemiesRemaining + 3) {
       spawnTimer = 0;
-      spawnEnemy();
+      const batch = Math.min(1 + Math.floor(wave / 8), waveEnemiesRemaining, maxEnemies - enemies.length);
+      for (let i = 0; i < batch; i++) spawnEnemy();
     }
   }
 
@@ -6422,11 +6577,12 @@ function update() {
 
   // Power-up spawn on map
   powerUpSpawnTimer++;
-  if (powerUpSpawnTimer >= 900 && powerUps.length < 3) {
+  if (powerUpSpawnTimer >= 1200 && powerUps.length < 2) {
     powerUpSpawnTimer = 0;
     const guaranteed = Math.max(1, Math.floor(powerUpDropMul));
     const extraChance = Math.max(0, powerUpDropMul - guaranteed);
-    for (let i = 0; i < guaranteed; i++) {
+    const spawnCount = Math.min(2, guaranteed);
+    for (let i = 0; i < spawnCount; i++) {
       const px = 40 + rng() * (W - 80);
       const py = 40 + rng() * (H - 80);
       spawnPowerUp(px, py);
@@ -6760,6 +6916,8 @@ function restartGame() {
   document.getElementById('combo-display').classList.remove('active');
   document.getElementById('daily-target').style.display = 'none';
   document.getElementById('game-over').classList.remove('visible');
+  const hint = document.querySelector('.quick-hint');
+  if (hint) hint.remove();
   document.getElementById('start-screen').style.display = 'flex';
   renderDifficultyButtons();
 }
