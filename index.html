@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.8 add firing movement slowdown */
+/* v3.7.9 expand systemic Web Audio sound effects */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -2217,10 +2217,12 @@ function triggerShake(intensity, duration) {
 // --- Audio System ---
 let audioCtx = null;
 let audioNodes = {}; // category gain nodes
+let audioSfxLast = {};
 
 function initAudio() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
   // Master gain
   const masterGain = audioCtx.createGain();
   masterGain.gain.value = 0.3;
@@ -2232,25 +2234,39 @@ function initAudio() {
   audioNodes = { masterGain, sfxGain, uiGain, musicGain };
 }
 
-function playTone(freq, duration, type, gainNode, vol=0.3, rampDown=true) {
-  if (!audioCtx) return;
+function canPlaySfx(key, cooldown = 0.05) {
+  if (!audioCtx) return false;
   const now = audioCtx.currentTime;
+  if (audioSfxLast[key] && now - audioSfxLast[key] < cooldown) return false;
+  audioSfxLast[key] = now;
+  return true;
+}
+
+function playTone(freq, duration, type, gainNode, vol=0.3, rampDown=true, delay=0, endFreq=null) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime + Math.max(0, delay || 0);
+  const dur = Math.max(0.01, duration || 0.01);
   const osc = audioCtx.createOscillator();
   const g = audioCtx.createGain();
   osc.type = type;
-  osc.frequency.setValueAtTime(freq, now);
-  g.gain.setValueAtTime(vol, now);
-  if (rampDown) g.gain.exponentialRampToValueAtTime(0.001, now + duration);
-  else g.gain.setValueAtTime(vol, now + duration);
+  osc.frequency.setValueAtTime(Math.max(1, freq), now);
+  if (endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), now + dur);
+  g.gain.setValueAtTime(Math.max(0.001, vol), now);
+  if (rampDown) g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+  else g.gain.setValueAtTime(Math.max(0.001, vol), now + dur);
   osc.connect(g);
   g.connect(gainNode || audioNodes.sfxGain);
   osc.start(now);
-  osc.stop(now + duration + 0.05);
+  osc.stop(now + dur + 0.05);
 }
 
 function playNoise(duration, vol, gainNode) {
+  playFilteredNoise(duration, vol, gainNode, 'lowpass', 800, 0.7);
+}
+
+function playFilteredNoise(duration, vol, gainNode, filterType='lowpass', frequency=800, q=0.7, delay=0) {
   if (!audioCtx) return;
-  const now = audioCtx.currentTime;
+  const now = audioCtx.currentTime + Math.max(0, delay || 0);
   const bufferSize = Math.floor(audioCtx.sampleRate * duration);
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -2263,12 +2279,22 @@ function playNoise(duration, vol, gainNode) {
   g.gain.setValueAtTime(vol, now);
   g.gain.exponentialRampToValueAtTime(0.001, now + duration);
   const filter = audioCtx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(800, now);
+  filter.type = filterType;
+  filter.frequency.setValueAtTime(Math.max(10, frequency), now);
+  filter.Q.value = q;
   src.connect(filter);
   filter.connect(g);
   g.connect(gainNode || audioNodes.sfxGain);
   src.start(now);
+}
+
+function playChord(freqs, duration, type, gainNode, vol=0.05, stagger=0) {
+  if (!audioCtx) return;
+  freqs.forEach((freq, i) => playTone(freq, duration, type, gainNode, vol, true, i * stagger));
+}
+
+function playSweep(startFreq, endFreq, duration, type, gainNode, vol=0.08, delay=0) {
+  playTone(startFreq, duration, type, gainNode, vol, true, delay, endFreq);
 }
 
 // Sound effects
@@ -2453,6 +2479,196 @@ function sfxAchievement() {
     osc.start(now + i * 0.07);
     osc.stop(now + i * 0.07 + 0.22);
   });
+}
+
+function sfxEnemyShoot(kind='scout') {
+  if (!canPlaySfx('enemyShoot:' + kind, kind === 'runner' ? 0.07 : 0.12)) return;
+  const profiles = {
+    scout:     { tone:[320, 0.05, 'square', 0.035, 220], noise:[0.035, 0.028, 'bandpass', 900] },
+    runner:    { tone:[620, 0.035, 'triangle', 0.03, 440], noise:[0.025, 0.018, 'highpass', 1400] },
+    brute:     { tone:[150, 0.08, 'sawtooth', 0.05, 82], noise:[0.055, 0.038, 'lowpass', 520] },
+    artillery: { tone:[105, 0.12, 'square', 0.055, 55], noise:[0.08, 0.045, 'lowpass', 420] },
+  };
+  const p = profiles[kind] || profiles.scout;
+  playSweep(p.tone[0], p.tone[4], p.tone[1], p.tone[2], audioNodes.sfxGain, p.tone[3]);
+  playFilteredNoise(p.noise[0], p.noise[1], audioNodes.sfxGain, p.noise[2], p.noise[3], 1.2);
+}
+
+function sfxEliteShoot(special='elite') {
+  if (!canPlaySfx('eliteShoot:' + special, 0.13)) return;
+  const map = {
+    flame:   () => { playFilteredNoise(0.09, 0.038, audioNodes.sfxGain, 'bandpass', 760, 1.4); playSweep(340, 210, 0.08, 'sawtooth', audioNodes.sfxGain, 0.045); },
+    sniper:  () => { playTone(1720, 0.035, 'square', audioNodes.sfxGain, 0.055); playSweep(980, 180, 0.08, 'triangle', audioNodes.sfxGain, 0.028); },
+    laser:   () => { playSweep(2400, 620, 0.09, 'sawtooth', audioNodes.sfxGain, 0.048); playTone(1200, 0.045, 'sine', audioNodes.sfxGain, 0.03); },
+    fast:    () => { playTone(760, 0.032, 'triangle', audioNodes.sfxGain, 0.038); playTone(1040, 0.028, 'sine', audioNodes.sfxGain, 0.025, true, 0.025); },
+    missile: () => { playSweep(420, 960, 0.12, 'sawtooth', audioNodes.sfxGain, 0.04); playFilteredNoise(0.05, 0.025, audioNodes.sfxGain, 'highpass', 1100, 0.9); },
+    warden:  () => { playChord([330, 495, 742], 0.09, 'triangle', audioNodes.sfxGain, 0.032, 0.012); },
+    phase:   () => { playSweep(1180, 320, 0.11, 'sine', audioNodes.sfxGain, 0.04); playTone(1660, 0.045, 'triangle', audioNodes.sfxGain, 0.025, true, 0.02); },
+  };
+  (map[special] || (() => { playTone(460, 0.06, 'square', audioNodes.sfxGain, 0.04); playTone(690, 0.04, 'triangle', audioNodes.sfxGain, 0.025); }))();
+}
+
+function sfxEliteAbility(kind='ability') {
+  if (!canPlaySfx('eliteAbility:' + kind, 0.45)) return;
+  if (kind === 'summoner') {
+    playChord([220, 330, 440], 0.16, 'triangle', audioNodes.sfxGain, 0.032, 0.04);
+    playFilteredNoise(0.12, 0.028, audioNodes.sfxGain, 'bandpass', 700, 1.8);
+  } else if (kind === 'mine') {
+    playTone(180, 0.09, 'square', audioNodes.sfxGain, 0.032);
+    playTone(360, 0.04, 'sine', audioNodes.sfxGain, 0.022, true, 0.055);
+  } else if (kind === 'barrier') {
+    playSweep(900, 420, 0.12, 'triangle', audioNodes.sfxGain, 0.045);
+    playTone(1320, 0.05, 'sine', audioNodes.sfxGain, 0.028);
+  } else if (kind === 'phase') {
+    playSweep(1700, 260, 0.14, 'sine', audioNodes.sfxGain, 0.052);
+    playFilteredNoise(0.07, 0.025, audioNodes.sfxGain, 'highpass', 1800, 0.6);
+  } else if (kind === 'splitter') {
+    playTone(260, 0.06, 'square', audioNodes.sfxGain, 0.04);
+    playTone(520, 0.08, 'square', audioNodes.sfxGain, 0.027, true, 0.035);
+  } else if (kind === 'stealth') {
+    playSweep(820, 1200, 0.08, 'sine', audioNodes.sfxGain, 0.024);
+  } else if (kind === 'regen') {
+    playChord([260, 390, 520], 0.12, 'sine', audioNodes.sfxGain, 0.026, 0.035);
+  } else if (kind === 'warden') {
+    playChord([247, 370, 555], 0.1, 'triangle', audioNodes.sfxGain, 0.032, 0.025);
+  }
+}
+
+function sfxShieldBlock(source='player') {
+  if (!canPlaySfx('shieldBlock:' + source, 0.12)) return;
+  playSweep(1320, 520, 0.12, 'triangle', audioNodes.sfxGain, source === 'player' ? 0.055 : 0.04);
+  playTone(1760, 0.045, 'sine', audioNodes.sfxGain, 0.03);
+}
+
+function sfxArmorBlock() {
+  if (!canPlaySfx('armorBlock', 0.10)) return;
+  playFilteredNoise(0.045, 0.035, audioNodes.sfxGain, 'bandpass', 480, 2.2);
+  playTone(150, 0.05, 'square', audioNodes.sfxGain, 0.026);
+}
+
+function sfxEnemyDestroyed(isElite=false, isBoss=false) {
+  if (!canPlaySfx(isBoss ? 'bossDestroyed' : 'enemyDestroyed', isBoss ? 0.8 : 0.08)) return;
+  if (isBoss) {
+    playFilteredNoise(0.5, 0.12, audioNodes.sfxGain, 'lowpass', 360, 0.9);
+    playChord([98, 147, 196, 294], 0.5, 'sawtooth', audioNodes.sfxGain, 0.055, 0.08);
+    playSweep(1200, 160, 0.65, 'triangle', audioNodes.sfxGain, 0.08);
+  } else if (isElite) {
+    playTone(220, 0.09, 'square', audioNodes.sfxGain, 0.055);
+    playTone(330, 0.075, 'triangle', audioNodes.sfxGain, 0.034, true, 0.035);
+  } else {
+    playTone(180, 0.045, 'triangle', audioNodes.sfxGain, 0.027);
+  }
+}
+
+function sfxStatus(type='status') {
+  if (!canPlaySfx('status:' + type, 0.18)) return;
+  if (type === 'freeze') {
+    playSweep(1260, 540, 0.16, 'sine', audioNodes.sfxGain, 0.04);
+    playTone(1880, 0.06, 'triangle', audioNodes.sfxGain, 0.024);
+  } else if (type === 'drain') {
+    playSweep(240, 620, 0.12, 'sawtooth', audioNodes.sfxGain, 0.035);
+    playTone(740, 0.06, 'sine', audioNodes.sfxGain, 0.023, true, 0.06);
+  } else if (type === 'repair') {
+    playChord([440, 660, 880], 0.12, 'sine', audioNodes.sfxGain, 0.032, 0.035);
+  } else if (type === 'mine') {
+    playFilteredNoise(0.18, 0.09, audioNodes.sfxGain, 'lowpass', 520, 1.1);
+    playSweep(100, 45, 0.18, 'sawtooth', audioNodes.sfxGain, 0.07);
+  }
+}
+
+function sfxPowerUpType(type='power', tier='basic') {
+  if (!canPlaySfx('powerType:' + type, 0.08)) return;
+  const rareBoost = tier === 'relic' ? 1.35 : (tier === 'advanced' ? 1.12 : 1);
+  const map = {
+    speed: () => playChord([360, 540, 720], 0.06, 'triangle', audioNodes.sfxGain, 0.026 * rareBoost, 0.018),
+    railgun: () => playSweep(900, 2200, 0.12, 'sawtooth', audioNodes.sfxGain, 0.036 * rareBoost),
+    ricochet: () => playChord([520, 780, 520], 0.08, 'square', audioNodes.sfxGain, 0.022 * rareBoost, 0.03),
+    freeze: () => sfxStatus('freeze'),
+    shield: () => sfxShieldBlock('pickup'),
+    rapid: () => playChord([620, 780, 980], 0.07, 'square', audioNodes.sfxGain, 0.024 * rareBoost, 0.025),
+    repair: () => sfxStatus('repair'),
+    multishot: () => playChord([420, 520, 620, 720], 0.055, 'triangle', audioNodes.sfxGain, 0.022 * rareBoost, 0.018),
+    magnet: () => playSweep(280, 860, 0.18, 'sine', audioNodes.sfxGain, 0.03 * rareBoost),
+    pierce: () => playSweep(660, 1580, 0.09, 'square', audioNodes.sfxGain, 0.03 * rareBoost),
+    vampire: () => sfxStatus('drain'),
+    double_score: () => playChord([392, 588, 784], 0.12, 'triangle', audioNodes.sfxGain, 0.032 * rareBoost, 0.035),
+    big_bullet: () => { playTone(130, 0.1, 'square', audioNodes.sfxGain, 0.038 * rareBoost); playFilteredNoise(0.05, 0.026 * rareBoost, audioNodes.sfxGain, 'lowpass', 430, 1.1); },
+    goldrush: () => playChord([523, 784, 1175, 1568], 0.16, 'triangle', audioNodes.sfxGain, 0.036 * rareBoost, 0.035),
+    timewarp: () => playSweep(1200, 180, 0.22, 'sine', audioNodes.sfxGain, 0.038 * rareBoost),
+    invisible: () => playSweep(880, 1320, 0.16, 'sine', audioNodes.sfxGain, 0.025 * rareBoost),
+    thorns: () => playChord([220, 330, 660], 0.08, 'sawtooth', audioNodes.sfxGain, 0.022 * rareBoost, 0.028),
+    overdrive: () => { playFilteredNoise(0.075, 0.04 * rareBoost, audioNodes.sfxGain, 'bandpass', 840, 1.8); playSweep(320, 960, 0.12, 'sawtooth', audioNodes.sfxGain, 0.035 * rareBoost); },
+    explosive: () => playFilteredNoise(0.09, 0.05 * rareBoost, audioNodes.sfxGain, 'lowpass', 620, 1.1),
+  };
+  (map[type] || (() => playTone(520 * rareBoost, 0.08, 'triangle', audioNodes.sfxGain, 0.026 * rareBoost)))();
+}
+
+function sfxFusion() {
+  if (!canPlaySfx('fusion', 0.7)) return;
+  playChord([220, 330, 495, 742], 0.32, 'triangle', audioNodes.sfxGain, 0.052, 0.045);
+  playSweep(520, 1560, 0.32, 'sine', audioNodes.sfxGain, 0.04);
+  playFilteredNoise(0.16, 0.04, audioNodes.sfxGain, 'bandpass', 1200, 2.4);
+}
+
+function sfxChestOpen(isBoss=false) {
+  if (!canPlaySfx('chestOpen', 0.4)) return;
+  playFilteredNoise(isBoss ? 0.18 : 0.11, isBoss ? 0.065 : 0.04, audioNodes.sfxGain, 'highpass', 1300, 0.8);
+  playChord(isBoss ? [196, 294, 440, 659, 988] : [330, 494, 659], isBoss ? 0.28 : 0.16, 'triangle', audioNodes.sfxGain, isBoss ? 0.048 : 0.035, isBoss ? 0.045 : 0.035);
+}
+
+function sfxBulletClash(powerDelta=0) {
+  if (!canPlaySfx('bulletClash', 0.045)) return;
+  const heavy = Math.abs(powerDelta) > 0;
+  playTone(heavy ? 980 : 760, heavy ? 0.055 : 0.04, 'square', audioNodes.sfxGain, heavy ? 0.035 : 0.025);
+  playFilteredNoise(heavy ? 0.055 : 0.035, heavy ? 0.032 : 0.022, audioNodes.sfxGain, 'highpass', heavy ? 1800 : 1400, 0.7);
+}
+
+function sfxBossIntro() {
+  if (!canPlaySfx('bossIntro', 1.2)) return;
+  playFilteredNoise(0.45, 0.08, audioNodes.sfxGain, 'lowpass', 420, 1.0);
+  playChord([82, 123, 164], 0.42, 'sawtooth', audioNodes.sfxGain, 0.055, 0.09);
+  playSweep(520, 95, 0.55, 'triangle', audioNodes.sfxGain, 0.07);
+}
+
+function sfxBossPhase() {
+  if (!canPlaySfx('bossPhase', 1.0)) return;
+  playChord([110, 165, 247, 370], 0.38, 'sawtooth', audioNodes.sfxGain, 0.06, 0.055);
+  playSweep(1800, 220, 0.52, 'square', audioNodes.sfxGain, 0.055);
+  playFilteredNoise(0.25, 0.065, audioNodes.sfxGain, 'bandpass', 900, 2.0);
+}
+
+function sfxBossAttack(attack='boss', phase=0) {
+  if (!canPlaySfx('bossAttack:' + attack, 0.18)) return;
+  const vol = phase > 0 ? 0.055 : 0.04;
+  if (attack === 'teleport' || attack === 'clone_barrage') {
+    playSweep(1400, 280, 0.12, 'sine', audioNodes.sfxGain, vol);
+  } else if (attack === 'mine_storm' || attack === 'turret_salvo') {
+    playFilteredNoise(0.1, vol, audioNodes.sfxGain, 'lowpass', 500, 1.2);
+    playTone(130, 0.1, 'square', audioNodes.sfxGain, vol);
+  } else if (attack === 'black_hole' || attack === 'gravity_wave') {
+    playSweep(720, 90, 0.18, 'sawtooth', audioNodes.sfxGain, vol);
+  } else if (attack === 'lightning_chain' || attack === 'thunder_storm') {
+    playSweep(1900, 760, 0.08, 'square', audioNodes.sfxGain, vol);
+    playFilteredNoise(0.055, vol * 0.75, audioNodes.sfxGain, 'highpass', 2200, 0.8);
+  } else {
+    playTone(180, 0.11, 'sawtooth', audioNodes.sfxGain, vol);
+    playTone(360, 0.07, 'triangle', audioNodes.sfxGain, vol * 0.65);
+  }
+}
+
+function sfxPauseState(paused) {
+  if (!canPlaySfx(paused ? 'pauseOn' : 'pauseOff', 0.2)) return;
+  if (paused) playChord([660, 440, 330], 0.08, 'triangle', audioNodes.uiGain, 0.035, 0.035);
+  else playChord([330, 440, 660], 0.08, 'triangle', audioNodes.uiGain, 0.035, 0.035);
+}
+
+function sfxRunEnd(victory=false) {
+  if (!canPlaySfx(victory ? 'victory' : 'defeat', 1.0)) return;
+  if (victory) playChord([392, 523, 659, 784, 1047], 0.34, 'triangle', audioNodes.uiGain, 0.055, 0.08);
+  else {
+    playFilteredNoise(0.3, 0.08, audioNodes.sfxGain, 'lowpass', 360, 1.0);
+    playChord([196, 147, 98], 0.42, 'sawtooth', audioNodes.uiGain, 0.052, 0.08);
+  }
 }
 
 // Background music - procedural bass pulse
@@ -3313,6 +3529,7 @@ function onEnemyKilled(enemyOrElite) {
   const isElite = killedEnemy ? !!killedEnemy.isElite : !!enemyOrElite;
   const isBossKill = !!(killedEnemy && killedEnemy.bossDef);
   const nextBossKills = (tankUnlockProgress.bossKills || 0) + (isBossKill ? 1 : 0);
+  sfxEnemyDestroyed(isElite, isBossKill);
   sessionKills++;
   if (isElite) sessionEliteKills++;
   updateTankUnlockProgress({
@@ -3359,6 +3576,7 @@ function onEnemyKilled(enemyOrElite) {
   checkAchievements();
   if (buffs.vampire > 0 && player.alive) {
     player.hp = Math.min(player.hp + 1, player.maxHp);
+    sfxStatus('drain');
   }
 }
 
@@ -3483,6 +3701,7 @@ function startNextWave() {
     });
     bossRef = new BossEnemy(bossSpawn.x, bossSpawn.y, bossDef);
     enemies.push(bossRef);
+    sfxBossIntro();
     for (let i = 0; i < bossSupportCount; i++) {
       if (spawnEnemy()) waveEnemiesToSpawn = Math.max(0, waveEnemiesToSpawn - 1);
     }
@@ -3645,6 +3864,7 @@ function applyPowerUp(p) {
   if (p.type === 'repair') {
     const healAmt = tier === 'relic' ? 3 : (tier === 'advanced' ? 2 : 1);
     player.hp = Math.min(player.hp + healAmt, player.maxHp);
+    sfxPowerUpType(p.type, tier);
     return;
   }
   // Check fusion before applying
@@ -3664,6 +3884,7 @@ function applyPowerUp(p) {
     toast.querySelector('.achieve-label').textContent = fusion.desc;
     toast.querySelector('.achieve-name').style.color = '#f8d';
     sfxAchievement();
+    sfxFusion();
     toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
     toast.style.animation = 'toastIn 0.4s ease-out';
     clearTimeout(toast._timeout);
@@ -3673,6 +3894,7 @@ function applyPowerUp(p) {
   }
 
   buffs[p.type] = p.displayDuration || p.duration;
+  sfxPowerUpType(p.type, tier);
 
   if (def) {
     const toast = document.getElementById('achieve-toast');
@@ -3714,6 +3936,7 @@ function openChest(chest) {
   if (chest.opened) return;
   chest.opened = true;
   const isBoss = chest.isBossChest;
+  sfxChestOpen(isBoss);
   const fragAmt = isBoss ? (30 + Math.floor(rng() * 20)) : (10 + Math.floor(rng() * 15));
   coreFragments += fragAmt;
   saveProgression();
@@ -4165,6 +4388,7 @@ function pauseGame() {
   gameRunning = false;
   mouseDown = false;
   stopMusic();
+  sfxPauseState(true);
   document.getElementById('pause-screen').style.display = 'flex';
 }
 
@@ -4173,6 +4397,7 @@ function resumeGame() {
   isPaused = false;
   gameRunning = true;
   document.getElementById('pause-screen').style.display = 'none';
+  sfxPauseState(false);
   startMusic();
 }
 
@@ -5674,7 +5899,11 @@ class PlayerTank extends Tank {
     ctx.restore();
   }
   hit() {
-    if (this.invincible > 0 || buffs.shield > 0) return false;
+    if (this.invincible > 0) return false;
+    if (buffs.shield > 0) {
+      sfxShieldBlock('player');
+      return false;
+    }
     this.hp--;
     this.invincible = 60;
     gotHitThisLevel = true;
@@ -5899,10 +6128,12 @@ class EnemyTank extends Tank {
     enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, ebs, '#f44', false));
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
+    sfxEnemyShoot(this.kind);
   }
   hit(bullet) {
     if (this.armor && rng() < 0.4) {
       spawnExplosion(this.x, this.y, 3, '#888', '#aaa');
+      sfxArmorBlock();
       return false;
     }
     const dmg = bullet && bullet.damage ? bullet.damage : 1;
@@ -5913,6 +6144,7 @@ class EnemyTank extends Tank {
       this.frozen = Math.floor((120 + freezeBonus) * freezeMul);
       this._origSpeed = this.speed;
       spawnExplosion(this.x, this.y, 8, '#8cf', '#fff');
+      sfxStatus('freeze');
     }
     spawnExplosion(this.x, this.y, 5, '#f80', '#ff0');
     spawnDamageNumber(this.x, this.y - 10, dmg, dmg >= 3);
@@ -6025,6 +6257,7 @@ class EliteEnemy extends EnemyTank {
         this.summonCooldown = 150 + rng() * 100;
         if (enemies.length < getWaveConcurrentEnemyCap() + 1 && waveEnemiesToSpawn > 0 && spawnEnemy()) {
           waveEnemiesToSpawn = Math.max(0, waveEnemiesToSpawn - 1);
+          sfxEliteAbility('summoner');
         }
       }
     }
@@ -6033,6 +6266,7 @@ class EliteEnemy extends EnemyTank {
       if (this.stealthTimer > 90) {
         this.stealthTimer = 0;
         this.stealthPhase = this.stealthPhase === 0 ? 1 : 0;
+        sfxEliteAbility('stealth');
       }
     }
     if (this.special === 'regen') {
@@ -6040,6 +6274,7 @@ class EliteEnemy extends EnemyTank {
       if (this.regenTimer >= 120 && this.hp < this.maxHp) {
         this.regenTimer = 0;
         this.hp = Math.min(this.hp + 1, this.maxHp);
+        sfxEliteAbility('regen');
       }
     }
     if (this.special === 'miner') {
@@ -6047,6 +6282,7 @@ class EliteEnemy extends EnemyTank {
       if (this.mineCooldown <= 0) {
         this.mineCooldown = 60 + rng() * 60;
         mines.push({ x: this.x, y: this.y, life: 450, armed: true });
+        sfxEliteAbility('mine');
       }
     }
     if (this.special === 'splitter' && enemies.length < getWaveConcurrentEnemyCap() + 1 && waveEnemiesToSpawn > 0) {
@@ -6067,6 +6303,7 @@ class EliteEnemy extends EnemyTank {
         enemies.push(new EliteEnemy(nx, ny, eliteTypes[6])); // spawn another splitter
         waveEnemiesToSpawn = Math.max(0, waveEnemiesToSpawn - 1);
         spawnExplosion(this.x, this.y, 12, '#c84', '#fb0');
+        sfxEliteAbility('splitter');
         showWaveNotification('', '分裂坦克增殖了!');
       }
     }
@@ -6074,6 +6311,7 @@ class EliteEnemy extends EnemyTank {
       this.barrierTimer++;
       if (this.barrierTimer >= 300 && this.barrierHP < 3) {
         this.barrierTimer = 0; this.barrierHP = Math.min(3, this.barrierHP + 1);
+        sfxEliteAbility('barrier');
       }
     }
     if (this.special === 'missile') {
@@ -6093,11 +6331,13 @@ class EliteEnemy extends EnemyTank {
           spawnExplosion(this.x, this.y, 10, '#f6e5aa', '#fff');
           const fireSlow = getEnemyFireSlowProfile(this);
           this.applyFireSlow(fireSlow.duration, fireSlow.mul);
+          sfxEliteShoot('warden');
           this.wardenCooldown = 150 + rng() * 80;
         }
       } else if (this.wardenCooldown <= 0 && player && player.alive) {
         this.wardenAngle = Math.atan2(player.y - this.y, player.x - this.x);
         this.wardenTelegraph = 36;
+        sfxEliteAbility('warden');
       }
     }
     if (this.special === 'phase') {
@@ -6122,6 +6362,7 @@ class EliteEnemy extends EnemyTank {
         this.phaseAfterimage = 46;
         this.phaseBlinkCooldown = 190 + rng() * 85;
         spawnExplosion(this.x, this.y, 15, '#d9b6ff', '#6044a8');
+        sfxEliteAbility('phase');
       }
     }
   }
@@ -6179,6 +6420,7 @@ class EliteEnemy extends EnemyTank {
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
+    sfxEliteShoot(this.special);
   }
   draw(ctx) {
     if (this.special === 'stealth' && this.stealthPhase === 1) {
@@ -6764,6 +7006,7 @@ class BossEnemy extends EliteEnemy {
         this.baseSpeed *= 1.08;
         triggerShake(12, 18);
         spawnExplosion(this.x, this.y, 60, '#fff', this.bossDef.turret || '#ff0');
+        sfxBossPhase();
         showWaveNotification('PHASE ' + (i + 1), this.bossDef.name + ' 进入第二阶段压制');
         this.emitPhaseBurst(true);
       }
@@ -7008,6 +7251,7 @@ class BossEnemy extends EliteEnemy {
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
+    sfxBossAttack(phase.attack, this.currentPhase);
   }
   emitPhaseBurst(isTransition) {
     const count = isTransition ? 16 : (this.currentPhase > 0 ? 12 : 10);
@@ -7020,6 +7264,7 @@ class BossEnemy extends EliteEnemy {
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
+    sfxBossAttack(isTransition ? 'phase_burst' : 'boss_burst', this.currentPhase);
   }
   teleportToSafePoint(minPlayerDist) {
     const safe = findSafeTankSpawn({
@@ -7043,8 +7288,10 @@ class BossEnemy extends EliteEnemy {
     this.y = safe.y;
     spawnExplosion(this.x, this.y, 22, '#dfe8ff', this.bossDef.turret || '#88f');
     triggerShake(6, 8);
+    sfxBossAttack('teleport', this.currentPhase);
   }
   deployMines(count, spread) {
+    let placed = 0;
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2 + rng() * 0.4;
       const radius = 65 + rng() * (spread || 180);
@@ -7052,8 +7299,10 @@ class BossEnemy extends EliteEnemy {
       const my = Math.max(36, Math.min(H - 36, this.y + Math.sin(angle) * radius));
       if (!tankCollidesObstacle(mx, my, 18, 18)) {
         mines.push({ x: mx, y: my, life: 820, armed: true });
+        placed++;
       }
     }
+    if (placed > 0) sfxBossAttack('mine_storm', this.currentPhase);
   }
   spawnStormLances(count) {
     for (let i = 0; i < count; i++) {
@@ -7065,6 +7314,7 @@ class BossEnemy extends EliteEnemy {
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
+    sfxBossAttack('lightning_chain', this.currentPhase);
   }
   spawnBossEscort() {
     if (enemies.length >= getWaveConcurrentEnemyCap()) return;
@@ -7095,6 +7345,7 @@ class BossEnemy extends EliteEnemy {
     waveEnemiesRemaining++;
     waveEnemiesTotal++;
     spawnExplosion(spawn.x, spawn.y, 12, escortDef.turret, '#fff');
+    sfxEliteAbility('summoner');
   }
   draw(ctx) {
     const t = Date.now() / 300;
@@ -8621,6 +8872,7 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         if (bullet.drainOnHit > 0 && fromPlayer && player && player.alive && rng() < bullet.drainOnHit) {
           player.hp = Math.min(player.maxHp, player.hp + 1);
           spawnDamageNumber(player.x, player.y - 22, 1, false);
+          sfxStatus('drain');
           bullet.drainOnHit = 0;
         }
         if (bullet.shardBurst > 0 && fromPlayer) {
@@ -8882,6 +9134,7 @@ function update() {
       if (mx * mx + my * my < 30 * 30) {
         sessionMinesTriggered = true;
         spawnExplosion(mines[i].x, mines[i].y, 15, '#f80', '#ff0');
+        sfxStatus('mine');
         player.hit();
         mines.splice(i, 1);
       }
@@ -9093,6 +9346,7 @@ function endGame(victory = false, runId = activeRunId) {
   isPaused = false;
   stopMusic();
   document.getElementById('pause-screen').style.display = 'none';
+  sfxRunEnd(victory);
   if (isDailyChallenge) {
     saveDailyBest(score);
     renderDailyTarget();
@@ -9168,6 +9422,7 @@ function checkBulletBulletCollisions() {
         if (sparks < 16) {
           const strongColor = pPower === ePower ? '#f6e5aa' : (pPower > ePower ? p.color : e.color);
           spawnExplosion((p.x + e.x) / 2, (p.y + e.y) / 2, pPower === ePower ? 4 : 5, strongColor, '#f6e5aa');
+          sfxBulletClash(pPower - ePower);
           sparks++;
         }
         if (!p.alive) break;
