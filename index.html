@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.10 add UI button and battle result sound feedback */
+/* v3.7.11 fix UI audio unlock and button feedback volume */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -2218,27 +2218,64 @@ function triggerShake(intensity, duration) {
 let audioCtx = null;
 let audioNodes = {}; // category gain nodes
 let audioSfxLast = {};
+let audioUnlockPromise = null;
+let audioPrimed = false;
 
 function initAudio() {
+  const AudioCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtor) return null;
   if (audioCtx) {
-    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
-    return;
+    if (audioCtx.state === 'suspended' && !audioUnlockPromise) {
+      audioUnlockPromise = audioCtx.resume().finally(() => { audioUnlockPromise = null; }).catch(() => {});
+    }
+    return audioCtx;
   }
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  audioCtx = new AudioCtor();
+  if (audioCtx.state === 'suspended' && !audioUnlockPromise) {
+    audioUnlockPromise = audioCtx.resume().finally(() => { audioUnlockPromise = null; }).catch(() => {});
+  }
   // Master gain
   const masterGain = audioCtx.createGain();
   masterGain.gain.value = 0.3;
   masterGain.connect(audioCtx.destination);
   // Category gains (mix hierarchy from game-audio skill)
   const sfxGain = audioCtx.createGain(); sfxGain.gain.value = 0.7; sfxGain.connect(masterGain);
-  const uiGain = audioCtx.createGain(); uiGain.gain.value = 0.5; uiGain.connect(masterGain);
+  const uiGain = audioCtx.createGain(); uiGain.gain.value = 1.0; uiGain.connect(masterGain);
   const musicGain = audioCtx.createGain(); musicGain.gain.value = 0.15; musicGain.connect(masterGain);
   audioNodes = { masterGain, sfxGain, uiGain, musicGain };
+  return audioCtx;
+}
+
+function primeAudioGraph() {
+  if (!audioCtx || audioPrimed || !audioNodes.masterGain) return;
+  try {
+    const buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate || 44100);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(audioNodes.masterGain);
+    src.start(0);
+    audioPrimed = true;
+  } catch (err) {}
+}
+
+function runAudioWhenReady(callback) {
+  const ctx = initAudio();
+  if (!ctx) return;
+  primeAudioGraph();
+  if (ctx.state === 'running') {
+    callback();
+    return;
+  }
+  const resumePromise = ctx.resume ? ctx.resume() : null;
+  if (resumePromise && resumePromise.then) {
+    resumePromise.then(() => {
+      if (ctx.state === 'running') callback();
+    }).catch(() => {});
+  }
 }
 
 function canPlaySfx(key, cooldown = 0.05) {
-  if (!audioCtx) return false;
+  if (!audioCtx || audioCtx.state !== 'running') return false;
   const now = audioCtx.currentTime;
   if (audioSfxLast[key] && now - audioSfxLast[key] < cooldown) return false;
   audioSfxLast[key] = now;
@@ -2478,22 +2515,22 @@ function getUiSoundKind(el) {
 function sfxUIClick(kind='default') {
   if (!canPlaySfx('uiClick:' + kind, 0.055)) return;
   if (kind === 'confirm') {
-    playFilteredNoise(0.032, 0.018, audioNodes.uiGain, 'highpass', 1800, 0.7);
-    playTone(620, 0.04, 'triangle', audioNodes.uiGain, 0.05);
-    playTone(980, 0.055, 'sine', audioNodes.uiGain, 0.04, true, 0.035);
-    playTone(1480, 0.045, 'sine', audioNodes.uiGain, 0.026, true, 0.075);
+    playFilteredNoise(0.036, 0.032, audioNodes.uiGain, 'highpass', 1800, 0.7);
+    playTone(620, 0.045, 'triangle', audioNodes.uiGain, 0.12);
+    playTone(980, 0.06, 'sine', audioNodes.uiGain, 0.09, true, 0.035);
+    playTone(1480, 0.05, 'sine', audioNodes.uiGain, 0.055, true, 0.075);
   } else if (kind === 'back') {
-    playSweep(620, 360, 0.075, 'triangle', audioNodes.uiGain, 0.04);
-    playTone(240, 0.06, 'sine', audioNodes.uiGain, 0.025, true, 0.035);
+    playSweep(620, 360, 0.08, 'triangle', audioNodes.uiGain, 0.09);
+    playTone(240, 0.065, 'sine', audioNodes.uiGain, 0.052, true, 0.035);
   } else if (kind === 'locked') {
-    playFilteredNoise(0.045, 0.026, audioNodes.uiGain, 'bandpass', 520, 2.0);
-    playTone(180, 0.07, 'square', audioNodes.uiGain, 0.032, true, 0.01, 120);
+    playFilteredNoise(0.05, 0.048, audioNodes.uiGain, 'bandpass', 520, 2.0);
+    playTone(180, 0.075, 'square', audioNodes.uiGain, 0.07, true, 0.01, 120);
   } else if (kind === 'nav') {
-    playTone(440, 0.035, 'sine', audioNodes.uiGain, 0.038);
-    playTone(660, 0.042, 'triangle', audioNodes.uiGain, 0.032, true, 0.028);
+    playTone(440, 0.04, 'sine', audioNodes.uiGain, 0.085);
+    playTone(660, 0.048, 'triangle', audioNodes.uiGain, 0.065, true, 0.028);
   } else {
-    playTone(560, 0.035, 'sine', audioNodes.uiGain, 0.042);
-    playTone(840, 0.03, 'triangle', audioNodes.uiGain, 0.026, true, 0.02);
+    playTone(560, 0.04, 'sine', audioNodes.uiGain, 0.09);
+    playTone(840, 0.035, 'triangle', audioNodes.uiGain, 0.062, true, 0.02);
   }
 }
 
@@ -2727,6 +2764,8 @@ let uiSfxBound = false;
 function bindGlobalUiSfx() {
   if (uiSfxBound) return;
   uiSfxBound = true;
+  let lastUiSfxAt = 0;
+  let lastUiSfxTarget = null;
   const selector = 'button, [onclick], [role="button"], .tank-card, .mod-card, .achieve-link, .lab-tank-card, .leader-tab, .best-tab, .best-section-tab';
   const playForTarget = (target) => {
     if (!target || !target.closest) return;
@@ -2734,11 +2773,26 @@ function bindGlobalUiSfx() {
     if (!clickable || !document.body.contains(clickable)) return;
     const button = clickable.closest('button');
     if (button && button.disabled) return;
-    initAudio();
-    sfxUIButtonTarget(clickable);
+    runAudioWhenReady(() => {
+      const now = performance.now ? performance.now() : Date.now();
+      if (clickable === lastUiSfxTarget && now - lastUiSfxAt < 160) return;
+      lastUiSfxAt = now;
+      lastUiSfxTarget = clickable;
+      sfxUIButtonTarget(clickable);
+    });
   };
   document.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    playForTarget(e.target);
+  }, true);
+  document.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    playForTarget(e.target);
+  }, true);
+  document.addEventListener('touchstart', (e) => {
+    playForTarget(e.target);
+  }, { capture: true, passive: true });
+  document.addEventListener('click', (e) => {
     playForTarget(e.target);
   }, true);
   document.addEventListener('keydown', (e) => {
