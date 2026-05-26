@@ -1261,6 +1261,64 @@ canvas { background: #070d13; }
   color: var(--card-accent);
   text-shadow: 0 0 18px rgba(var(--card-rgb), 0.48);
 }
+#tank-select-screen .tank-card .tank-icon .tank-select-svg {
+  width: 58px;
+  height: 58px;
+  display: block;
+  margin: 0 auto;
+  overflow: visible;
+  color: var(--card-accent);
+  filter: drop-shadow(0 0 10px rgba(var(--card-rgb), 0.45));
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+#tank-select-screen .tank-card:hover .tank-icon .tank-select-svg {
+  transform: translateY(-2px) scale(1.06);
+  filter: drop-shadow(0 0 16px rgba(var(--card-rgb), 0.68));
+}
+.tank-select-svg .icon-halo {
+  stroke: currentColor;
+  opacity: 0.2;
+}
+.tank-select-svg .icon-frame {
+  stroke: currentColor;
+  opacity: 0.46;
+}
+.tank-select-svg .icon-core {
+  fill: currentColor;
+}
+.tank-select-svg .icon-line {
+  stroke: currentColor;
+}
+.ui-code-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 1;
+  color: inherit;
+}
+.ui-code-icon .tank-select-svg {
+  width: 28px;
+  height: 28px;
+  display: block;
+  overflow: visible;
+  color: inherit;
+  filter: drop-shadow(0 0 7px currentColor);
+}
+#achievements-screen .ach-medal .ui-code-icon .tank-select-svg {
+  width: 30px;
+  height: 30px;
+}
+#lab-screen .lab-tank-icon .ui-code-icon .tank-select-svg,
+#lab-screen .lab-evo-current .ui-code-icon .tank-select-svg,
+#lab-screen .lab-preview-footer .ui-code-icon .tank-select-svg {
+  width: 24px;
+  height: 24px;
+}
+#lab-screen .lab-stat-icon .ui-code-icon .tank-select-svg {
+  width: 20px;
+  height: 20px;
+}
 #tank-select-screen .tank-card .tank-name { color: var(--ui-ivory) !important; }
 #tank-select-screen .tank-card .tank-subtitle { color: rgba(var(--card-rgb), 0.84); }
 #tank-select-screen .tank-card .tank-detail { color: #748193; }
@@ -2218,6 +2276,7 @@ canvas { background: #070d13; }
   #achievements-screen .ach-medal { width: 50px; height: 58px; }
   #tank-select-screen .tank-card { width: 132px; min-height: 178px; padding: 12px 10px; }
   #tank-select-screen .tank-card .tank-icon { font-size: 34px; }
+  #tank-select-screen .tank-card .tank-icon .tank-select-svg { width: 46px; height: 46px; }
   #tank-select-screen .tank-card .tank-name { font-size: 15px; }
   #modifier-screen .mod-choices { grid-template-columns: 1fr; max-width: 280px; }
   #bestiary-screen .best-section-tabs,
@@ -3720,6 +3779,65 @@ function renderDifficultyButtons() {
   if (curEl) curEl.innerHTML = renderMoonstoneChip(coreFragments, 'CHASSIS ' + (tankTypes[currentTankType]?.name || '??'));
 }
 
+function getTankSelectIcon(type) {
+  const specialIcons = {
+    blade: `<svg class="tank-select-svg blade-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <circle class="icon-halo" cx="32" cy="32" r="25" fill="none" stroke-width="1.2"/>
+      <path class="icon-frame" d="M16 48 L48 16 M16 16 L48 48" fill="none" stroke-width="1.1" stroke-linecap="round"/>
+      <path class="icon-line" d="M18 45 L44 19 L52 12 L45 20 L20 50 Z" fill="rgba(255,255,255,0.08)" stroke-width="1.8" stroke-linejoin="round"/>
+      <path class="icon-line" d="M18 19 L44 45 L52 52 L45 44 L20 14 Z" fill="rgba(255,255,255,0.06)" stroke-width="1.8" stroke-linejoin="round"/>
+      <rect class="icon-core" x="29" y="29" width="6" height="6" transform="rotate(45 32 32)"/>
+      <path class="icon-line" d="M8 32 H18 M46 32 H56" fill="none" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
+    </svg>`,
+    scarlet: `<svg class="tank-select-svg scarlet-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <path class="icon-halo" d="M32 8 L52 20 L52 44 L32 56 L12 44 L12 20 Z" fill="none" stroke-width="1.1"/>
+      <path class="icon-frame" d="M32 11 V53 M18 39 L32 53 L46 39" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path class="icon-line" d="M32 7 L42 29 L32 57 L22 29 Z" fill="rgba(255,255,255,0.07)" stroke-width="1.8" stroke-linejoin="round"/>
+      <path class="icon-line" d="M23 29 H41 M27 21 H37 M25 42 H39" fill="none" stroke-width="1.2" stroke-linecap="round" opacity="0.72"/>
+      <circle class="icon-core" cx="32" cy="32" r="5"/>
+      <path class="icon-line" d="M12 32 H20 M44 32 H52" fill="none" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>`,
+    astral: `<svg class="tank-select-svg astral-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <circle class="icon-halo" cx="32" cy="32" r="24" fill="none" stroke-width="1.1"/>
+      <ellipse class="icon-frame" cx="32" cy="32" rx="27" ry="9" fill="none" stroke-width="1.25" transform="rotate(-24 32 32)"/>
+      <ellipse class="icon-frame" cx="32" cy="32" rx="27" ry="9" fill="none" stroke-width="1.25" transform="rotate(24 32 32)"/>
+      <path class="icon-line" d="M32 14 L37 27 L50 32 L37 37 L32 50 L27 37 L14 32 L27 27 Z" fill="rgba(255,255,255,0.08)" stroke-width="1.7" stroke-linejoin="round"/>
+      <circle class="icon-core" cx="32" cy="32" r="4.6"/>
+      <circle class="icon-core" cx="49" cy="25" r="2"/>
+      <circle class="icon-core" cx="15" cy="39" r="1.8" opacity="0.8"/>
+    </svg>`
+  };
+  return specialIcons[type] || {
+    spread: '⬣',
+    focus: '▸',
+    wide: '◫',
+    burst: '✹',
+    sniper: '⟐',
+    homing: '◉',
+    border: '◇'
+  }[type] || '◇';
+}
+
+function getSpecialCodeIconType(code, tankType) {
+  const normalized = String(code || '').toUpperCase();
+  if (tankType !== undefined) {
+    if (tankType === 'blade' && ['KAT', 'HNR', 'ROU', 'SLASH'].includes(normalized)) return 'blade';
+    if (tankType === 'scarlet' && ['RED', 'VLA', 'CRI', 'BLOOD'].includes(normalized)) return 'scarlet';
+    if (tankType === 'astral' && ['AST', 'ORB', 'GYO', 'SPH'].includes(normalized)) return 'astral';
+    return '';
+  }
+  if (normalized === 'KAT') return 'blade';
+  if (normalized === 'RED') return 'scarlet';
+  if (normalized === 'AST') return 'astral';
+  return '';
+}
+
+function renderCodeIcon(code, title, tankType) {
+  const type = tankType !== undefined ? getSpecialCodeIconType(code, tankType) : getSpecialCodeIconType(code);
+  if (!type) return escapeHtml(code);
+  return `<span class="ui-code-icon" title="${escapeHtml(title || code)}">${getTankSelectIcon(type)}</span>`;
+}
+
 function showTankSelect(difficulty) {
   currentDifficulty = difficulty;
   const container = document.querySelector('#tank-select-screen .tank-cards');
@@ -3727,7 +3845,7 @@ function showTankSelect(difficulty) {
   const tankNamesExtra = ['博丽灵梦式','雾雨魔理沙式','十六夜咲夜式','芙兰朵露式','八意永琳式','东风谷早苗式','境界结社式','魂魄妖梦式','斯卡雷特式','帕秋莉式'];
   const tankDescs = ['渐进式扩散压制','单点高能输出','控场型广域封锁','爆燃溅射火力','远程点杀贯穿','持续导引追猎','间隙折射与位相弹道','高速双刃穿刺','低弹匣血枪贯穿','星仪轨道控场'];
   const tankDetails = ['均衡机体 · 依赖弹幕密度成长','机动优秀 · 依赖主炮精度成长','生存更稳 · 依赖控场扩展成长','节奏偏慢 · 依赖爆炸收益成长','脆但致命 · 依赖狙击校准成长','泛用灵活 · 依赖导引网络成长','中距离博弈 · 依赖边界折射成长','高速轻甲 · 依赖斩击角度成长','重压短弹匣 · 依赖命中汲取成长','慢速术式 · 依赖轨道控制成长'];
-  const tankIcons = ['⬣','▸','◫','✹','⟐','◉','◇','KAT','RED','AST'];
+  const tankIcons = tankKeys.map(getTankSelectIcon);
   container.innerHTML = tankKeys.map((key, i) => {
     const t = tankTypes[key];
     const unlocked = unlockedTanks.has(key);
@@ -4754,6 +4872,7 @@ function renderAchievements() {
     const rarity = getAchievementRarity(a);
     const code = getAchievementCode(a);
     const seal = getAchievementSeal(a);
+    const medalIcon = unlocked ? renderCodeIcon(a.icon || seal, a.name) : escapeHtml(seal);
     const tierName = rarity.label + ' · 奖励 ' + reward + ' 月光石';
     const lore = unlocked ? (ACHIEVEMENT_LORE[a.id] || '该战绩尚未完成解密。记录员只留下一个空白编号，等待新的驾驶员补全。') : '档案加密中。完成该成就后，机装研究室才会开放战绩记录。';
     const statusText = unlocked ? (claimed ? 'ARCHIVED' : 'CLAIM READY') : 'ENCRYPTED';
@@ -4765,7 +4884,7 @@ function renderAchievements() {
     return `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'} rarity-${rarity.className}" tabindex="0" style="--ach-accent:${escapeHtml(rarity.color)}">
       <div class="ach-medal" aria-label="${escapeHtml(code)}">
         <span class="ach-medal-code">${escapeHtml(code)}</span>
-        <span class="ach-medal-seal">${escapeHtml(seal)}</span>
+        <span class="ach-medal-seal">${medalIcon}</span>
       </div>
       <div class="ach-info">
         <div class="ach-topline">
@@ -9162,7 +9281,7 @@ function renderLabUI() {
     const cardCode = unlocked ? (evolved ? evoEntries[evoLevel - 1].icon : mark.code) : 'LOCK';
     const lockedLabel = cond && cond.cost > 0 ? `COST ${cond.cost}` : 'SEALED';
     return `<div class="lab-tank-card ${unlocked?'':'locked'} ${isSelected?'selected':''} ${evolved?'evolved':''}" onclick="${unlocked?'selectLabTank(\''+k+'\')':'tryUnlockFromLab(\''+k+'\')'}">
-      <span class="lab-tank-icon">${escapeHtml(cardCode)}</span>
+      <span class="lab-tank-icon">${renderCodeIcon(cardCode, mark.role, k)}</span>
       <div class="lab-tank-name">${unlocked ? tankTypes[k].name : '???'}</div>
       <div class="lab-tank-dots">${unlocked ? buildLabProgressCells(status) : `<span class="lab-lock-cost">${escapeHtml(lockedLabel)}</span>`}</div>
       ${evolved ? `<div class="lab-evo-badge">E${evoLevel}</div>` : ''}
@@ -9211,7 +9330,7 @@ function renderLabUI() {
     }).join('');
     let evoHTML = '';
     if (evolved) {
-      evoHTML += `<div class="lab-evo-current">CURRENT E${evoLevel}: ${escapeHtml(evoDef.icon)} / ${escapeHtml(evoDef.name)} · ${escapeHtml(evoDef.bonus)}</div>`;
+      evoHTML += `<div class="lab-evo-current">CURRENT E${evoLevel}: ${renderCodeIcon(evoDef.icon, evoDef.name, k)} / ${escapeHtml(evoDef.name)} · ${escapeHtml(evoDef.bonus)}</div>`;
     }
     if (nextEvo) {
       evoHTML += `<div class="lab-evo-next">
@@ -9231,7 +9350,7 @@ function renderLabUI() {
       const barW = Math.floor((lvl / d.max) * 100);
       const desc = part.fullyCapped ? 'MAX' : `${lvl}/${d.max} · gate ${part.gate}`;
       statsHTML += `<div class="lab-stat-upgrade-row ${part.ready ? '' : 'gate-pending'}">
-        <span class="lab-stat-icon">${escapeHtml(getUpgradePartCode(d))}</span>
+        <span class="lab-stat-icon">${renderCodeIcon(getUpgradePartCode(d), d.name, k)}</span>
         <span class="lab-stat-name">${escapeHtml(d.name)}</span>
         <span class="lab-stat-meter">
           <span class="lab-stat-fill ${capped ? 'capped' : (part.ready ? 'gated' : '')}" style="--fill:${barW}%;"></span>
@@ -9246,7 +9365,7 @@ function renderLabUI() {
         <div class="lab-preview-panel">
           <div class="lab-preview-header"><span>${escapeHtml(mark.code)}</span><strong>E${evoLevel}</strong></div>
           <canvas class="lab-preview-canvas" id="lab-preview-canvas" width="240" height="170" data-tank="${escapeHtml(k)}" data-evo="${evoLevel}"></canvas>
-          <div class="lab-preview-footer"><span>${escapeHtml(mark.role)}</span><strong>${escapeHtml(evolved ? evoDef.icon : 'BASE')}</strong></div>
+          <div class="lab-preview-footer"><span>${escapeHtml(mark.role)}</span><strong>${evolved ? renderCodeIcon(evoDef.icon, evoDef.name, k) : 'BASE'}</strong></div>
           <div class="lab-preview-lore">${escapeHtml(mark.motto)}</div>
         </div>
         <div class="lab-data-panel">
