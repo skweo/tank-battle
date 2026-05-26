@@ -222,6 +222,72 @@ canvas { display: block; background: #0a0f18; }
 .currency-display {
   color: #f49800; font-size: 11px; letter-spacing: 2px; text-align: center;
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif; margin: 0;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.moonstone-chip {
+  display: inline-grid;
+  grid-template-columns: 28px auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 7px;
+  color: #f6e5aa;
+  background:
+    linear-gradient(90deg, rgba(246,229,170,0.12), rgba(10,16,24,0.72) 38%, rgba(140,232,255,0.08)),
+    rgba(5,9,14,0.82);
+  border: 1px solid rgba(246,229,170,0.2);
+  box-shadow: inset 0 0 14px rgba(246,229,170,0.05), 0 0 18px rgba(244,152,0,0.08);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.moonstone-chip.has-extra {
+  grid-template-columns: 28px auto auto minmax(0, auto);
+}
+.moonstone-crystal {
+  position: relative;
+  width: 22px;
+  height: 24px;
+  display: inline-block;
+  filter: drop-shadow(0 0 8px rgba(140,232,255,0.28));
+}
+.moonstone-crystal::before {
+  content: '';
+  position: absolute;
+  inset: 1px 3px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.78), rgba(140,232,255,0.28) 34%, rgba(244,152,0,0.2) 72%, rgba(33,48,68,0.92));
+  border: 1px solid rgba(246,229,170,0.44);
+  clip-path: polygon(50% 0, 94% 24%, 82% 82%, 50% 100%, 18% 82%, 6% 24%);
+}
+.moonstone-crystal::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 4px;
+  width: 1px;
+  height: 15px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(246,229,170,0.18), transparent);
+  box-shadow: -5px 4px 0 rgba(255,255,255,0.12), 5px 5px 0 rgba(140,232,255,0.1);
+}
+.moonstone-label {
+  color: #7f91a9;
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+.moonstone-value {
+  color: #f6e5aa;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: 0 0 14px rgba(246,229,170,0.2);
+}
+.moonstone-extra {
+  color: #8ce8ff;
+  font-size: 9px;
+  letter-spacing: 1px;
+  border-left: 1px solid rgba(140,232,255,0.16);
+  padding-left: 8px;
 }
 .daily-challenge-btn { color: #f49800 !important; border-color: rgba(244,152,0,0.3) !important; }
 .daily-challenge-btn:hover { color: #ffb340 !important; border-color: rgba(244,152,0,0.6) !important; text-shadow: none !important; }
@@ -795,7 +861,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.1 campaign rotation, archive bestiary and run-level tactics */
+/* v3.7.2 moonstone model, calmer E2 form and item tier rebalance */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -1394,6 +1460,8 @@ canvas { background: #070d13; }
   margin-top: -6px;
   font-size: 11px;
   letter-spacing: 4px;
+  display: flex;
+  justify-content: center;
 }
 #lab-screen .lab-route-line {
   margin: -4px 0 0;
@@ -2590,11 +2658,11 @@ const difficultySettings = {
 };
 const DIFFICULTY_ORDER = ['easy','normal','hard','extreme','nightmare'];
 const DIFFICULTY_TUNING = {
-  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 0, playerHp: 11, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 0.76, unlockScore: 0,     clearWave: 20 },
-  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 1, playerHp: 8,  enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 0.96, unlockScore: 2800,  clearWave: 24 },
-  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 3, playerHp: 6,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 1.15, unlockScore: 7200,  clearWave: 28 },
-  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 4, playerHp: 5,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 1.34, unlockScore: 12800, clearWave: 32 },
-  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 6, playerHp: 4,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 1.55, unlockScore: 20500, clearWave: 36 },
+  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 1, playerHp: 12, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 0.76, unlockScore: 0,     clearWave: 20 },
+  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2, playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 0.96, unlockScore: 2800,  clearWave: 24 },
+  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4, playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 1.15, unlockScore: 7200,  clearWave: 28 },
+  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6, playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 1.34, unlockScore: 12800, clearWave: 32 },
+  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8, playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 1.55, unlockScore: 20500, clearWave: 36 },
 };
 Object.keys(DIFFICULTY_TUNING).forEach(key => Object.assign(difficultySettings[key], DIFFICULTY_TUNING[key]));
 
@@ -2701,7 +2769,7 @@ function renderDifficultyButtons() {
   }).join('<br>');
   // Update currency + active tank
   const curEl = document.getElementById('currency-display');
-  if (curEl) curEl.textContent = 'MOONSTONE ' + coreFragments + '  |  CHASSIS ' + (tankTypes[currentTankType]?.name || '??');
+  if (curEl) curEl.innerHTML = renderMoonstoneChip(coreFragments, 'CHASSIS ' + (tankTypes[currentTankType]?.name || '??'));
 }
 
 function showTankSelect(difficulty) {
@@ -3319,37 +3387,53 @@ function startNextWave() {
 }
 
 // --- Power-ups ---
-const RARITY_CONFIG = {
-  common: { weight: 68, durationMul: 0.78, descSuffix: '', glowColor: null, size: 10 },
-  rare:   { weight: 25, durationMul: 1.05, descSuffix: ' [稀有]', glowColor: '#6af', size: 12 },
-  legendary: { weight: 7, durationMul: 1.45, descSuffix: ' [传说]', glowColor: '#fd0', size: 14 },
+const ITEM_TIER_CONFIG = {
+  basic: { weight: 68, durationMul: 0.9, descSuffix: ' [I]', glowColor: null, size: 10, label: 'T1 基础模块', code: 'T1' },
+  advanced: { weight: 25, durationMul: 1.12, descSuffix: ' [II]', glowColor: '#6af', size: 12, label: 'T2 强化模块', code: 'T2' },
+  relic: { weight: 7, durationMul: 1.35, descSuffix: ' [III]', glowColor: '#fd0', size: 14, label: 'T3 圣遗物协议', code: 'T3' },
 };
+const RARITY_CONFIG = ITEM_TIER_CONFIG;
 const powerUpDefs = [
-  { type: 'speed',    name: '加强履带', icon: 'DRV', color: '#4af', desc: '移速×1.12', duration: 660 },
-  { type: 'railgun',  name: '电磁炮',   icon: 'RAIL', color: '#a4f', desc: '短时穿透脉冲', duration: 540 },
-  { type: 'ricochet', name: '反弹弹',   icon: 'RICO', color: '#fa4', desc: '子弹弹射', duration: 660 },
-  { type: 'shield',   name: '能量护盾', icon: 'SHD', color: '#4ff', desc: '短时无敌', duration: 300 },
-  { type: 'rapid',    name: '急速连射', icon: 'RPD', color: '#f44', desc: '射速提升', duration: 480 },
-  { type: 'repair',   name: '维修工具', icon: 'FIX', color: '#4f4', desc: '恢复少量HP', duration: 0 },
-  { type: 'freeze',   name: '冰冻弹',   icon: 'CRY', color: '#8cf', desc: '短时减缓敌人', duration: 420 },
-  { type: 'multishot',name: '散射炮',   icon: 'ARC', color: '#f8f', desc: '子弹+2发', duration: 540 },
-  { type: 'magnet',   name: '磁铁',     icon: 'MAG', color: '#c8f', desc: '吸取范围提升', duration: 540 },
-  { type: 'pierce',   name: '穿甲弹',   icon: 'PEN', color: '#ff8', desc: '子弹穿透敌人', duration: 480 },
-  { type: 'vampire',  name: '生命汲取', icon: 'VAM', color: '#f66', desc: '击杀概率恢复HP', duration: 540 },
-  { type: 'double_score', name: '双倍积分', icon: 'SCO', color: '#ff0', desc: '积分×1.5', duration: 540 },
-  { type: 'big_bullet', name: '巨型子弹', icon: 'HVY', color: '#f80', desc: '子弹判定扩大', duration: 480 },
-  { type: 'explosive',name: '爆炸弹',   icon: 'BLZ', color: '#f84', desc: '子弹爆炸溅射', duration: 480 },
-  { type: 'invisible',name: '光学迷彩', icon: 'CLM', color: '#aaa', desc: '敌人索敌降低', duration: 540 },
-  { type: 'thorns',   name: '荆棘护甲', icon: 'RET', color: '#8f8', desc: '反弹接触伤害', duration: 420 },
-  { type: 'overdrive', name: '火力全开', icon: 'OVR', color: '#f80', desc: '短时伤害+1', duration: 420 },
-  { type: 'timewarp', name: '时间减缓', icon: 'TIM', color: '#8cf', desc: '敌方弹速降低', duration: 360 },
-  { type: 'goldrush', name: '黄金时刻', icon: 'GLD', color: '#fd0', desc: '分数和碎片×2', duration: 300 },
+  { type: 'speed',    name: '加强履带', icon: 'DRV', color: '#4af', desc: '移速×1.12', duration: 660, tier: 'basic' },
+  { type: 'railgun',  name: '电磁炮',   icon: 'RAIL', color: '#a4f', desc: '短时穿透脉冲', duration: 540, tier: 'advanced' },
+  { type: 'ricochet', name: '反弹弹',   icon: 'RICO', color: '#fa4', desc: '子弹弹射', duration: 660, tier: 'basic' },
+  { type: 'shield',   name: '能量护盾', icon: 'SHD', color: '#4ff', desc: '短时无敌', duration: 300, tier: 'basic' },
+  { type: 'rapid',    name: '急速连射', icon: 'RPD', color: '#f44', desc: '射速提升', duration: 480, tier: 'advanced' },
+  { type: 'repair',   name: '维修工具', icon: 'FIX', color: '#4f4', desc: '恢复少量HP', duration: 0, tier: 'basic' },
+  { type: 'freeze',   name: '冰冻弹',   icon: 'CRY', color: '#8cf', desc: '短时减缓敌人', duration: 420, tier: 'basic' },
+  { type: 'multishot',name: '散射炮',   icon: 'ARC', color: '#f8f', desc: '子弹+2发', duration: 540, tier: 'advanced' },
+  { type: 'magnet',   name: '磁铁',     icon: 'MAG', color: '#c8f', desc: '吸取范围提升', duration: 540, tier: 'basic' },
+  { type: 'pierce',   name: '穿甲弹',   icon: 'PEN', color: '#ff8', desc: '子弹穿透敌人', duration: 480, tier: 'advanced' },
+  { type: 'vampire',  name: '生命汲取', icon: 'VAM', color: '#f66', desc: '击杀概率恢复HP', duration: 540, tier: 'relic' },
+  { type: 'double_score', name: '双倍积分', icon: 'SCO', color: '#ff0', desc: '积分×1.5', duration: 540, tier: 'advanced' },
+  { type: 'big_bullet', name: '巨型子弹', icon: 'HVY', color: '#f80', desc: '子弹判定扩大', duration: 480, tier: 'advanced' },
+  { type: 'explosive',name: '爆炸弹',   icon: 'BLZ', color: '#f84', desc: '子弹爆炸溅射', duration: 480, tier: 'advanced' },
+  { type: 'invisible',name: '光学迷彩', icon: 'CLM', color: '#aaa', desc: '敌人索敌降低', duration: 540, tier: 'relic' },
+  { type: 'thorns',   name: '荆棘护甲', icon: 'RET', color: '#8f8', desc: '反弹接触伤害', duration: 420, tier: 'advanced' },
+  { type: 'overdrive', name: '火力全开', icon: 'OVR', color: '#f80', desc: '短时伤害+1', duration: 420, tier: 'relic' },
+  { type: 'timewarp', name: '时间减缓', icon: 'TIM', color: '#8cf', desc: '敌方弹速降低', duration: 360, tier: 'advanced' },
+  { type: 'goldrush', name: '黄金时刻', icon: 'GLD', color: '#fd0', desc: '分数和碎片×2', duration: 300, tier: 'relic' },
 ];
-function getRandomRarity() {
-  const r = rng() * 100;
-  if (r < RARITY_CONFIG.legendary.weight) return 'legendary';
-  if (r < RARITY_CONFIG.legendary.weight + RARITY_CONFIG.rare.weight) return 'rare';
-  return 'common';
+function normalizeItemTier(tier) {
+  if (tier === 'common') return 'basic';
+  if (tier === 'rare') return 'advanced';
+  if (tier === 'legendary') return 'relic';
+  return ITEM_TIER_CONFIG[tier] ? tier : 'basic';
+}
+function pickItemTier(weights = ITEM_TIER_CONFIG) {
+  const total = Object.values(weights).reduce((sum, cfg) => sum + (cfg.weight || 0), 0);
+  let roll = rng() * Math.max(1, total);
+  for (const tier of Object.keys(weights)) {
+    roll -= weights[tier].weight || 0;
+    if (roll <= 0) return normalizeItemTier(tier);
+  }
+  return 'basic';
+}
+function pickPowerUpDefByTier(tier) {
+  const targetTier = normalizeItemTier(tier);
+  let pool = powerUpDefs.filter(def => normalizeItemTier(def.tier) === targetTier);
+  if (pool.length === 0) pool = powerUpDefs;
+  return pool[Math.floor(rng() * pool.length)];
 }
 
 const powerUps = [];
@@ -3367,15 +3451,15 @@ let buffs = {
 };
 
 function spawnPowerUp(x, y) {
-  const def = powerUpDefs[Math.floor(rng() * powerUpDefs.length)];
   // Don't spawn inside obstacles
   if (tankCollidesObstacle(x, y, 20, 20)) return;
-  const rarity = getRandomRarity();
-  const rc = RARITY_CONFIG[rarity];
+  const tier = pickItemTier();
+  const def = pickPowerUpDefByTier(tier);
+  const rc = ITEM_TIER_CONFIG[tier];
   powerUps.push({
     x: x, y: y, type: def.type, name: def.name,
     icon: def.icon, color: def.color, duration: def.duration,
-    life: 900, rarity: rarity,
+    life: 900, tier: tier, rarity: tier,
     displayDuration: def.duration > 0 ? Math.floor(def.duration * rc.durationMul) : 0,
     displayName: def.name + rc.descSuffix,
     glowColor: rc.glowColor,
@@ -3432,9 +3516,10 @@ function checkFusion(newType) {
 function applyPowerUp(p) {
   sessionPowerUpsCollected++;
   discoverBestiary('powerups', p.type);
-  if (p.rarity === 'legendary') sfxPowerUpRare(); else sfxPowerUp();
+  const tier = normalizeItemTier(p.tier || p.rarity);
+  if (tier === 'relic') sfxPowerUpRare(); else sfxPowerUp();
   if (p.type === 'repair') {
-    const healAmt = p.rarity === 'legendary' ? 3 : (p.rarity === 'rare' ? 2 : 1);
+    const healAmt = tier === 'relic' ? 3 : (tier === 'advanced' ? 2 : 1);
     player.hp = Math.min(player.hp + healAmt, player.maxHp);
     return;
   }
@@ -3508,14 +3593,21 @@ function openChest(chest) {
   const fragAmt = isBoss ? (30 + Math.floor(rng() * 20)) : (10 + Math.floor(rng() * 15));
   coreFragments += fragAmt;
   saveProgression();
-  // Spawn rare/legendary items
+  const chestTierWeights = isBoss
+    ? { basic: { weight: 35 }, advanced: { weight: 45 }, relic: { weight: 20 } }
+    : { basic: { weight: 58 }, advanced: { weight: 32 }, relic: { weight: 10 } };
   const itemCount = isBoss ? 3 : 2;
+  const gained = [];
   for (let i = 0; i < itemCount; i++) {
-    const def = powerUpDefs[Math.floor(rng() * powerUpDefs.length)];
-    if (def.type === 'repair') { player.hp = Math.min(player.hp + 3, player.maxHp); continue; }
-    const rarityRoll = rng();
-    const rarity = rarityRoll < 0.4 ? 'legendary' : (rarityRoll < 0.5 ? 'rare' : 'common');
-    const rc = RARITY_CONFIG[rarity];
+    const tier = pickItemTier(chestTierWeights);
+    const def = pickPowerUpDefByTier(tier);
+    const rc = ITEM_TIER_CONFIG[tier] || ITEM_TIER_CONFIG.basic;
+    discoverBestiary('powerups', def.type);
+    gained.push((rc.code || 'T1') + '-' + def.icon);
+    if (def.type === 'repair') {
+      player.hp = Math.min(player.hp + (tier === 'relic' ? 4 : (tier === 'advanced' ? 3 : 2)), player.maxHp);
+      continue;
+    }
     const dur = def.duration > 0 ? Math.floor(def.duration * rc.durationMul * 1.3) : 0;
     buffs[def.type] = dur || def.duration;
   }
@@ -3523,7 +3615,7 @@ function openChest(chest) {
   const toast = document.getElementById('achieve-toast');
   toast.querySelector('.achieve-icon').textContent = isBoss ? 'BOS' : 'BOX';
   toast.querySelector('.achieve-name').textContent = (isBoss ? '首领宝箱' : '分数宝箱') + ' +' + fragAmt + ' MS';
-  toast.querySelector('.achieve-label').textContent = '获得' + itemCount + '个道具';
+  toast.querySelector('.achieve-label').textContent = '获得 ' + gained.join(' / ');
   toast.querySelector('.achieve-name').style.color = '#fd0';
   toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
   toast.style.animation = 'toastIn 0.4s ease-out';
@@ -3702,16 +3794,21 @@ function renderBestiary() {
   const grid = document.getElementById('bestiary-grid');
   let items = [];
   if (bestiaryTab === 'items_basic') {
-    items = powerUpDefs.map(p => ({
-      glyph: getEnemyVisualProfile('powerup').glyph, color: p.color, classLabel: 'BASIC-MODULE',
+    items = powerUpDefs.map(p => {
+      const tier = normalizeItemTier(p.tier);
+      const tc = ITEM_TIER_CONFIG[tier] || ITEM_TIER_CONFIG.basic;
+      return {
+      glyph: getEnemyVisualProfile('powerup').glyph, color: p.color, classLabel: tc.code + '-MODULE',
       name: p.name, desc: p.desc, powerType: p.type,
       tag: p.duration > 0 ? (p.duration/60).toFixed(0) + '秒' : '即时',
-      subTag: '拾取强化',
+      subTag: tc.label,
       lore: BESTIARY_LORE.powerups[p.type],
+      tier,
       unlocked: discoveredBestiary.powerups.has(p.type),
-      lockedName: '未解析基础模块',
+      lockedName: '未解析补给模块',
       lockedDesc: '???',
-    }));
+    };
+    });
   } else if (bestiaryTab === 'items_fusion') {
     items = FUSION_RECIPES.map(f => ({
       glyph: getEnemyVisualProfile('fusion').glyph, color: '#f6e5aa', classLabel: 'RELIC-FUSION',
@@ -3988,29 +4085,30 @@ function drawWeaponBarrel(ctx, x, y, w, h, fill, stroke, tipColor) {
 
 function drawTankEvolutionOverlay(ctx, evoLevel, tankType, accentColor) {
   if (!evoLevel) return;
-  const t = Date.now() / 260;
-  const pulse = 0.55 + Math.sin(t) * 0.18;
-  const holy = evoLevel >= 2 ? '#f6e5aa' : '#8ce8ff';
+  const finalForm = evoLevel >= 2;
+  const t = Date.now() / (finalForm ? 520 : 260);
+  const pulse = finalForm ? 0.2 + Math.sin(t) * 0.05 : 0.55 + Math.sin(t) * 0.18;
+  const holy = finalForm ? '#d8c68a' : '#8ce8ff';
   const ember = accentColor || '#f49800';
 
   ctx.save();
-  ctx.globalAlpha = 0.92;
-  ctx.strokeStyle = evoLevel >= 2 ? 'rgba(246,229,170,0.48)' : 'rgba(140,232,255,0.38)';
-  ctx.lineWidth = 1.1;
+  ctx.globalAlpha = finalForm ? 0.62 : 0.92;
+  ctx.strokeStyle = finalForm ? 'rgba(246,229,170,0.2)' : 'rgba(140,232,255,0.38)';
+  ctx.lineWidth = finalForm ? 0.8 : 1.1;
   ctx.beginPath();
-  ctx.arc(0, 0, 24 + evoLevel * 3 + pulse * 2, -Math.PI * 0.88, Math.PI * 0.88);
+  ctx.arc(0, 0, finalForm ? 27 + pulse : 24 + evoLevel * 3 + pulse * 2, -Math.PI * 0.82, Math.PI * 0.82);
   ctx.stroke();
 
-  const plateFill = evoLevel >= 2 ? 'rgba(12,10,9,0.86)' : 'rgba(9,15,21,0.78)';
-  const plateStroke = evoLevel >= 2 ? 'rgba(246,229,170,0.72)' : 'rgba(140,232,255,0.52)';
+  const plateFill = finalForm ? 'rgba(12,10,9,0.58)' : 'rgba(9,15,21,0.78)';
+  const plateStroke = finalForm ? 'rgba(246,229,170,0.34)' : 'rgba(140,232,255,0.52)';
   for (const side of [-1, 1]) {
     ctx.beginPath();
     ctx.moveTo(side * 13, -16);
-    ctx.lineTo(side * (23 + evoLevel * 2), -10);
-    ctx.lineTo(side * (21 + evoLevel * 3), 10);
+    ctx.lineTo(side * (finalForm ? 22 : 23 + evoLevel * 2), -10);
+    ctx.lineTo(side * (finalForm ? 22 : 21 + evoLevel * 3), 10);
     ctx.lineTo(side * 13, 16);
-    ctx.lineTo(side * (16 + evoLevel), 4);
-    ctx.lineTo(side * (16 + evoLevel), -4);
+    ctx.lineTo(side * (finalForm ? 16 : 16 + evoLevel), 4);
+    ctx.lineTo(side * (finalForm ? 16 : 16 + evoLevel), -4);
     ctx.closePath();
     ctx.fillStyle = plateFill;
     ctx.fill();
@@ -4018,34 +4116,36 @@ function drawTankEvolutionOverlay(ctx, evoLevel, tankType, accentColor) {
     ctx.stroke();
   }
 
-  withGlow(ctx, holy, evoLevel >= 2 ? 13 : 8, () => {
+  withGlow(ctx, holy, finalForm ? 4 : 8, () => {
     ctx.strokeStyle = holy;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = finalForm ? 0.8 : 1;
     ctx.beginPath();
     ctx.moveTo(-7, -18);
-    ctx.lineTo(0, -25 - evoLevel * 2);
+    ctx.lineTo(0, finalForm ? -24 : -25 - evoLevel * 2);
     ctx.lineTo(7, -18);
-    ctx.moveTo(0, -25 - evoLevel * 2);
+    ctx.moveTo(0, finalForm ? -24 : -25 - evoLevel * 2);
     ctx.lineTo(0, -10);
     ctx.stroke();
   });
 
-  if (evoLevel >= 2) {
-    ctx.globalAlpha = 0.86;
-    withGlow(ctx, ember, 16, () => {
-      ctx.strokeStyle = ember;
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(-18, 18);
-      ctx.lineTo(-6, 26);
-      ctx.lineTo(0, 18);
-      ctx.lineTo(6, 26);
-      ctx.lineTo(18, 18);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(0, 0, 33 + Math.sin(t * 1.3) * 1.8, Math.PI * 1.08, Math.PI * 1.92);
-      ctx.stroke();
-    });
+  if (finalForm) {
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = 'rgba(244,152,0,0.3)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-14, 18);
+    ctx.lineTo(-5, 22);
+    ctx.lineTo(0, 18);
+    ctx.lineTo(5, 22);
+    ctx.lineTo(14, 18);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(246,229,170,0.18)';
+    ctx.beginPath();
+    ctx.arc(0, 0, 31, Math.PI * 1.14, Math.PI * 1.86);
+    ctx.stroke();
+    ctx.globalAlpha = 0.42;
+    ctx.fillStyle = ember;
+    ctx.fillRect(-1.5, -2, 3, 4);
   }
   ctx.restore();
 }
@@ -4228,7 +4328,7 @@ function drawFusionGlyph(ctx, fusionId, x, y, size) {
 function getBestiaryVisual(item) {
   if (item.unlocked === false) return `<div class="bst-emblem locked-emblem">?</div>`;
   if (item.fusionId) return `<canvas class="bst-preview-canvas" width="36" height="36" data-kind="fusion" data-id="${escapeHtml(item.fusionId)}"></canvas>`;
-  if (item.powerType) return `<canvas class="bst-preview-canvas" width="36" height="36" data-kind="powerup" data-id="${escapeHtml(item.powerType)}"></canvas>`;
+  if (item.powerType) return `<canvas class="bst-preview-canvas" width="36" height="36" data-kind="powerup" data-id="${escapeHtml(item.powerType)}" data-tier="${escapeHtml(item.tier || 'basic')}"></canvas>`;
   return `<div class="bst-emblem">${escapeHtml(item.glyph || '◇')}</div>`;
 }
 
@@ -4245,7 +4345,20 @@ function renderBestiaryCanvases() {
     if (kind === 'powerup') {
       const def = powerUpDefs.find(p => p.type === id);
       const accent = def ? def.color : '#f49800';
-      drawTechModuleShell(ctx, 15, 9, accent, accent);
+      const tier = normalizeItemTier(canvas.dataset.tier || (def && def.tier));
+      const tc = ITEM_TIER_CONFIG[tier] || ITEM_TIER_CONFIG.basic;
+      const outer = tier === 'relic' ? 16 : (tier === 'advanced' ? 15 : 14);
+      const glow = tc.glowColor || accent;
+      drawTechModuleShell(ctx, outer, 8.5, accent, glow);
+      if (tier !== 'basic') {
+        ctx.strokeStyle = glow;
+        ctx.globalAlpha = tier === 'relic' ? 0.68 : 0.46;
+        ctx.lineWidth = tier === 'relic' ? 1.2 : 0.9;
+        ctx.beginPath();
+        ctx.arc(0, 0, outer + 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
       drawPowerUpGlyph(ctx, { type:id, x:0, y:0 }, 8.4);
     } else if (kind === 'fusion') {
       drawFusionRelicShell(ctx, 16, 9, '#f3a8ff', '#f6e5aa');
@@ -4462,6 +4575,16 @@ function escapeHtml(text) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function renderMoonstoneChip(amount, extra = '') {
+  const safeExtra = extra ? `<span class="moonstone-extra">${escapeHtml(extra)}</span>` : '';
+  return `<span class="moonstone-chip ${extra ? 'has-extra' : ''}">
+    <span class="moonstone-crystal" aria-hidden="true"></span>
+    <span class="moonstone-label">MOONSTONE</span>
+    <span class="moonstone-value">${escapeHtml(amount)}</span>
+    ${safeExtra}
+  </span>`;
 }
 
 function buildBestiaryRow(it) {
@@ -5404,7 +5527,7 @@ const eliteTypes = [
 class EliteEnemy extends EnemyTank {
   constructor(x, y, eliteDef) {
     const diff = difficultySettings[currentDifficulty];
-    const hp = eliteDef.hp + Math.floor(level / 3) + diff.enemyHpBonus;
+    const hp = eliteDef.hp + 2 + Math.floor(wave / 6) + Math.floor(level / 3) + diff.enemyHpBonus;
     super(x, y, eliteDef.color, eliteDef.turret, eliteDef.speed * diff.enemySpeedMul, Math.max(3, hp));
     this.isElite = true;
     this.armor = eliteDef.special === 'heavy';
@@ -6130,7 +6253,7 @@ const BESTIARY_LORE = {
 class BossEnemy extends EliteEnemy {
   constructor(x, y, bossDef) {
     const diff = difficultySettings[currentDifficulty];
-    const hp = Math.floor((bossDef.hp + level * 6 + diff.enemyHpBonus * 9 + Math.floor(wave * 1.15)) * (diff.bossHpMul || 1));
+    const hp = Math.floor((bossDef.hp + level * 7 + diff.enemyHpBonus * 10 + Math.floor(wave * 1.35)) * (diff.bossHpMul || 1));
     super(x, y, {name:bossDef.name, color:bossDef.color, turret:bossDef.turret, speed:bossDef.speed, hp:Math.max(34,hp), special:'boss', icon:bossDef.icon});
     this.bossDef = bossDef;
     this.maxHp = this.hp;
@@ -7266,9 +7389,17 @@ function renderLabPreviewCanvas() {
     ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(canvas.width - 10, y); ctx.stroke();
   }
 
-  ctx.strokeStyle = evoLevel >= 2 ? 'rgba(246,229,170,0.42)' : 'rgba(140,232,255,0.25)';
+  const finalPreview = evoLevel >= 2;
+  ctx.strokeStyle = finalPreview ? 'rgba(246,229,170,0.16)' : 'rgba(140,232,255,0.25)';
   ctx.beginPath();
-  ctx.arc(canvas.width / 2, canvas.height / 2 + 8, 54 + evoLevel * 10, 0, Math.PI * 2);
+  if (finalPreview) {
+    ctx.arc(canvas.width / 2, canvas.height / 2 + 8, 58, Math.PI * 0.14, Math.PI * 0.86);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2 + 8, 58, Math.PI * 1.14, Math.PI * 1.86);
+  } else {
+    ctx.arc(canvas.width / 2, canvas.height / 2 + 8, 54 + evoLevel * 10, 0, Math.PI * 2);
+  }
   ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(canvas.width / 2 - 70, canvas.height / 2 + 44);
@@ -7339,7 +7470,7 @@ function renderLabUI() {
   const evoDef = evolved ? evoEntries[evoLevel - 1] : null;
   const nextEvo = evoEntries[evoLevel] || null;
   const fragDisplay = document.getElementById('lab-fragments');
-  if (fragDisplay) fragDisplay.textContent = 'MOONSTONE: ' + coreFragments;
+  if (fragDisplay) fragDisplay.innerHTML = renderMoonstoneChip(coreFragments, 'LAB RESERVE');
 
   if (!unlocked) {
     const cond = TANK_UNLOCK_CONDITIONS[k];
@@ -7882,7 +8013,7 @@ function spawnEnemy() {
   const maxIdx = Math.min(3, Math.floor((wave + level) / 4));
   const idx = Math.floor(rng() * (maxIdx + 1));
   const type = enemyTypes[idx];
-  const hp = Math.max(4, type.hp + 3 + Math.floor(wave / 2.8) + Math.floor(level / 3) + diff.enemyHpBonus);
+  const hp = Math.max(5, type.hp + 4 + Math.floor(wave / 2.4) + Math.floor(level / 3) + diff.enemyHpBonus);
   const speedMul = diff.enemySpeedMul * (1 + Math.min(0.46, wave * 0.014));
   const enemy = new EnemyTank(x, y, type.color, type.turret, type.speed * speedMul, hp, type.kind);
   enemy.shootDelay = Math.max(42, Math.floor(enemy.shootDelay * (type.kind === 'brute' ? 1.12 : (type.kind === 'runner' ? 0.82 : 0.95))));
@@ -8252,11 +8383,12 @@ function draw() {
     ctx.rotate(rotate);
     const outer = sz + 5;
     const inner = Math.max(6, sz - 2);
+    const tier = normalizeItemTier(p.tier || p.rarity);
     drawTechModuleShell(ctx, outer, inner, p.color, glowC);
     if (p.glowColor) {
       ctx.strokeStyle = p.glowColor;
-      ctx.lineWidth = p.rarity === 'legendary' ? 2.5 : 1.5;
-      ctx.shadowBlur = p.rarity === 'legendary' ? 20 : 12;
+      ctx.lineWidth = tier === 'relic' ? 2.5 : 1.5;
+      ctx.shadowBlur = tier === 'relic' ? 20 : 12;
       ctx.beginPath();
       ctx.arc(0, 0, outer + 2, 0, Math.PI * 2);
       ctx.stroke();
