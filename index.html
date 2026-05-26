@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.12 fix restart loop freeze after returning home */
+/* v3.8.0 upgrade draft system with rerolls and jackpot rewards */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -1286,31 +1286,59 @@ canvas { background: #070d13; }
     repeating-linear-gradient(120deg, transparent 0 34px, rgba(140,232,255,0.035) 34px 35px);
 }
 #modifier-screen h2 { color: var(--ui-cyan); }
+#modifier-screen .modifier-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 980px;
+  margin-top: -4px;
+  margin-bottom: 2px;
+}
+#modifier-screen .mod-rule {
+  padding: 7px 12px;
+  border: 1px solid rgba(140,232,255,0.22);
+  background:
+    linear-gradient(90deg, rgba(140,232,255,0.08), rgba(244,152,0,0.06)),
+    rgba(5,8,12,0.68);
+  color: rgba(232,237,242,0.72);
+  clip-path: var(--ui-cut-sm);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+}
 #modifier-screen .mod-choices {
   display: grid;
-  grid-template-columns: repeat(3, minmax(180px, 1fr));
-  gap: 14px;
-  max-width: 720px;
+  grid-template-columns: repeat(4, minmax(168px, 1fr));
+  gap: 16px;
+  width: min(980px, 92vw);
+  max-width: 980px;
 }
 #modifier-screen .mod-card {
   --mod-accent: var(--ui-cyan);
   --mod-rgb: 140, 232, 255;
   width: auto;
-  min-height: 194px;
+  min-height: 258px;
+  padding: 18px 14px 16px;
   border-radius: 0;
   border: 1px solid rgba(var(--mod-rgb),0.38);
   background:
+    linear-gradient(90deg, rgba(255,255,255,0.045) 0 1px, transparent 1px 11px),
     linear-gradient(150deg, rgba(var(--mod-rgb),0.18), transparent 30%),
     linear-gradient(180deg, rgba(8,15,20,0.92), rgba(6,9,13,0.84) 54%, rgba(244,152,0,0.08));
   clip-path: var(--ui-cut);
   position: relative;
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025), 0 16px 36px rgba(0,0,0,0.28);
 }
 #modifier-screen .mod-card:hover {
   border-color: var(--mod-accent);
   background:
+    linear-gradient(90deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 11px),
     linear-gradient(150deg, rgba(var(--mod-rgb),0.28), transparent 34%),
     linear-gradient(180deg, rgba(12,22,30,0.94), rgba(8,12,18,0.9) 54%, rgba(244,152,0,0.12));
+  transform: translateY(-5px);
+  box-shadow: 0 20px 48px rgba(var(--mod-rgb),0.14), 0 28px 60px rgba(0,0,0,0.42);
 }
 #modifier-screen .mod-card::before {
   content: attr(data-rarity);
@@ -1347,15 +1375,28 @@ canvas { background: #070d13; }
   letter-spacing: 1px;
   text-shadow: 0 0 14px rgba(var(--mod-rgb),0.62);
 }
+#modifier-screen .mod-rarity-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: rgba(232,237,242,0.64);
+  font: 800 9px "Courier New", monospace;
+  letter-spacing: 1.4px;
+}
 #modifier-screen .mod-card .mod-name {
   color: var(--ui-ivory);
   font-size: 17px;
   letter-spacing: 2px;
+  min-height: 42px;
+  display: grid;
+  place-items: center;
 }
 #modifier-screen .mod-card .mod-desc {
   color: #91a2b7;
   line-height: 1.48;
-  min-height: 36px;
+  min-height: 42px;
+  margin-top: 8px;
 }
 #modifier-screen .mod-card .mod-tradeoff {
   margin-top: 8px;
@@ -1364,6 +1405,62 @@ canvas { background: #070d13; }
   color: rgba(246,229,170,0.72);
   font-size: 10px;
   letter-spacing: 0.8px;
+  min-height: 46px;
+}
+#modifier-screen .mod-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+#modifier-screen .mod-reroll {
+  min-width: 112px;
+  padding: 7px 10px;
+  border: 1px solid rgba(var(--mod-rgb),0.48);
+  background:
+    linear-gradient(90deg, rgba(var(--mod-rgb),0.18), rgba(244,152,0,0.08)),
+    rgba(5,8,12,0.82);
+  color: var(--mod-accent);
+  clip-path: var(--ui-cut-sm);
+  cursor: pointer;
+  font: 800 10px "Courier New", monospace;
+  letter-spacing: 1px;
+  transition: all 0.18s ease;
+}
+#modifier-screen .mod-reroll:hover:not(:disabled) {
+  background:
+    linear-gradient(90deg, rgba(var(--mod-rgb),0.26), rgba(246,229,170,0.11)),
+    rgba(7,12,18,0.96);
+  box-shadow: 0 0 18px rgba(var(--mod-rgb),0.24);
+  transform: translateY(-1px);
+}
+#modifier-screen .mod-reroll:disabled {
+  border-color: rgba(127,146,170,0.2);
+  color: rgba(127,146,170,0.5);
+  cursor: not-allowed;
+  filter: grayscale(0.45);
+}
+#modifier-screen .mod-card.rarity-standard { --mod-accent: #8ce8ff; --mod-rgb: 140,232,255; }
+#modifier-screen .mod-card.rarity-rare { --mod-accent: #9ca8ff; --mod-rgb: 156,168,255; }
+#modifier-screen .mod-card.rarity-elite { --mod-accent: #f49800; --mod-rgb: 244,152,0; }
+#modifier-screen .mod-card.rarity-mythic {
+  --mod-accent: #f6e5aa;
+  --mod-rgb: 246,229,170;
+  box-shadow: inset 0 0 0 1px rgba(246,229,170,0.08), 0 0 28px rgba(246,229,170,0.12), 0 22px 58px rgba(0,0,0,0.46);
+}
+#modifier-screen .mod-card.reroll-used {
+  border-style: dashed;
+}
+#modifier-screen.jackpot-ready::before {
+  background:
+    radial-gradient(circle at 50% 52%, rgba(246,229,170,0.18), transparent 0 20%, rgba(244,152,0,0.12) 21%, transparent 36%),
+    repeating-linear-gradient(120deg, transparent 0 28px, rgba(246,229,170,0.055) 28px 29px);
+}
+#modifier-screen.jackpot-ready .mod-card {
+  animation: jackpotPulse 0.72s ease-in-out infinite alternate;
+}
+@keyframes jackpotPulse {
+  from { filter: brightness(1); box-shadow: 0 18px 42px rgba(0,0,0,0.38); }
+  to { filter: brightness(1.18); box-shadow: 0 0 34px rgba(246,229,170,0.28), 0 24px 62px rgba(0,0,0,0.5); }
 }
 
 #achievements-screen {
@@ -2167,6 +2264,7 @@ canvas { background: #070d13; }
   <div id="instructions">WASD 移动 | 鼠标瞄准 | 左键射击 | Esc / P 暂停</div>
   <div id="modifier-screen">
     <h2>选 择 改 造 器</h2>
+    <div class="modifier-meta" id="modifier-meta"></div>
     <div class="mod-choices" id="modifier-choices"></div>
   </div>
 </div>
@@ -2976,31 +3074,176 @@ function startDailyChallenge() {
 }
 
 // --- Wave Modifier System ---
-const MODIFIER_DEFS = [
-  { id:'dmg_up', name:'月核弹头', desc:'+18% 伤害', icon:'WAR', rarity:'standard', weight:28, color:'#ff9b4a', rgb:'255,155,74', tradeoff:'稳定输出，不改变射击节奏', apply(){ playerBulletDmgMul+=0.18; } },
-  { id:'spd_up', name:'灰域推进', desc:'+12% 移动速度', icon:'DRV', rarity:'standard', weight:24, color:'#8ce8ff', rgb:'140,232,255', tradeoff:'适合走位换弹', apply(){ playerSpeedMul+=0.12; } },
-  { id:'firerate', name:'冷却短路', desc:'射击冷却-12%，装填+8%', icon:'CLK', rarity:'elite', weight:14, color:'#f6e5aa', rgb:'246,229,170', tradeoff:'火力更密，但不能无脑扫射', apply(){ playerShootDelayMul*=0.88; playerReloadMul*=1.08; } },
-  { id:'hp_up', name:'圣龛装甲', desc:'+1 最大HP并回复1', icon:'PLT', rarity:'standard', weight:22, color:'#79f48d', rgb:'121,244,141', tradeoff:'容错提升较小但可靠', apply(){ if(player.alive){ player.maxHp+=1; player.hp=Math.min(player.maxHp, player.hp+1); } } },
-  { id:'more_pups', name:'补给坐标', desc:'道具掉落+15%', icon:'SUP', rarity:'standard', weight:18, color:'#f49800', rgb:'244,152,0', tradeoff:'补给更稳，但不制造滚雪球', apply(){ powerUpDropMul+=0.15; } },
-  { id:'extra_life', name:'备用驾驶舱', desc:'+1 条命', icon:'LIF', rarity:'mythic', weight:5, color:'#f6e5aa', rgb:'246,229,170', tradeoff:'极少出现的保险协议', apply(){ lives++; } },
-  { id:'bullet_spd', name:'弹道加速环', desc:'+10% 子弹速度', icon:'VEL', rarity:'standard', weight:20, color:'#9ca8ff', rgb:'156,168,255', tradeoff:'更容易命中机动目标', apply(){ bulletSpeedMul+=0.10; } },
-  { id:'combo_bonus', name:'清算链路', desc:'连击奖励分×1.35', icon:'SCO', rarity:'elite', weight:12, color:'#f3a8ff', rgb:'243,168,255', tradeoff:'奖励技术，不直接提升战力', apply(){ comboBonusMul*=1.35; } },
-  { id:'loot_double', name:'残骸解码', desc:'精英额外掉落概率+12%', icon:'REC', rarity:'elite', weight:12, color:'#d59a54', rgb:'213,154,84', tradeoff:'精英波收益更高', apply(){ eliteDropMul+=0.12; } },
-  { id:'big_explosion', name:'爆轰礼装', desc:'爆炸范围+18%', icon:'BLZ', rarity:'elite', weight:10, color:'#ff6767', rgb:'255,103,103', tradeoff:'清群增强但不再覆盖全屏', apply(){ explosionRadiusMul+=0.18; } },
+const MODIFIER_RARITIES = {
+  standard: { label:'STANDARD', code:'I', className:'standard', rank:1, weight:70, color:'#8ce8ff', rgb:'140,232,255' },
+  rare:     { label:'RARE',     code:'II', className:'rare',     rank:2, weight:24, color:'#9ca8ff', rgb:'156,168,255' },
+  elite:    { label:'ELITE',    code:'III',className:'elite',    rank:3, weight:7.5,color:'#f49800', rgb:'244,152,0' },
+  mythic:   { label:'MYTHIC',   code:'IV', className:'mythic',   rank:4, weight:1.6,color:'#f6e5aa', rgb:'246,229,170' },
+};
+const MODIFIER_RARITY_ORDER = ['standard','rare','elite','mythic'];
+const MODIFIER_AXIS_LABELS = {
+  damage:'弹头', cadence:'射击', survival:'生存', mobility:'机动',
+  support:'补给', scoring:'清算', blast:'爆轰', economy:'月光石', miracle:'奇迹',
+};
+const MODIFIER_STACK_LIMITS = {
+  damage: 8, speed: 7, firerate: 6, reload: 6, hp: 5, repair: 5,
+  bullet_spd: 7, mag: 5, more_pups: 5, combo_bonus: 5, loot_double: 4,
+  big_explosion: 5, extra_life: 2, full_repair: 2,
+};
+const MODIFIER_BLUEPRINTS = [
+  {
+    family:'damage', axis:'damage', name:'月核弹头', icon:'WAR', baseWeight:27, color:'#ff9b4a', rgb:'255,155,74',
+    values:{ standard:0.10, rare:0.16, elite:0.24, mythic:0.34 },
+    desc:v => '子弹攻击力 +' + Math.round(v * 100) + '%',
+    tradeoff:'稳定火力增幅，不改变射击节奏',
+    apply:v => { playerBulletDmgMul += v; },
+  },
+  {
+    family:'firerate', axis:'cadence', name:'冷却短路', icon:'CLK', baseWeight:20, color:'#f6e5aa', rgb:'246,229,170',
+    values:{ standard:0.07, rare:0.11, elite:0.16, mythic:0.22 },
+    desc:v => '射击冷却 -' + Math.round(v * 100) + '%',
+    tradeoff:'火力更密，装填结构会承受轻微压力',
+    apply:v => { playerShootDelayMul *= (1 - v); playerReloadMul *= (1 + v * 0.25); },
+  },
+  {
+    family:'reload', axis:'cadence', name:'弹仓圣锁', icon:'RLD', baseWeight:18, color:'#c6f6ff', rgb:'198,246,255',
+    values:{ standard:0.08, rare:0.12, elite:0.18, mythic:0.25 },
+    desc:v => '装填时间 -' + Math.round(v * 100) + '%',
+    tradeoff:'提升持续作战手感，瞬间爆发较弱',
+    apply:v => { playerReloadMul *= (1 - v); },
+  },
+  {
+    family:'mag', axis:'cadence', name:'扩容弹匣', icon:'MAG', baseWeight:17, color:'#d4b36a', rgb:'212,179,106',
+    values:{ standard:1, rare:1, elite:2, mythic:3 },
+    desc:v => '弹夹容量 +' + v,
+    tradeoff:'更长压制窗口，但仍需完整换弹',
+    apply:v => applyRunMagazineBonus(v),
+  },
+  {
+    family:'hp', axis:'survival', name:'圣龛装甲', icon:'PLT', baseWeight:23, color:'#79f48d', rgb:'121,244,141',
+    values:{ standard:{max:1, heal:1}, rare:{max:1, heal:2}, elite:{max:2, heal:2}, mythic:{max:2, heal:4} },
+    desc:v => '最大HP +' + v.max + '，回复 ' + v.heal,
+    tradeoff:'容错提升可靠，但不会直接提高杀伤',
+    apply:v => {
+      playerMaxHpBonus += v.max;
+      if (player && player.alive) {
+        player.maxHp += v.max;
+        player.hp = Math.min(player.maxHp, player.hp + v.heal);
+      }
+    },
+  },
+  {
+    family:'repair', axis:'survival', name:'自修圣油', icon:'REP', baseWeight:14, color:'#9ff0bf', rgb:'159,240,191',
+    values:{ standard:0.035, rare:0.06, elite:0.09, mythic:0.13 },
+    desc:v => '击杀后 ' + Math.round(v * 100) + '% 概率修复1HP',
+    tradeoff:'偏向持久战，低血量时价值更高',
+    apply:v => { playerRepairChance = Math.min(0.35, playerRepairChance + v); },
+  },
+  {
+    family:'speed', axis:'mobility', name:'灰域推进', icon:'DRV', baseWeight:24, color:'#8ce8ff', rgb:'140,232,255',
+    values:{ standard:0.08, rare:0.12, elite:0.18, mythic:0.25 },
+    desc:v => '移动速度 +' + Math.round(v * 100) + '%',
+    tradeoff:'更适合走位、拉扯与主动换弹',
+    apply:v => { playerSpeedMul += v; },
+  },
+  {
+    family:'bullet_spd', axis:'damage', name:'弹道加速环', icon:'VEL', baseWeight:20, color:'#9ca8ff', rgb:'156,168,255',
+    values:{ standard:0.07, rare:0.11, elite:0.16, mythic:0.23 },
+    desc:v => '子弹飞行速度 +' + Math.round(v * 100) + '%',
+    tradeoff:'提高命中率，对高机动敌人更明显',
+    apply:v => { bulletSpeedMul += v; },
+  },
+  {
+    family:'more_pups', axis:'support', name:'补给坐标', icon:'SUP', baseWeight:16, color:'#f49800', rgb:'244,152,0',
+    values:{ standard:0.12, rare:0.18, elite:0.27, mythic:0.38 },
+    desc:v => '道具掉落 +' + Math.round(v * 100) + '%',
+    tradeoff:'提高战场补给密度，成长较慢热',
+    apply:v => { powerUpDropMul += v; },
+  },
+  {
+    family:'combo_bonus', axis:'scoring', name:'清算链路', icon:'SCO', baseWeight:13, color:'#f3a8ff', rgb:'243,168,255',
+    values:{ standard:1.18, rare:1.35, elite:1.62, mythic:2.0 },
+    desc:v => '连击奖励分 ×' + v.toFixed(2),
+    tradeoff:'奖励高风险连续击杀，不直接提高生存',
+    apply:v => { comboBonusMul *= v; },
+  },
+  {
+    family:'loot_double', axis:'support', name:'残骸解码', icon:'REC', baseWeight:12, color:'#d59a54', rgb:'213,154,84',
+    values:{ standard:0.08, rare:0.12, elite:0.18, mythic:0.26 },
+    desc:v => '精英额外掉落概率 +' + Math.round(v * 100) + '%',
+    tradeoff:'精英战收益更高，但需要先活下来',
+    apply:v => { eliteDropMul += v; },
+  },
+  {
+    family:'big_explosion', axis:'blast', name:'爆轰礼装', icon:'BLZ', baseWeight:11, color:'#ff6767', rgb:'255,103,103',
+    values:{ standard:0.12, rare:0.18, elite:0.27, mythic:0.40 },
+    desc:v => '爆炸范围 +' + Math.round(v * 100) + '%',
+    tradeoff:'清群能力增强，但不覆盖全屏',
+    apply:v => { explosionRadiusMul += v; },
+  },
 ];
+
 let activeModifiers = [];
+let currentModifierDraft = null;
 let playerBulletDmgMul = 1, playerSpeedMul = 1, playerShootDelayMul = 1;
 let playerReloadMul = 1, powerUpDropMul = 1, bulletSpeedMul = 1, comboBonusMul = 1;
-let eliteDropMul = 0, explosionRadiusMul = 1;
-const MODIFIER_STACK_LIMITS = { extra_life: 2, firerate: 4, dmg_up: 5, hp_up: 5, big_explosion: 4 };
+let eliteDropMul = 0, explosionRadiusMul = 1, playerMagBonus = 0, playerMaxHpBonus = 0, playerRepairChance = 0;
 
-function getModifierStackCount(id) {
-  return activeModifiers.filter(m => m.id === id).length;
+function getModifierRarityConfig(rarity) {
+  return MODIFIER_RARITIES[rarity] || MODIFIER_RARITIES.standard;
+}
+
+function buildScaledModifier(bp, rarityKey) {
+  const rarity = getModifierRarityConfig(rarityKey);
+  const value = bp.values[rarityKey];
+  return {
+    id: bp.family + '_' + rarityKey,
+    family: bp.family,
+    axis: bp.axis,
+    name: bp.name + ' ' + rarity.code,
+    baseName: bp.name,
+    desc: bp.desc(value),
+    icon: bp.icon,
+    rarity: rarityKey,
+    rarityRank: rarity.rank,
+    weight: bp.baseWeight * rarity.weight,
+    color: bp.color || rarity.color,
+    rgb: bp.rgb || rarity.rgb,
+    tradeoff: bp.tradeoff,
+    stackLimit: MODIFIER_STACK_LIMITS[bp.family] || 6,
+    jackpotEligible: true,
+    apply(){ bp.apply(value); },
+  };
+}
+
+const SPECIAL_MODIFIER_DEFS = [
+  { id:'extra_life', family:'extra_life', axis:'miracle', name:'备用驾驶舱', desc:'+1 条命', icon:'LIF', rarity:'mythic', rarityRank:4, weight:30, minLevel:3, stackLimit:2, color:'#f6e5aa', rgb:'246,229,170', tradeoff:'极少出现的保险协议', jackpotEligible:false, apply(){ lives++; } },
+  { id:'full_repair', family:'full_repair', axis:'miracle', name:'圣堂整备令', desc:'HP完全回复，并获得短暂无敌', icon:'SAN', rarity:'mythic', rarityRank:4, weight:24, minLevel:3, stackLimit:2, color:'#fff0b8', rgb:'255,240,184', tradeoff:'救急协议，只在高压战线偶尔出现', jackpotEligible:false, apply(){ if(player){ player.hp = player.maxHp; player.invincible = Math.max(player.invincible || 0, 120); } } },
+  { id:'moon_300', family:'moonstone_cache', axis:'economy', name:'月光石匣 300', desc:'立即获得300 MOONSTONE', icon:'MS3', rarity:'mythic', rarityRank:4, weight:42, minLevel:2, stackLimit:9, color:'#f49800', rgb:'244,152,0', tradeoff:'放弃战力，换取研究室资源', jackpotEligible:false, grantsMoonstone:300, apply(){ grantDraftMoonstone(300); } },
+  { id:'moon_600', family:'moonstone_cache', axis:'economy', name:'月光石匣 600', desc:'立即获得600 MOONSTONE', icon:'MS6', rarity:'mythic', rarityRank:4, weight:20, minLevel:4, stackLimit:9, color:'#ffd47a', rgb:'255,212,122', tradeoff:'罕见财务异常，足够重写一段机体预算', jackpotEligible:false, grantsMoonstone:600, apply(){ grantDraftMoonstone(600); } },
+  { id:'moon_900', family:'moonstone_cache', axis:'economy', name:'月光石匣 900', desc:'立即获得900 MOONSTONE', icon:'MS9', rarity:'mythic', rarityRank:4, weight:9, minLevel:6, stackLimit:9, color:'#f6e5aa', rgb:'246,229,170', tradeoff:'最高级别的资源奇迹，概率极低', jackpotEligible:false, grantsMoonstone:900, apply(){ grantDraftMoonstone(900); } },
+];
+const MODIFIER_DEFS = [
+  ...MODIFIER_BLUEPRINTS.flatMap(bp => MODIFIER_RARITY_ORDER.map(r => buildScaledModifier(bp, r))),
+  ...SPECIAL_MODIFIER_DEFS,
+];
+
+function getModifierStackCount(mod) {
+  const family = typeof mod === 'string'
+    ? ((MODIFIER_DEFS.find(m => m.id === mod) || {}).family || mod)
+    : ((mod && (mod.family || mod.id)) || '');
+  return activeModifiers.filter(m => (m.family || m.id) === family).length;
+}
+
+function getModifierRerollCost() {
+  const rerolls = currentModifierDraft ? currentModifierDraft.rerollCount : 0;
+  const base = 48 + level * 8;
+  return Math.max(40, Math.floor(base + rerolls * (38 + level * 4)));
 }
 
 function pickWeightedModifier(pool) {
   const total = pool.reduce((sum, m) => sum + (m.weight || 10), 0);
-  let roll = rng() * total;
+  let roll = rng() * Math.max(1, total);
   for (let i = 0; i < pool.length; i++) {
     roll -= pool[i].weight || 10;
     if (roll <= 0) return i;
@@ -3008,72 +3251,221 @@ function pickWeightedModifier(pool) {
   return Math.max(0, pool.length - 1);
 }
 
-function getModifierChoices() {
+function isModifierAvailable(m) {
+  if (!m) return false;
+  if (level < (m.minLevel || 1)) return false;
+  if (getModifierStackCount(m) >= (m.stackLimit || MODIFIER_STACK_LIMITS[m.family] || 6)) return false;
+  if (m.rarity === 'mythic' && level < 3 && !m.grantsMoonstone) return false;
+  return true;
+}
+
+function getModifierChoices(count = 4, excludeIds = [], guaranteeFoundation = true) {
+  const exclude = new Set(excludeIds);
   const choices = [];
-  let available = [...MODIFIER_DEFS].filter(m => getModifierStackCount(m.id) < (MODIFIER_STACK_LIMITS[m.id] || 5));
-  if (level < 3) {
-    available = available.filter(m => (m.rarity || 'standard') !== 'mythic');
+  let available = MODIFIER_DEFS.filter(m => isModifierAvailable(m) && !exclude.has(m.id));
+  const foundational = available.filter(m => !m.grantsMoonstone && (m.rarity === 'standard' || m.rarity === 'rare'));
+  if (guaranteeFoundation && foundational.length > 0) {
+    const first = foundational[pickWeightedModifier(foundational)];
+    choices.push(first);
+    exclude.add(first.id);
+    available = available.filter(m => m.id !== first.id);
   }
-  const standardChoices = available
-    .map((m, idx) => ({ m, idx }))
-    .filter(entry => (entry.m.rarity || 'standard') === 'standard');
-  if (standardChoices.length > 0) {
-    const picked = standardChoices[pickWeightedModifier(standardChoices.map(entry => entry.m))];
-    choices.push(available.splice(picked.idx, 1)[0]);
-  }
-  while (choices.length < 3 && available.length > 0) {
+  while (choices.length < count && available.length > 0) {
     const idx = pickWeightedModifier(available);
-    choices.push(available.splice(idx, 1)[0]);
+    const picked = available.splice(idx, 1)[0];
+    choices.push(picked);
+    exclude.add(picked.id);
   }
   return choices;
 }
 
-function showModifierChoice(mode = 'level') {
-  modifierChoiceMode = mode;
-  const choices = getModifierChoices();
-  if (choices.length === 0) return;
+function createModifierDraft(mode) {
+  const choices = getModifierChoices(4);
+  return {
+    id: Date.now() + ':' + Math.floor(rng() * 100000),
+    mode,
+    choices,
+    rerolled: choices.map(() => false),
+    rerollCount: 0,
+    jackpotResolved: false,
+  };
+}
+
+function getModifierJackpotFamily(choices) {
+  if (!choices || choices.length !== 4) return null;
+  const family = choices[0] && choices[0].family;
+  if (!family) return null;
+  const sameFamily = choices.every(m => m && m.jackpotEligible !== false && m.family === family);
+  if (!sameFamily) return null;
+  const limit = choices[0].stackLimit || MODIFIER_STACK_LIMITS[family] || 6;
+  return getModifierStackCount(family) + choices.length <= limit ? family : null;
+}
+
+function buildModifierCard(m, index) {
+  const rarity = getModifierRarityConfig(m.rarity);
+  const rerolled = currentModifierDraft && currentModifierDraft.rerolled[index];
+  const cost = getModifierRerollCost();
+  const canAfford = coreFragments >= cost;
+  const disabled = rerolled || !canAfford || (currentModifierDraft && currentModifierDraft.jackpotResolved);
+  const axisLabel = MODIFIER_AXIS_LABELS[m.axis] || '战术';
+  return `<div class="mod-card rarity-${escapeHtml(rarity.className)} ${rerolled ? 'reroll-used' : ''}" data-rarity="${escapeHtml(rarity.label)}" style="--mod-accent:${escapeHtml(m.color || rarity.color)};--mod-rgb:${escapeHtml(m.rgb || rarity.rgb)}" onclick="pickModifierFromDraft(${index})">
+    <div class="mod-rarity-line"><span>${escapeHtml(rarity.label)}</span><span>${escapeHtml(axisLabel)}</span></div>
+    <span class="mod-icon">${escapeHtml(m.icon)}</span>
+    <div class="mod-name">${escapeHtml(m.name)}</div>
+    <div class="mod-desc">${escapeHtml(m.desc)}</div>
+    <div class="mod-tradeoff">${escapeHtml(m.tradeoff || '战术协议')}</div>
+    <div class="mod-actions">
+      <button class="mod-reroll" onclick="rerollModifierChoice(event, ${index})" ${disabled ? 'disabled' : ''}>${rerolled ? '已刷新' : ('刷新 ' + cost + ' MS')}</button>
+    </div>
+  </div>`;
+}
+
+function renderModifierDraft() {
   const container = document.getElementById('modifier-screen');
   const grid = document.getElementById('modifier-choices');
+  const meta = document.getElementById('modifier-meta');
   const title = container.querySelector('h2');
-  if (title) title.textContent = mode === 'level' ? '局 内 升 级 / 选 择 改 造' : '选 择 改 造 器';
-  grid.innerHTML = choices.map(m =>
-    `<div class="mod-card" data-rarity="${escapeHtml((m.rarity || 'standard').toUpperCase())}" style="--mod-accent:${escapeHtml(m.color || '#8ce8ff')};--mod-rgb:${escapeHtml(m.rgb || '140,232,255')}" onclick="pickModifier('${m.id}')">
-      <span class="mod-icon">${m.icon}</span>
-      <div class="mod-name">${m.name}</div>
-      <div class="mod-desc">${m.desc}</div>
-      <div class="mod-tradeoff">${escapeHtml(m.tradeoff || '战术协议')}</div>
-    </div>`
-  ).join('');
+  if (!currentModifierDraft) return;
+  const jackpotFamily = getModifierJackpotFamily(currentModifierDraft.choices);
+  container.classList.toggle('jackpot-ready', !!jackpotFamily);
+  if (title) title.textContent = currentModifierDraft.mode === 'level' ? '局 内 升 级 / 四 选 一 改 造' : '选 择 改 造 器';
+  if (meta) {
+    const cost = getModifierRerollCost();
+    const used = currentModifierDraft.rerolled.filter(Boolean).length;
+    meta.innerHTML = renderMoonstoneChip(coreFragments, 'REROLL ' + cost + ' MS / ' + used + '-4 USED')
+      + `<span class="mod-rule">${jackpotFamily ? '四联同调已锁定：即将获得全部选项' : '每张卡仅可刷新一次，刷新成本在本次升级内递增'}</span>`;
+  }
+  grid.innerHTML = currentModifierDraft.choices.map((m, i) => buildModifierCard(m, i)).join('');
+}
+
+function showModifierChoice(mode = 'level') {
+  modifierChoiceMode = mode;
+  currentModifierDraft = createModifierDraft(mode);
+  if (!currentModifierDraft.choices.length) return;
+  const container = document.getElementById('modifier-screen');
+  renderModifierDraft();
   container.style.display = 'flex';
   gameRunning = false; // pause during choice
+  tryResolveModifierJackpot('draft');
+}
+
+function grantDraftMoonstone(amount) {
+  coreFragments += amount;
+  sessionModifierTokenClaims++;
+  saveProgression();
+  unlockAchievement('modifier_treasury');
+}
+
+function applyRunMagazineBonus(amount) {
+  playerMagBonus += amount;
+  if (!player) return;
+  const baseMag = (player._tankDef && player._tankDef.magSize) || player.magSize || 6;
+  const prevMag = Math.max(1, player.magSize || baseMag);
+  const prevAmmoRatio = (player.ammo || 0) / prevMag;
+  player.magSize = Math.max(1, baseMag + playerMagBonus);
+  player.ammo = Math.max(1, Math.min(player.magSize, Math.ceil(prevAmmoRatio * player.magSize) + amount));
+}
+
+function applyModifierDef(def) {
+  if (!def || typeof def.apply !== 'function') return;
+  def.apply();
+  activeModifiers.push(def);
+  sessionModifierChoices++;
+  if ((def.rarityRank || 0) >= 4) {
+    sessionModifierMythics++;
+    unlockAchievement('modifier_mythic');
+  }
+  if (def.grantsMoonstone) unlockAchievement('modifier_treasury');
+}
+
+function finishModifierSelection(defs, jackpot = false) {
+  const picked = Array.isArray(defs) ? defs.filter(Boolean) : [defs].filter(Boolean);
+  if (!picked.length) return;
+  picked.forEach(applyModifierDef);
+  currentModifierDraft = null;
+  const screen = document.getElementById('modifier-screen');
+  screen.style.display = 'none';
+  screen.classList.remove('jackpot-ready');
+  gameRunning = true;
+  isPaused = false;
+  if (modifierChoiceMode === 'wave') startNextWave();
+  const main = picked[0];
+  const toast = document.getElementById('achieve-toast');
+  toast.querySelector('.achieve-icon').textContent = jackpot ? 'JACK' : main.icon;
+  toast.querySelector('.achieve-name').textContent = jackpot ? '四联同调: 全部接收' : '改造器: ' + main.name;
+  toast.querySelector('.achieve-label').textContent = jackpot ? picked.map(m => m.name).join(' / ') : main.desc;
+  toast.querySelector('.achieve-name').style.color = jackpot ? '#f6e5aa' : (main.color || '#0ff');
+  toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
+  toast.style.animation = 'toastIn 0.4s ease-out';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, jackpot ? 3200 : 2200);
+  document.getElementById('lives').textContent = lives;
+  updateRunXpHud();
+  checkAchievements();
+}
+
+function pickModifierFromDraft(index) {
+  if (!currentModifierDraft || currentModifierDraft.jackpotResolved) return;
+  const def = currentModifierDraft.choices[index];
+  finishModifierSelection(def, false);
 }
 
 function pickModifier(id) {
   const def = MODIFIER_DEFS.find(m => m.id === id);
-  if (!def) return;
-  def.apply();
-  activeModifiers.push(def);
-  document.getElementById('modifier-screen').style.display = 'none';
-  gameRunning = true;
-  isPaused = false;
-  if (modifierChoiceMode === 'wave') startNextWave();
-  const toast = document.getElementById('achieve-toast');
-  toast.querySelector('.achieve-icon').textContent = def.icon;
-  toast.querySelector('.achieve-name').textContent = '改造器: ' + def.name;
-  toast.querySelector('.achieve-label').textContent = def.desc;
-  toast.querySelector('.achieve-name').style.color = def.color || '#0ff';
-  toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
-  toast.style.animation = 'toastIn 0.4s ease-out';
-  clearTimeout(toast._timeout);
-  toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  finishModifierSelection(def, false);
+}
+
+function rerollModifierChoice(event, index) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  if (!currentModifierDraft || currentModifierDraft.jackpotResolved) return;
+  if (currentModifierDraft.rerolled[index]) return;
+  const cost = getModifierRerollCost();
+  if (coreFragments < cost) {
+    showAchievementToast('MS', '月光石不足', '刷新需要 ' + cost + ' MOONSTONE', '#ff6767');
+    return;
+  }
+  coreFragments -= cost;
+  currentModifierDraft.rerollCount++;
+  currentModifierDraft.rerolled[index] = true;
+  sessionModifierRerolls++;
+  if (sessionModifierRerolls >= 1) unlockAchievement('modifier_reroll');
+  if (currentModifierDraft.rerolled.every(Boolean)) unlockAchievement('modifier_full_reroll');
+  const exclude = currentModifierDraft.choices.map(m => m && m.id).filter(Boolean);
+  const replacement = getModifierChoices(1, exclude, false)[0];
+  if (replacement) currentModifierDraft.choices[index] = replacement;
+  saveProgression();
+  renderModifierDraft();
+  sfxPowerUp();
+  tryResolveModifierJackpot('reroll');
+}
+
+function tryResolveModifierJackpot(source) {
+  if (!currentModifierDraft || currentModifierDraft.jackpotResolved) return false;
+  const family = getModifierJackpotFamily(currentModifierDraft.choices);
+  if (!family) return false;
+  currentModifierDraft.jackpotResolved = true;
+  sessionModifierJackpots++;
+  unlockAchievement('modifier_jackpot');
+  renderModifierDraft();
+  const draftId = currentModifierDraft.id;
+  setTimeout(() => {
+    if (currentModifierDraft && currentModifierDraft.id === draftId) {
+      finishModifierSelection(currentModifierDraft.choices, true);
+    }
+  }, source === 'reroll' ? 520 : 680);
+  return true;
 }
 
 function resetModifiers() {
   activeModifiers = [];
+  currentModifierDraft = null;
   playerBulletDmgMul = 1; playerSpeedMul = 1; playerShootDelayMul = 1;
   playerReloadMul = 1;
   powerUpDropMul = 1; bulletSpeedMul = 1; comboBonusMul = 1;
-  eliteDropMul = 0; explosionRadiusMul = 1;
+  eliteDropMul = 0; explosionRadiusMul = 1; playerMagBonus = 0; playerMaxHpBonus = 0; playerRepairChance = 0;
 }
 
 // --- Seeded RNG (mulberry32) ---
@@ -3316,6 +3708,11 @@ const achievementsDef = [
   { id: 'combo_75', name: '弹道圣裁', desc: '达成75连击', icon: 'C75', tier: 'mythic' },
   { id: 'elite_hunter_40', name: '肃清令执行者', desc: '单局消灭40个精英敌人', icon: 'E40', tier: 'mythic' },
   { id: 'fusion_first', name: '首次融合协议', desc: '首次触发任意融合道具', icon: 'FUS', tier: 'elite' },
+  { id: 'modifier_reroll', name: '重掷授权', desc: '在局内升级中刷新一次改造选项', icon: 'RR1', reward: 10 },
+  { id: 'modifier_full_reroll', name: '四槽洗牌', desc: '同一次升级中刷新全部四个选项', icon: 'RR4', tier: 'elite' },
+  { id: 'modifier_mythic', name: '神话协议', desc: '选择一次MYTHIC级局内改造', icon: 'MYT', tier: 'elite' },
+  { id: 'modifier_treasury', name: '月石回流', desc: '从局内升级选项获得MOONSTONE奖励', icon: 'MSR', tier: 'elite' },
+  { id: 'modifier_jackpot', name: '四联同调', desc: '在四个升级选项中刷出同方面改造并获得全部', icon: 'JCK', tier: 'mythic' },
 ];
 
 const ACHIEVEMENT_LORE = {
@@ -3372,6 +3769,11 @@ const ACHIEVEMENT_LORE = {
   combo_75: '七十五连击像一次审判，弹道在空中排成圣裁纹章。敌人只来得及听见结论。',
   elite_hunter_40: '四十个精英信标熄灭后，灰域会短暂安静。那不是和平，只是敌方在重新点名。',
   fusion_first: '第一次融合协议启动时，机体会发出不属于任何工厂的钟声。研究室称其为可控异常。',
+  modifier_reroll: '第一次重掷授权会在终端留下细小烧痕。研究室说那是概率被强行拧动时，齿轮向月光石讨价还价的声音。',
+  modifier_full_reroll: '四个槽位同时洗牌时，驾驶舱会短暂失去方向感。有人称那一秒看见了四条战线，也有人只记得自己还活着。',
+  modifier_mythic: 'MYTHIC协议不会询问驾驶员是否准备好。它只在屏幕上点亮金色编号，然后把不该属于凡人的余量塞进机体。',
+  modifier_treasury: '月石回流并非奖励，而是战场承认你仍有投资价值。圣城财务官从不欢呼，他们只把你的编号移到更危险的一栏。',
+  modifier_jackpot: '四联同调被列为罕见神迹，机装研究室却坚持称其为统计异常。无论名字如何，四张卡同时落锁时，战场会安静半拍。',
 };
 
 const ACHIEVEMENT_TIERS = {
@@ -3548,6 +3950,11 @@ let sessionMinesTriggered = false;
 let sessionStartTime = 0;
 let maxComboReached = 0;
 let sessionGotHit = false;
+let sessionModifierChoices = 0;
+let sessionModifierRerolls = 0;
+let sessionModifierMythics = 0;
+let sessionModifierTokenClaims = 0;
+let sessionModifierJackpots = 0;
 
 function getTotalTankUpgradeCount() {
   return Object.values(tankUpgrades || {}).reduce((total, group) => {
@@ -3590,6 +3997,10 @@ function checkAchievements() {
   if (sessionPowerUpsCollected >= 40) unlockAchievement('powerup_collector_40');
   if (coreFragments >= 500) unlockAchievement('fragment_500');
   if (coreFragments >= 1000) unlockAchievement('fragment_1000');
+  if (sessionModifierRerolls >= 1) unlockAchievement('modifier_reroll');
+  if (sessionModifierMythics >= 1) unlockAchievement('modifier_mythic');
+  if (sessionModifierTokenClaims >= 1) unlockAchievement('modifier_treasury');
+  if (sessionModifierJackpots >= 1) unlockAchievement('modifier_jackpot');
   if (wave >= 4) unlockAchievement('boss_witness');
   if (wave >= 12) unlockAchievement('boss_breaker');
   if (wave >= 20) unlockAchievement('wave_20');
@@ -3655,6 +4066,11 @@ function resetAchievementTracking() {
   sessionStartTime = Date.now();
   maxComboReached = 0;
   sessionGotHit = false;
+  sessionModifierChoices = 0;
+  sessionModifierRerolls = 0;
+  sessionModifierMythics = 0;
+  sessionModifierTokenClaims = 0;
+  sessionModifierJackpots = 0;
 }
 
 function onEnemyKilled(enemyOrElite) {
@@ -3710,6 +4126,10 @@ function onEnemyKilled(enemyOrElite) {
   if (buffs.vampire > 0 && player.alive) {
     player.hp = Math.min(player.hp + 1, player.maxHp);
     sfxStatus('drain');
+  }
+  if (playerRepairChance > 0 && player.alive && player.hp < player.maxHp && rng() < playerRepairChance) {
+    player.hp = Math.min(player.maxHp, player.hp + 1);
+    sfxStatus('repair');
   }
 }
 
@@ -8308,12 +8728,12 @@ function applyTankUpgrades(tankType) {
   player.hitboxSize = t.hitboxSize || 36;
   const prevMag = player.magSize || t.magSize || 6;
   const prevAmmoRatio = prevMag > 0 ? (player.ammo || prevMag) / prevMag : 1;
-  player.magSize = Math.max(1, t.magSize || 6);
+  player.magSize = Math.max(1, (t.magSize || 6) + playerMagBonus);
   player.ammo = Math.max(1, Math.min(player.magSize, Math.ceil(prevAmmoRatio * player.magSize)));
   player.reloadDuration = Math.max(30, t.reloadTime || 110);
   if (player.reloadTimer > 0) player.reloadTimer = Math.min(player.reloadTimer, player.reloadDuration);
   const baseHp = difficultySettings[currentDifficulty].playerHp;
-  player.maxHp = Math.max(3, baseHp + t.hpBonus);
+  player.maxHp = Math.max(3, baseHp + t.hpBonus + playerMaxHpBonus);
   if (player.hp > player.maxHp) player.hp = player.maxHp;
 }
 
