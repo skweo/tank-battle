@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.8.0 upgrade draft system with rerolls and jackpot rewards */
+/* v3.8.1 global lab research protocols */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -1873,6 +1873,114 @@ canvas { background: #070d13; }
   color: #4a5a70;
   cursor: not-allowed;
 }
+#lab-screen .lab-global-research {
+  position: relative;
+  margin: 10px 0 12px;
+  padding: 10px;
+  border: 1px solid rgba(246,229,170,0.14);
+  background:
+    linear-gradient(135deg, rgba(246,229,170,0.08), transparent 38%),
+    linear-gradient(180deg, rgba(10,15,22,0.92), rgba(5,8,12,0.86));
+  box-shadow: inset 0 0 26px rgba(246,229,170,0.04);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+#lab-screen .lab-global-research::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+  border-top: 1px solid rgba(140,232,255,0.12);
+  border-bottom: 1px solid rgba(246,229,170,0.08);
+}
+#lab-screen .lab-global-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+#lab-screen .lab-global-title {
+  color: var(--ui-holy);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+#lab-screen .lab-global-sub {
+  color: #7f92aa;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+}
+#lab-screen .lab-global-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+#lab-screen .lab-global-row {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 74px;
+  gap: 7px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgba(140,232,255,0.12);
+  background: linear-gradient(90deg, rgba(140,232,255,0.045), rgba(246,229,170,0.035));
+  clip-path: var(--ui-cut-sm);
+}
+#lab-screen .lab-global-row.capped {
+  border-color: rgba(246,229,170,0.22);
+  background: linear-gradient(90deg, rgba(246,229,170,0.07), rgba(255,255,255,0.02));
+}
+#lab-screen .lab-global-code {
+  color: #0b1016;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.8px;
+  background: linear-gradient(90deg, rgba(140,232,255,0.82), rgba(246,229,170,0.9));
+  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+}
+#lab-screen .lab-global-name {
+  color: #d5dbe4;
+  font-size: 12px;
+  font-weight: 700;
+}
+#lab-screen .lab-global-effect {
+  margin-top: 2px;
+  color: #7f92aa;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#lab-screen .lab-global-lvl {
+  color: #f49800;
+  font-size: 10px;
+  text-align: right;
+  letter-spacing: 1px;
+}
+#lab-screen .lab-global-buy {
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px 6px;
+  border: 1px solid rgba(244,152,0,0.65);
+  color: var(--ui-amber);
+  background: rgba(244,152,0,0.12);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  clip-path: var(--ui-cut-sm);
+}
+#lab-screen .lab-global-buy.no-funds { color: #ff6767; }
+#lab-screen .lab-global-buy:disabled {
+  border-color: rgba(255,255,255,0.08);
+  color: #5a6878;
+  background: rgba(255,255,255,0.03);
+  cursor: not-allowed;
+}
 #lab-screen .lab-detail-title {
   color: var(--ui-holy);
   font-size: 18px;
@@ -1990,6 +2098,7 @@ canvas { background: #070d13; }
 @media (max-width: 760px) {
   #lab-screen .lab-detail-grid { grid-template-columns: 1fr; }
   #lab-screen .lab-preview-panel { min-height: 210px; }
+  #lab-screen .lab-global-grid { grid-template-columns: 1fr; }
   #lab-screen .lab-preview-canvas { width: 100%; max-width: 210px; }
   #lab-screen .lab-stat-upgrade-row { flex-wrap: wrap; }
   #lab-screen .lab-stat-meter { min-width: 120px; }
@@ -3464,8 +3573,9 @@ function resetModifiers() {
   currentModifierDraft = null;
   playerBulletDmgMul = 1; playerSpeedMul = 1; playerShootDelayMul = 1;
   playerReloadMul = 1;
-  powerUpDropMul = 1; bulletSpeedMul = 1; comboBonusMul = 1;
-  eliteDropMul = 0; explosionRadiusMul = 1; playerMagBonus = 0; playerMaxHpBonus = 0; playerRepairChance = 0;
+  powerUpDropMul = getGlobalSupplyDropMultiplier(); bulletSpeedMul = 1; comboBonusMul = 1;
+  eliteDropMul = 0; explosionRadiusMul = 1; playerMagBonus = 0; playerMaxHpBonus = 0;
+  playerRepairChance = getGlobalRepairChance();
 }
 
 // --- Seeded RNG (mulberry32) ---
@@ -3713,6 +3823,9 @@ const achievementsDef = [
   { id: 'modifier_mythic', name: '神话协议', desc: '选择一次MYTHIC级局内改造', icon: 'MYT', tier: 'elite' },
   { id: 'modifier_treasury', name: '月石回流', desc: '从局内升级选项获得MOONSTONE奖励', icon: 'MSR', tier: 'elite' },
   { id: 'modifier_jackpot', name: '四联同调', desc: '在四个升级选项中刷出同方面改造并获得全部', icon: 'JCK', tier: 'mythic' },
+  { id: 'global_research_first', name: '协议点火', desc: '完成1次研究室全局研究协议', icon: 'G01', reward: 12 },
+  { id: 'global_research_10', name: '圣城总纲', desc: '累计完成10次全局研究协议', icon: 'G10', tier: 'elite' },
+  { id: 'global_research_max', name: '全域整备', desc: '任意全局研究协议达到上限', icon: 'GMAX', tier: 'mythic' },
 ];
 
 const ACHIEVEMENT_LORE = {
@@ -3774,6 +3887,9 @@ const ACHIEVEMENT_LORE = {
   modifier_mythic: 'MYTHIC协议不会询问驾驶员是否准备好。它只在屏幕上点亮金色编号，然后把不该属于凡人的余量塞进机体。',
   modifier_treasury: '月石回流并非奖励，而是战场承认你仍有投资价值。圣城财务官从不欢呼，他们只把你的编号移到更危险的一栏。',
   modifier_jackpot: '四联同调被列为罕见神迹，机装研究室却坚持称其为统计异常。无论名字如何，四张卡同时落锁时，战场会安静半拍。',
+  global_research_first: '第一条全局协议被点亮时，研究室没有鼓掌。所有人都知道，从这一刻开始，机体不再只是某一台机体。',
+  global_research_10: '十条协议叠成圣城总纲，像一部写给钢铁的律法。驾驶员只读到第一页，就听见整座研究室开始低声运转。',
+  global_research_max: '任意协议抵达上限后，终端会短暂显示“全域整备”。那不是完成通知，而是一句更大的命令正在加载。',
 };
 
 const ACHIEVEMENT_TIERS = {
@@ -4015,6 +4131,10 @@ function checkAchievements() {
   const totalEvolutions = getTotalEvolutionCount();
   if (totalEvolutions >= 1) unlockAchievement('evolution_first');
   if (totalEvolutions >= 6) unlockAchievement('evolution_six');
+  const globalResearchTotal = getGlobalResearchTotalLevel();
+  if (globalResearchTotal >= 1) unlockAchievement('global_research_first');
+  if (globalResearchTotal >= 10) unlockAchievement('global_research_10');
+  if (GLOBAL_RESEARCH_DEFS.some(def => getGlobalResearchLevel(def.id) >= def.max)) unlockAchievement('global_research_max');
   if (wave >= 5) {
     const tankAch = {spread:'tank_spread_win',focus:'tank_focus_win',wide:'tank_wide_win',burst:'tank_burst_win',sniper:'tank_sniper_win',homing:'tank_homing_win',border:'tank_border_win',blade:'tank_blade_win',scarlet:'tank_scarlet_win',astral:'tank_astral_win'};
     if (tankAch[currentTankType]) unlockAchievement(tankAch[currentTankType]);
@@ -4120,7 +4240,8 @@ function onEnemyKilled(enemyOrElite) {
   let pts = buffs.double_score > 0 ? basePoints * 2 : basePoints;
   if (buffs.goldrush > 0) pts *= 2;
   score += pts;
-  coreFragments += (isElite ? 3 : 1) * (buffs.goldrush > 0 ? 2 : 1);
+  const baseFragGain = (isElite ? 3 : 1) * (buffs.goldrush > 0 ? 2 : 1);
+  coreFragments += scaleBattleMoonstoneGain(baseFragGain, getSalvageResearchMultiplier());
   saveProgression();
   checkAchievements();
   if (buffs.vampire > 0 && player.alive) {
@@ -4490,7 +4611,8 @@ function openChest(chest) {
   chest.opened = true;
   const isBoss = chest.isBossChest;
   sfxChestOpen(isBoss);
-  const fragAmt = isBoss ? (30 + Math.floor(rng() * 20)) : (10 + Math.floor(rng() * 15));
+  const rawFragAmt = isBoss ? (30 + Math.floor(rng() * 20)) : (10 + Math.floor(rng() * 15));
+  const fragAmt = scaleBattleMoonstoneGain(rawFragAmt, getVaultResearchMultiplier());
   coreFragments += fragAmt;
   saveProgression();
   const chestTierWeights = isBoss
@@ -4575,9 +4697,10 @@ function getPlayerFireSlowProfile(tankType, def) {
   const baseCount = tankTypes[type] ? tankTypes[type].bulletCount : 1;
   const upgradedCount = def ? (def.bulletCount || baseCount) : baseCount;
   const extraWeight = Math.max(0, upgradedCount - baseCount);
+  const resist = Math.max(0, Math.min(0.18, (def && def.fireSlowResist) || 0));
   return {
     duration: profile.duration + Math.min(8, Math.floor(extraWeight * 1.5)),
-    mul: Math.max(0.48, profile.mul - extraWeight * 0.015),
+    mul: Math.max(0.48, Math.min(0.92, profile.mul - extraWeight * 0.015 + resist)),
   };
 }
 
@@ -8160,6 +8283,7 @@ const TANK_UNLOCK_KEY = 'tankbattle_tank_unlocks';
 const TANK_UNLOCK_PROGRESS_KEY = 'tankbattle_tank_unlock_progress';
 const TANK_UPGRADE_KEY = 'tankbattle_tank_upgrades';
 const TANK_EVOLVE_KEY = 'tankbattle_tank_evolved';
+const GLOBAL_RESEARCH_KEY = 'tankbattle_global_research';
 const LEADERBOARD_KEY = 'tankbattle_leaderboard';
 let leaderboardData = {};
 let leaderboardTab = 'easy';
@@ -8167,6 +8291,7 @@ let coreFragments = 0;
 let unlockedTanks = new Set(['spread']);
 let tankUnlockProgress = { maxWave: 0, maxEliteKills: 0, bossKills: 0, dailyClears: 0, borderEcho: false };
 let tankUpgrades = {};   // { spread: {hp:0,dmg:0,spd:0,special:0}, ... }
+let globalResearch = {};
 let evolvedTanks = new Set();
 let labSelectedTank = 'spread';
 
@@ -8224,6 +8349,83 @@ const LAB_PART_CODES = {
   tome:'TOM',
   prism:'PRI',
 };
+
+const GLOBAL_RESEARCH_DEFS = [
+  {
+    id:'armor_line', code:'A-LINE', name:'圣龛基线', max:6, costBase:130,
+    desc:l => '全机体最大HP +' + Math.ceil(l / 2),
+    next:l => '下一阶 HP +' + Math.ceil((l + 1) / 2),
+    apply(t, lvl){ t.hpBonus += Math.ceil(lvl / 2); },
+  },
+  {
+    id:'mag_foundry', code:'M-FND', name:'弹仓铸造', max:4, costBase:150,
+    desc:l => '全机体弹夹 +' + Math.ceil(l / 2),
+    next:l => '下一阶 弹夹 +' + Math.ceil((l + 1) / 2),
+    apply(t, lvl){ t.magSize = Math.max(1, (t.magSize || 6) + Math.ceil(lvl / 2)); },
+  },
+  {
+    id:'reload_rite', code:'R-RIT', name:'装填礼仪', max:5, costBase:145,
+    desc:l => '装填时间 -' + (l * 2) + '%',
+    next:l => '下一阶 装填 -' + ((l + 1) * 2) + '%',
+    apply(t, lvl){ t.reloadTime = Math.max(72, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.02))); },
+  },
+  {
+    id:'servo_step', code:'S-DRV', name:'伺服步进', max:5, costBase:120,
+    desc:l => '移动速度 +' + (l * 1.5).toFixed(1) + '%',
+    next:l => '下一阶 移速 +' + ((l + 1) * 1.5).toFixed(1) + '%',
+    apply(t, lvl){ t.speed += lvl * 0.015; },
+  },
+  {
+    id:'ballistic_archive', code:'B-ARC', name:'弹道档案', max:5, costBase:135,
+    desc:l => '基础弹速 +' + (l * 0.06).toFixed(2),
+    next:l => '下一阶 弹速 +' + ((l + 1) * 0.06).toFixed(2),
+    apply(t, lvl){ t.bulletSpeed += lvl * 0.06; },
+  },
+  {
+    id:'special_sync', code:'SIG-S', name:'特弹同步', max:4, costBase:175,
+    desc:l => l >= 4 ? '特弹周期 -1 / 特化弹道稳定' : '特化弹道稳定 +' + l,
+    next:l => (l + 1) >= 4 ? '下一阶 特弹周期 -1' : '下一阶 特化弹道稳定 +' + (l + 1),
+    apply(t, lvl){
+      if (t.specialInterval) t.specialInterval = Math.max(2, t.specialInterval - Math.floor(lvl / 4));
+      t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + lvl * 0.035;
+      t.riftSpeedBonus = (t.riftSpeedBonus || 0) + lvl * 0.018;
+      t.orbitSpeedBonus = (t.orbitSpeedBonus || 0) + lvl * 0.018;
+      t.baseHomingStrength = (t.baseHomingStrength || 0) + lvl * 0.0015;
+    },
+  },
+  {
+    id:'salvage_prayer', code:'MS-R', name:'月石回收', max:5, costBase:160,
+    desc:l => '战场MOONSTONE +' + (l * 2) + '%',
+    next:l => '下一阶 战场MS +' + ((l + 1) * 2) + '%',
+  },
+  {
+    id:'coolant_chapel', code:'C-CHP', name:'冷却圣堂', max:5, costBase:170,
+    desc:l => '射击冷却 -' + Math.floor((l + 1) / 2) + '帧',
+    next:l => '下一阶 冷却 -' + Math.floor((l + 2) / 2) + '帧',
+    apply(t, lvl){ t.shootDelay = Math.max(12, t.shootDelay - Math.floor((lvl + 1) / 2)); },
+  },
+  {
+    id:'recoil_sanctum', code:'R-SAN', name:'后坐圣所', max:4, costBase:155,
+    desc:l => '开火减速惩罚缓和 +' + (l * 2) + '%',
+    next:l => '下一阶 减速缓和 +' + ((l + 1) * 2) + '%',
+    apply(t, lvl){ t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.02; },
+  },
+  {
+    id:'supply_liturgy', code:'S-LIT', name:'补给礼拜', max:5, costBase:150,
+    desc:l => '战场道具投放 +' + (l * 2) + '%',
+    next:l => '下一阶 投放 +' + ((l + 1) * 2) + '%',
+  },
+  {
+    id:'repair_canticle', code:'R-CAN', name:'自修圣歌', max:5, costBase:185,
+    desc:l => '击杀修复概率 +' + (l * 1.2).toFixed(1) + '%',
+    next:l => '下一阶 修复概率 +' + ((l + 1) * 1.2).toFixed(1) + '%',
+  },
+  {
+    id:'vault_cartography', code:'V-MAP', name:'宝库测绘', max:4, costBase:190,
+    desc:l => '宝箱MOONSTONE +' + (l * 2) + '%',
+    next:l => '下一阶 宝箱MS +' + ((l + 1) * 2) + '%',
+  },
+];
 
 const TANK_EVOLUTION = {
   spread: [
@@ -8365,7 +8567,7 @@ Object.keys(TANK_UPGRADE_DEFS).forEach(k => {
     };
   });
 });
-const PROGRESSION_VERSION = 5;
+const PROGRESSION_VERSION = 6;
 const TANK_PROGRESS_KEY = 'tankbattle_progress_version';
 
 function loadProgression() {
@@ -8380,6 +8582,8 @@ function loadProgression() {
     tankUpgrades = ug ? JSON.parse(ug) : {};
     const ev = localStorage.getItem(TANK_EVOLVE_KEY);
     evolvedTanks = ev ? new Set(JSON.parse(ev)) : new Set();
+    const gr = localStorage.getItem(GLOBAL_RESEARCH_KEY);
+    globalResearch = normalizeGlobalResearch(gr ? JSON.parse(gr) : {});
     syncTankUnlockProgressFromAchievements(false);
     migrateProgressionIfNeeded();
     // Ensure all tanks have upgrade entries
@@ -8388,15 +8592,18 @@ function loadProgression() {
       if (!tankUpgrades[k]) tankUpgrades[k] = {};
       defs.forEach(d => { if (tankUpgrades[k][d.id] === undefined) tankUpgrades[k][d.id] = 0; });
     });
+    globalResearch = normalizeGlobalResearch(globalResearch);
   } catch(e) { resetProgression(); }
 }
 function saveProgression() {
   try {
+    globalResearch = normalizeGlobalResearch(globalResearch);
     localStorage.setItem(FRAGMENT_KEY, coreFragments.toString());
     localStorage.setItem(TANK_UNLOCK_KEY, JSON.stringify([...unlockedTanks]));
     localStorage.setItem(TANK_UNLOCK_PROGRESS_KEY, JSON.stringify(tankUnlockProgress));
     localStorage.setItem(TANK_UPGRADE_KEY, JSON.stringify(tankUpgrades));
     localStorage.setItem(TANK_EVOLVE_KEY, JSON.stringify([...evolvedTanks]));
+    localStorage.setItem(GLOBAL_RESEARCH_KEY, JSON.stringify(globalResearch));
     localStorage.setItem(TANK_PROGRESS_KEY, String(PROGRESSION_VERSION));
   } catch(e) {}
 }
@@ -8405,11 +8612,98 @@ function resetProgression() {
   unlockedTanks = new Set(['spread']);
   tankUnlockProgress = getDefaultTankUnlockProgress();
   tankUpgrades = {};
+  globalResearch = normalizeGlobalResearch({});
   evolvedTanks = new Set();
   Object.keys(tankTypes).forEach(k => {
     tankUpgrades[k] = {};
     (TANK_UPGRADE_DEFS[k]||[]).forEach(d => { tankUpgrades[k][d.id] = 0; });
   });
+}
+
+function normalizeGlobalResearch(raw = {}) {
+  const data = raw && typeof raw === 'object' ? raw : {};
+  const next = {};
+  GLOBAL_RESEARCH_DEFS.forEach(def => {
+    const parsed = parseInt(data[def.id], 10);
+    const level = Number.isFinite(parsed) ? parsed : 0;
+    next[def.id] = Math.max(0, Math.min(def.max, level));
+  });
+  return next;
+}
+
+function getGlobalResearchDef(id) {
+  return GLOBAL_RESEARCH_DEFS.find(def => def.id === id) || null;
+}
+
+function getGlobalResearchLevel(id) {
+  const def = getGlobalResearchDef(id);
+  if (!def) return 0;
+  return Math.max(0, Math.min(def.max, parseInt((globalResearch || {})[id], 10) || 0));
+}
+
+function getGlobalResearchCost(id) {
+  const def = getGlobalResearchDef(id);
+  if (!def) return 9999;
+  const lvl = getGlobalResearchLevel(id);
+  if (lvl >= def.max) return 9999;
+  return Math.floor(def.costBase * Math.pow(1.42, lvl) + lvl * 35);
+}
+
+function getGlobalResearchTotalLevel() {
+  return GLOBAL_RESEARCH_DEFS.reduce((sum, def) => sum + getGlobalResearchLevel(def.id), 0);
+}
+
+function getSalvageResearchMultiplier() {
+  return 1 + getGlobalResearchLevel('salvage_prayer') * 0.02;
+}
+
+function getVaultResearchMultiplier() {
+  return 1 + getGlobalResearchLevel('vault_cartography') * 0.02;
+}
+
+function getGlobalSupplyDropMultiplier() {
+  return 1 + getGlobalResearchLevel('supply_liturgy') * 0.02;
+}
+
+function getGlobalRepairChance() {
+  return getGlobalResearchLevel('repair_canticle') * 0.012;
+}
+
+function scaleBattleMoonstoneGain(amount, multiplier) {
+  const raw = Math.max(0, amount) * Math.max(1, multiplier || 1);
+  const whole = Math.floor(raw);
+  const fraction = raw - whole;
+  return Math.max(1, whole + (rng() < fraction ? 1 : 0));
+}
+
+function applyGlobalResearchToTank(t) {
+  GLOBAL_RESEARCH_DEFS.forEach(def => {
+    const lvl = getGlobalResearchLevel(def.id);
+    if (lvl > 0 && typeof def.apply === 'function') {
+      try { def.apply(t, lvl); } catch(e) {}
+    }
+  });
+}
+
+function purchaseGlobalResearch(id) {
+  globalResearch = normalizeGlobalResearch(globalResearch);
+  const def = getGlobalResearchDef(id);
+  if (!def) return false;
+  const lvl = getGlobalResearchLevel(id);
+  if (lvl >= def.max) return false;
+  const cost = getGlobalResearchCost(id);
+  if (coreFragments < cost) {
+    showAchievementToast('MS', '月光石不足', def.name + ' 需要 ' + cost + ' MOONSTONE', '#ff6767');
+    return false;
+  }
+  coreFragments -= cost;
+  globalResearch[id] = lvl + 1;
+  saveProgression();
+  checkAchievements();
+  sfxPowerUp();
+  showAchievementToast(def.code, '全局研究完成', def.name + ' Lv.' + globalResearch[id], '#f6e5aa');
+  renderLabUI();
+  return true;
 }
 
 function getDefaultTankUnlockProgress() {
@@ -8713,6 +9007,7 @@ function getPlayerTankDefinition(tankType) {
     const evo = evoEntries[i];
     if (evo && evo.effect) evo.effect(t);
   }
+  applyGlobalResearchToTank(t);
   t.visualScale = getTankFormFactor(tankType, evoLevel, 'visual');
   t.hitboxSize = 36 * getTankFormFactor(tankType, evoLevel, 'hit');
   return t;
@@ -8742,6 +9037,39 @@ function buildLabProgressCells(status) {
     const cls = p.ready ? 'gate' : (p.lvl > 0 ? 'filled' : '');
     return `<span class="lab-progress-cell ${cls}" title="${escapeHtml(p.def.name)} ${p.lvl}/${p.def.max}"></span>`;
   }).join('');
+}
+
+function renderGlobalResearchPanel() {
+  globalResearch = normalizeGlobalResearch(globalResearch);
+  const total = getGlobalResearchTotalLevel();
+  const maxTotal = GLOBAL_RESEARCH_DEFS.reduce((sum, def) => sum + def.max, 0);
+  const rows = GLOBAL_RESEARCH_DEFS.map(def => {
+    const lvl = getGlobalResearchLevel(def.id);
+    const capped = lvl >= def.max;
+    const cost = capped ? 9999 : getGlobalResearchCost(def.id);
+    const canAfford = coreFragments >= cost;
+    const effect = lvl > 0 ? def.desc(lvl) : '未启动 · ' + def.next(0);
+    const next = capped ? 'MAX' : def.next(lvl);
+    const costText = capped ? 'MAX' : cost + ' MS';
+    return `<div class="lab-global-row ${capped ? 'capped' : ''}">
+      <div class="lab-global-code">${escapeHtml(def.code)}</div>
+      <div>
+        <div class="lab-global-name">${escapeHtml(def.name)}</div>
+        <div class="lab-global-effect" title="${escapeHtml(next)}">${escapeHtml(effect)}</div>
+      </div>
+      <div>
+        <div class="lab-global-lvl">LV ${lvl}/${def.max}</div>
+        <button class="lab-global-buy ${canAfford ? '' : 'no-funds'}" onclick="purchaseGlobalResearch('${def.id}')" ${capped ? 'disabled' : ''}>${escapeHtml(costText)}</button>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="lab-global-research">
+    <div class="lab-global-header">
+      <div class="lab-global-title">GLOBAL PROTOCOL / 全域研究</div>
+      <div class="lab-global-sub">全机体共享 · 战场后勤与底盘协议<br>PROGRESS ${total}/${maxTotal}</div>
+    </div>
+    <div class="lab-global-grid">${rows}</div>
+  </div>`;
 }
 
 function renderLabPreviewCanvas() {
@@ -8927,6 +9255,7 @@ function renderLabUI() {
           <div class="lab-stage-row">${stageHTML}</div>
           <div class="lab-gate-note">阶段校准 ${status.readyParts}/${status.totalParts} · ${nextEvo ? (stageReady ? '进化许可已解锁，消耗月光石进行改装仪式。' : '每个部件都必须达到本阶段门槛，不能再用单项堆叠跳过改装。') : '所有进化完成，剩余升级仅作为终式维护记录。'}</div>
           ${evoHTML}
+          ${renderGlobalResearchPanel()}
           <div class="lab-stats-wrap">${statsHTML}</div>
           <div class="lab-progress-note">MS ${coreFragments} · ${defs.length} PARTS · TOTAL ${totalCurrent}/${totalMax}</div>
         </div>
