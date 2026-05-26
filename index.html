@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.4 bugfix: contact damage and tank unlock flow */
+/* v3.7.5 add three player tank chassis */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -1271,6 +1271,9 @@ canvas { background: #070d13; }
 #tank-select-screen .tank-card.sniper { --card-accent: #d3a7ff; --card-rgb: 211, 167, 255; }
 #tank-select-screen .tank-card.homing { --card-accent: #ff9edc; --card-rgb: 255, 158, 220; }
 #tank-select-screen .tank-card.border { --card-accent: #b9a2ff; --card-rgb: 185, 162, 255; }
+#tank-select-screen .tank-card.blade { --card-accent: #bdfcff; --card-rgb: 189, 252, 255; }
+#tank-select-screen .tank-card.scarlet { --card-accent: #ff5d73; --card-rgb: 255, 93, 115; }
+#tank-select-screen .tank-card.astral { --card-accent: #9fe2ff; --card-rgb: 159, 226, 255; }
 
 #modifier-screen {
   background:
@@ -2299,6 +2302,19 @@ function sfxShoot(tankType) {
       playTone(1320, 0.06, 'triangle', audioNodes.sfxGain, 0.055);
       playTone(1880, 0.035, 'sine', audioNodes.sfxGain, 0.032);
       break;
+    case 'blade':
+      playTone(920, 0.045, 'triangle', audioNodes.sfxGain, 0.07);
+      playTone(1480, 0.038, 'sine', audioNodes.sfxGain, 0.052);
+      break;
+    case 'scarlet':
+      playTone(260, 0.065, 'sawtooth', audioNodes.sfxGain, 0.085);
+      playTone(780, 0.05, 'square', audioNodes.sfxGain, 0.055);
+      break;
+    case 'astral':
+      playTone(480, 0.06, 'sine', audioNodes.sfxGain, 0.058);
+      playTone(960, 0.06, 'triangle', audioNodes.sfxGain, 0.05);
+      playTone(1440, 0.04, 'sine', audioNodes.sfxGain, 0.034);
+      break;
     default:
       playTone(800, 0.08, 'square', audioNodes.sfxGain, 0.12);
       playTone(1200, 0.05, 'square', audioNodes.sfxGain, 0.08);
@@ -2368,6 +2384,9 @@ function sfxReload(tankType) {
     sniper: [340, 960],
     homing: [440, 620],
     border: [300, 720, 1180],
+    blade: [360, 880],
+    scarlet: [180, 540],
+    astral: [260, 520, 1040],
   }[tankType] || [300, 500];
   profile.forEach((freq, i) => {
     playTone(freq, 0.045 + i * 0.012, i === 0 ? 'triangle' : 'sine', audioNodes.sfxGain, 0.035);
@@ -2747,6 +2766,9 @@ const tankTypes = {
 };
 // Seventh chassis: boundary-themed, inspired by gap/threshold danmaku logic rather than raw DPS.
 tankTypes.border = { name:'境界型', color:'#6044a8', turret:'#d9b6ff', speed:0.9, hpBonus:0, shootDelay:43, magSize:5, reloadTime:136, bulletCount:3, spreadAngle:0.075, bulletSpeed:2.45, bulletDamage:1, desc:'间隙折射弹幕', specialInterval:4, specialType:'rift' };
+tankTypes.blade = { name:'斩魂型', color:'#3fd5da', turret:'#bdfcff', speed:1.28, hpBonus:-1, shootDelay:24, magSize:8, reloadTime:112, bulletCount:2, spreadAngle:0.06, bulletSpeed:2.75, bulletDamage:1, desc:'高速双刃穿刺', specialInterval:5, specialType:'phantom_slash' };
+tankTypes.scarlet = { name:'红枪型', color:'#8f1024', turret:'#ff5d73', speed:1.02, hpBonus:1, shootDelay:46, magSize:4, reloadTime:150, bulletCount:1, spreadAngle:0, bulletSpeed:3.65, bulletDamage:2, desc:'低弹匣高压血枪', specialInterval:4, specialType:'blood_lance' };
+tankTypes.astral = { name:'星仪型', color:'#285a8f', turret:'#9fe2ff', speed:0.82, hpBonus:1, shootDelay:50, magSize:5, reloadTime:138, bulletCount:3, spreadAngle:0.12, bulletSpeed:1.85, bulletDamage:1, desc:'星仪轨道控场', specialInterval:5, specialType:'astral_orbit' };
 
 const TANK_FORM_FACTORS = {
   spread: { visual:[1.00,1.04,1.08], hit:[1.00,1.03,1.06] },
@@ -2756,6 +2778,9 @@ const TANK_FORM_FACTORS = {
   sniper: { visual:[0.92,0.90,0.88], hit:[0.90,0.88,0.86] },
   homing: { visual:[0.98,1.00,0.96], hit:[0.96,0.96,0.94] },
   border: { visual:[1.00,0.96,0.92], hit:[0.98,0.94,0.90] },
+  blade:  { visual:[0.94,0.90,0.88], hit:[0.92,0.89,0.86] },
+  scarlet:{ visual:[1.03,1.08,1.10], hit:[1.02,1.06,1.08] },
+  astral: { visual:[1.02,1.05,1.04], hit:[1.00,1.02,1.00] },
 };
 
 function getTankFormFactor(tankType, evoLevel, kind) {
@@ -2845,11 +2870,11 @@ function renderDifficultyButtons() {
 function showTankSelect(difficulty) {
   currentDifficulty = difficulty;
   const container = document.querySelector('#tank-select-screen .tank-cards');
-  const tankKeys = ['spread','focus','wide','burst','sniper','homing','border'];
-  const tankNamesExtra = ['博丽灵梦式','雾雨魔理沙式','十六夜咲夜式','芙兰朵露式','八意永琳式','东风谷早苗式','境界结社式'];
-  const tankDescs = ['渐进式扩散压制','单点高能输出','控场型广域封锁','爆燃溅射火力','远程点杀贯穿','持续导引追猎','间隙折射与位相弹道'];
-  const tankDetails = ['均衡机体 · 依赖弹幕密度成长','机动优秀 · 依赖主炮精度成长','生存更稳 · 依赖控场扩展成长','节奏偏慢 · 依赖爆炸收益成长','脆但致命 · 依赖狙击校准成长','泛用灵活 · 依赖导引网络成长','中距离博弈 · 依赖边界折射成长'];
-  const tankIcons = ['⬣','▸','◫','✹','⟐','◉','◇'];
+  const tankKeys = ['spread','focus','wide','burst','sniper','homing','border','blade','scarlet','astral'];
+  const tankNamesExtra = ['博丽灵梦式','雾雨魔理沙式','十六夜咲夜式','芙兰朵露式','八意永琳式','东风谷早苗式','境界结社式','魂魄妖梦式','斯卡雷特式','帕秋莉式'];
+  const tankDescs = ['渐进式扩散压制','单点高能输出','控场型广域封锁','爆燃溅射火力','远程点杀贯穿','持续导引追猎','间隙折射与位相弹道','高速双刃穿刺','低弹匣血枪贯穿','星仪轨道控场'];
+  const tankDetails = ['均衡机体 · 依赖弹幕密度成长','机动优秀 · 依赖主炮精度成长','生存更稳 · 依赖控场扩展成长','节奏偏慢 · 依赖爆炸收益成长','脆但致命 · 依赖狙击校准成长','泛用灵活 · 依赖导引网络成长','中距离博弈 · 依赖边界折射成长','高速轻甲 · 依赖斩击角度成长','重压短弹匣 · 依赖命中汲取成长','慢速术式 · 依赖轨道控制成长'];
+  const tankIcons = ['⬣','▸','◫','✹','⟐','◉','◇','KAT','RED','AST'];
   container.innerHTML = tankKeys.map((key, i) => {
     const t = tankTypes[key];
     const unlocked = unlockedTanks.has(key);
@@ -2905,6 +2930,9 @@ const achievementsDef = [
   { id: 'tank_sniper_win', name: '致命狙击', desc: '使用狙击型通关第5波', icon: 'SNP', reward: 7 },
   { id: 'tank_homing_win', name: '追踪猎手', desc: '使用追踪型通关第5波', icon: 'HOM', reward: 7 },
   { id: 'tank_border_win', name: '境界观测者', desc: '使用境界型通关第5波', icon: 'BDR', reward: 9 },
+  { id: 'tank_blade_win', name: '半灵斩线', desc: '使用斩魂型通关第5波', icon: 'KAT', reward: 9 },
+  { id: 'tank_scarlet_win', name: '红枪宣誓', desc: '使用红枪型通关第5波', icon: 'RED', reward: 10 },
+  { id: 'tank_astral_win', name: '星仪校准', desc: '使用星仪型通关第5波', icon: 'AST', reward: 10 },
   { id: 'combo_20', name: '连击大师', desc: '达成20连击', icon: 'C20', reward: 9 },
   { id: 'elite_hunter', name: '精英猎手', desc: '累计消灭10个精英敌人', icon: 'E10', reward: 10 },
   { id: 'speed_demon', name: '闪电通关', desc: '在180秒内通关第5波', icon: 'SPD', reward: 10 },
@@ -2922,7 +2950,7 @@ const achievementsDef = [
   { id: 'powerup_collector_40', name: '模块掠夺者', desc: '单局收集40个道具', icon: 'M40', reward: 18 },
   { id: 'fragment_500', name: '月光石库管', desc: '持有500个月光石', icon: 'MS5', reward: 16 },
   { id: 'fragment_1000', name: '碎月银行', desc: '持有1000个月光石', icon: 'MS1K', reward: 25 },
-  { id: 'all_tanks_unlocked', name: '机装全谱系', desc: '解锁全部七种我方坦克', icon: 'ALL', reward: 32 },
+  { id: 'all_tanks_unlocked', name: '机装全谱系', desc: '解锁全部十种我方坦克', icon: 'ALL', reward: 36 },
   { id: 'upgrade_apprentice', name: '整备学徒', desc: '累计完成10次坦克强化', icon: 'UP10', reward: 14 },
   { id: 'upgrade_master', name: '机装技师', desc: '累计完成30次坦克强化', icon: 'UP30', reward: 30 },
   { id: 'evolution_first', name: '初次进化', desc: '完成任意坦克1次进化', icon: 'EVO1', reward: 20 },
@@ -2958,6 +2986,9 @@ const ACHIEVEMENT_LORE = {
   tank_sniper_win: '狙击型的每次命中都像一次签名。被签上的目标，不再需要名字。',
   tank_homing_win: '追踪弹会在废城间绕行，像有自己的记忆。它们迟到，但从不失约。',
   tank_border_win: '境界型不会撞开墙，它会让墙短暂忘记自己是墙。观测站称这种失忆为战术窗口。',
+  tank_blade_win: '斩魂型驶过战线时，雷达只记录到两道寒光。驾驶员说那不是速度，是犹豫被切断了。',
+  tank_scarlet_win: '红枪型每次开火都像在签署血色契约。契约内容很短：命中，偿还，继续前进。',
+  tank_astral_win: '星仪型把炮火排成缓慢的天体。敌人以为自己在追逐坦克，其实早已进入轨道。',
   combo_20: '连击数字升高时，终端会短暂发热。有人说那是月光石在兴奋。',
   elite_hunter: '每个精英单位都有独立葬送协议。猎手的工作，是让协议来不及启动。',
   speed_demon: '三分钟内穿过五波战线，像把战场撕开一道口子。风会先一步逃出去。',
@@ -2975,7 +3006,7 @@ const ACHIEVEMENT_LORE = {
   powerup_collector_40: '四十次拾取会让机体像拼接圣像。每一块零件都来自不同的灾难。',
   fragment_500: '五百枚月光石足够点亮一座小礼拜堂。也足够把它再次炸平。',
   fragment_1000: '一千枚月光石会吸引研究室的注意。注意，有时比敌人更危险。',
-  all_tanks_unlocked: '七种机体列入同一名册时，终端会生成一份不存在的部队番号。编号末尾没有句号。',
+  all_tanks_unlocked: '十种机体列入同一名册时，终端会生成一份不存在的部队番号。编号末尾没有句号。',
   upgrade_apprentice: '十次强化后，驾驶员开始听懂维修员的沉默。那是另一种战场语言。',
   upgrade_master: '三十次强化不是熟练，而是妥协。每一次拧紧螺栓，都在放弃一点旧人类。',
   evolution_first: '第一次进化会让机体短暂失声。仿佛有什么新东西在内部学会呼吸。',
@@ -3223,7 +3254,7 @@ function checkAchievements() {
   if (totalEvolutions >= 1) unlockAchievement('evolution_first');
   if (totalEvolutions >= 6) unlockAchievement('evolution_six');
   if (wave >= 5) {
-    const tankAch = {spread:'tank_spread_win',focus:'tank_focus_win',wide:'tank_wide_win',burst:'tank_burst_win',sniper:'tank_sniper_win',homing:'tank_homing_win',border:'tank_border_win'};
+    const tankAch = {spread:'tank_spread_win',focus:'tank_focus_win',wide:'tank_wide_win',burst:'tank_burst_win',sniper:'tank_sniper_win',homing:'tank_homing_win',border:'tank_border_win',blade:'tank_blade_win',scarlet:'tank_scarlet_win',astral:'tank_astral_win'};
     if (tankAch[currentTankType]) unlockAchievement(tankAch[currentTankType]);
     if (!sessionGotHit) unlockAchievement('perfect_run');
     if (!sessionMinesTriggered) unlockAchievement('mine_dodger');
@@ -4769,6 +4800,8 @@ class Bullet {
     this.bounces = 0;
     this.homing = false;
     this.homingStrength = 0;
+    this.drainOnHit = 0;
+    this.shardBurst = 0;
   }
   update() {
     this.x += Math.cos(this.angle) * this.speed;
@@ -5076,6 +5109,29 @@ class PlayerTank extends Tank {
           baseColor = '#d9b6ff';
           baseRadius = 4;
           break;
+        case 'phantom_slash':
+          isPierce = true;
+          baseSpeed = Math.max(baseSpeed, 3.15 + (def.slashSpeedBonus || 0));
+          baseColor = '#bdfcff';
+          baseRadius = 3.4;
+          break;
+        case 'blood_lance':
+          isRailgun = true;
+          isPierce = true;
+          baseSpeed = Math.max(baseSpeed, 4.25 + (def.lanceSpeedBonus || 0));
+          baseColor = '#ff5d73';
+          baseRadius = 4.8;
+          break;
+        case 'astral_orbit':
+          isRicochet = true;
+          bounceCount = 2 + (def.orbitBounceBonus || 0);
+          isHoming = true;
+          homingStr = Math.max(homingStr, def.orbitHoming || 0.026);
+          if (!buffs.freeze) isFreeze = true;
+          baseSpeed = Math.max(baseSpeed, 2.15 + (def.orbitSpeedBonus || 0));
+          baseColor = '#9fe2ff';
+          baseRadius = 4.2;
+          break;
       }
     }
     if (def.baseHomingStrength) {
@@ -5089,7 +5145,8 @@ class PlayerTank extends Tank {
     for (let i = 0; i < count; i++) {
       const angleOffset = count === 1 ? 0 : -halfSpread + i * spread;
       let dmg = Math.ceil(def.bulletDamage * playerBulletDmgMul) + (buffs.overdrive > 0 ? 1 : 0);
-      if (spType === 'pierce' || spType === 'super_pierce' || buffs.pierce > 0) dmg += (def.pierceDamageBonus || 0);
+      if (spType === 'pierce' || spType === 'super_pierce' || spType === 'phantom_slash' || spType === 'blood_lance' || buffs.pierce > 0) dmg += (def.pierceDamageBonus || 0);
+      if (spType === 'blood_lance') dmg += (def.lanceDamageBonus || 0);
       const b = new Bullet(bx, by, this.turretAngle + angleOffset, baseSpeed, baseColor, true, dmg);
       b.radius = baseRadius;
       b.ricochet = isRicochet;
@@ -5100,6 +5157,8 @@ class PlayerTank extends Tank {
       b.bounces = bounceCount;
       b.homing = isHoming;
       b.homingStrength = homingStr;
+      if (spType === 'phantom_slash') b.shardBurst = 1 + (def.slashShardBonus || 0);
+      if (spType === 'blood_lance') b.drainOnHit = Math.min(0.6, 0.22 + (def.lanceDrainBonus || 0));
       playerBullets.push(b);
     }
     sfxShoot(this.tankType);
@@ -5134,7 +5193,7 @@ class PlayerTank extends Tank {
       const cw = 30, ch = 3;
       ctx.fillStyle = 'rgba(255,255,255,0.12)';
       ctx.fillRect(this.x - cw/2, this.y + 20, cw, ch);
-      const spColors = {pierce:'#ff8',railgun:'#a4f',freeze:'#8cf',explosive:'#f84',super_pierce:'#e8f',homing_burst:'#f8f',rift:'#d9b6ff'};
+      const spColors = {pierce:'#ff8',railgun:'#a4f',freeze:'#8cf',explosive:'#f84',super_pierce:'#e8f',homing_burst:'#f8f',rift:'#d9b6ff',phantom_slash:'#bdfcff',blood_lance:'#ff5d73',astral_orbit:'#9fe2ff'};
       ctx.fillStyle = spColors[tdef.specialType] || '#fff';
       ctx.fillRect(this.x - cw/2, this.y + 20, cw * chargeRatio, ch);
     }
@@ -5370,6 +5429,134 @@ class PlayerTank extends Tank {
         ctx.moveTo(20, -14); ctx.lineTo(-20, 14);
         ctx.stroke();
         ctx.setLineDash([]);
+      }
+      break;
+    }
+
+    case 'blade': {
+      const pulse = Math.sin(t * 1.9) * 0.5 + 0.5;
+      drawTankTracks(ctx, -14, 10, -10, 20, 3.8, '#0c2d32', '#39d4d8');
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(17, 0);
+      ctx.lineTo(5, -11);
+      ctx.lineTo(-13, -8);
+      ctx.lineTo(-17, 0);
+      ctx.lineTo(-13, 8);
+      ctx.lineTo(5, 11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#bdfcff';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      drawArmorPanel(ctx, -7, -5, 16, 10, '#103b42', '#bdfcff', 2);
+      drawTechCore(ctx, -1, 0, 4.4, '#efffff', '#3fd5da');
+      ctx.strokeStyle = 'rgba(189,252,255,' + (0.22 + pulse * 0.2) + ')';
+      ctx.beginPath();
+      ctx.moveTo(-14, -12); ctx.lineTo(12, -4); ctx.lineTo(19, -8);
+      ctx.moveTo(-14, 12); ctx.lineTo(12, 4); ctx.lineTo(19, 8);
+      ctx.stroke();
+      ctx.save(); ctx.rotate(turretAngle);
+      drawWeaponBarrel(ctx, 4, -4.4, 17, 2.8, turretC, '#0e5058', '#efffff');
+      drawWeaponBarrel(ctx, 4, 1.6, 17, 2.8, turretC, '#0e5058', '#efffff');
+      withGlow(ctx, '#bdfcff', 7, () => {
+        ctx.strokeStyle = '#bdfcff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(15, -7); ctx.lineTo(26, -2);
+        ctx.moveTo(15, 7); ctx.lineTo(26, 2);
+        ctx.stroke();
+      });
+      ctx.restore();
+      if (evoLevel > 0) {
+        ctx.strokeStyle = 'rgba(189,252,255,0.28)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 18 + evoLevel * 3, -Math.PI * 0.45, Math.PI * 0.45);
+        ctx.stroke();
+      }
+      break;
+    }
+
+    case 'scarlet': {
+      const pulse = Math.sin(t * 1.15) * 0.5 + 0.5;
+      drawTankTracks(ctx, -20, 14, -13, 26, 6, '#2a0710', '#8f1024');
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(18, 0);
+      ctx.lineTo(8, -13);
+      ctx.lineTo(-14, -12);
+      ctx.lineTo(-20, -3);
+      ctx.lineTo(-20, 3);
+      ctx.lineTo(-14, 12);
+      ctx.lineTo(8, 13);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#ff5d73';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      drawArmorPanel(ctx, -12, -7, 24, 14, '#3d1019', '#ff5d73', 3);
+      drawTechCore(ctx, -4, 0, 5.2, '#ffe0e5', '#ff5d73');
+      ctx.strokeStyle = 'rgba(255,93,115,' + (0.22 + pulse * 0.22) + ')';
+      ctx.beginPath();
+      ctx.moveTo(-15, -9); ctx.lineTo(10, 0); ctx.lineTo(-15, 9);
+      ctx.stroke();
+      ctx.save(); ctx.rotate(turretAngle);
+      drawWeaponBarrel(ctx, 3, -3.4, 25, 6.8, turretC, '#4a0b18', '#ffe6ea');
+      withGlow(ctx, '#ff5d73', 9, () => {
+        ctx.fillStyle = '#ff5d73';
+        ctx.fillRect(25, -4.8, 5, 9.6);
+      });
+      ctx.strokeStyle = 'rgba(246,229,170,0.38)';
+      ctx.beginPath();
+      ctx.moveTo(6, -6); ctx.lineTo(20, -6);
+      ctx.moveTo(6, 6); ctx.lineTo(20, 6);
+      ctx.stroke();
+      ctx.restore();
+      if (evoLevel > 0) {
+        ctx.fillStyle = 'rgba(255,93,115,0.18)';
+        ctx.beginPath();
+        ctx.arc(-14, -11, 2.4 + evoLevel * 0.6, 0, Math.PI * 2);
+        ctx.arc(-14, 11, 2.4 + evoLevel * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+
+    case 'astral': {
+      const pulse = Math.sin(t * 0.9) * 0.5 + 0.5;
+      drawTankTracks(ctx, -18, 12, -12, 24, 6, '#0c1a28', '#285a8f');
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(0, -15);
+      ctx.lineTo(16, -7);
+      ctx.lineTo(16, 7);
+      ctx.lineTo(0, 15);
+      ctx.lineTo(-16, 7);
+      ctx.lineTo(-16, -7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#9fe2ff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      drawArmorPanel(ctx, -10, -8, 20, 16, '#17324f', '#9fe2ff', 3);
+      ctx.strokeStyle = 'rgba(159,226,255,' + (0.2 + pulse * 0.18) + ')';
+      ctx.beginPath(); ctx.arc(0, 0, 19, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, 0, 23 + evoLevel * 2, 8 + pulse, Math.PI / 5, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, 0, 23 + evoLevel * 2, 8 + pulse, -Math.PI / 5, 0, Math.PI * 2); ctx.stroke();
+      drawTechCore(ctx, 0, 0, 5.8, '#eff9ff', '#9fe2ff');
+      ctx.save(); ctx.rotate(turretAngle);
+      drawWeaponBarrel(ctx, 4, -5.2, 15, 3.4, turretC, '#17324f', '#eff9ff');
+      drawWeaponBarrel(ctx, 4, 1.8, 15, 3.4, turretC, '#17324f', '#eff9ff');
+      drawTechCore(ctx, 18, 0, 3, '#ffffff', '#9fe2ff');
+      ctx.restore();
+      if (evoLevel > 0) {
+        for (let i = 0; i < 4; i++) {
+          const a = t * 0.35 + i * Math.PI / 2;
+          ctx.fillStyle = 'rgba(246,229,170,0.5)';
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * (18 + evoLevel * 2), Math.sin(a) * (18 + evoLevel * 2), 1.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       break;
     }
@@ -7074,6 +7261,9 @@ const TANK_UNLOCK_CONDITIONS = {
   sniper: { cost:250, desc:'击杀任意Boss 或 250月光石' },
   homing: { cost:300, desc:'完成每日挑战 或 300月光石' },
   border: { cost:360, desc:'观测境界残响 或 360月光石' },
+  blade:  { cost:420, desc:'达成35连击 或 420月光石' },
+  scarlet:{ cost:480, desc:'单局得分10000 或 480月光石' },
+  astral: { cost:540, desc:'到达第20波 或 540月光石' },
 };
 
 const LAB_TANK_MARKS = {
@@ -7084,6 +7274,9 @@ const LAB_TANK_MARKS = {
   sniper: { code:'S-05', role:'远距裁决', motto:'它开火前会停顿，像在替目标写墓志铭。' },
   homing: { code:'O-06', role:'命运追猎', motto:'导引线会绕过废墟，也绕不过命运。' },
   border: { code:'Y-07', role:'境界折返', motto:'它不突破墙壁，只说服空间承认另一条路。' },
+  blade:  { code:'K-08', role:'斩魂突击', motto:'双刃在履带前方闭合，像给战场划下一道判决线。' },
+  scarlet:{ code:'R-09', role:'红枪压制', motto:'血色长枪不追求连射，它只要求每一击都有回声。' },
+  astral: { code:'P-10', role:'星仪术式', motto:'炮塔上方的星盘转动时，敌方弹道会短暂相信命运。' },
 };
 
 const LAB_PART_CODES = {
@@ -7105,6 +7298,14 @@ const LAB_PART_CODES = {
   rift:'RFT',
   phase:'PHS',
   seal:'SEAL',
+  slash:'KAT',
+  sheath:'SHD',
+  blood:'RED',
+  lance:'LNC',
+  ritual:'RIT',
+  orbit:'ORB',
+  tome:'TOM',
+  prism:'PRI',
 };
 
 const TANK_EVOLUTION = {
@@ -7135,6 +7336,18 @@ const TANK_EVOLUTION = {
   border: [
     { name:'隙间回廊', icon:'GAP', bonus:'折射弹获得更稳定的追猎角', cost:210, effect(t){ t.riftBounceBonus = (t.riftBounceBonus || 0) + 1; t.riftHoming = Math.max(t.riftHoming || 0, 0.042); } },
     { name:'边界终端', icon:'LIM', bonus:'装填结构轻量化，特弹周期微调', cost:380, effect(t){ t.reloadTime = Math.max(108, t.reloadTime - 8); t.specialInterval = Math.max(3, (t.specialInterval || 4) - 1); t.riftSpeedBonus = (t.riftSpeedBonus || 0) + 0.12; } },
+  ],
+  blade: [
+    { name:'半灵斩轨', icon:'HNR', bonus:'斩击弹速与轻装机动提升', cost:240, effect(t){ t.slashSpeedBonus = (t.slashSpeedBonus || 0) + 0.14; t.speed += 0.03; t.reloadTime = Math.max(102, t.reloadTime - 4); } },
+    { name:'楼观终式', icon:'ROU', bonus:'碎刃展开，穿刺判定强化', cost:430, effect(t){ t.slashShardBonus = (t.slashShardBonus || 0) + 1; t.specialInterval = Math.max(4, (t.specialInterval || 5) - 1); t.pierceDamageBonus = (t.pierceDamageBonus || 0) + 1; } },
+  ],
+  scarlet: [
+    { name:'红雾圣枪', icon:'VLA', bonus:'血枪弹速与汲取协议提升', cost:260, effect(t){ t.lanceSpeedBonus = (t.lanceSpeedBonus || 0) + 0.2; t.lanceDrainBonus = (t.lanceDrainBonus || 0) + 0.08; t.hpBonus += 1; } },
+    { name:'绯月断罪', icon:'CRI', bonus:'低频高压穿刺，装填缩短', cost:460, effect(t){ t.lanceDamageBonus = (t.lanceDamageBonus || 0) + 1; t.reloadTime = Math.max(124, t.reloadTime - 8); t.specialInterval = Math.max(3, (t.specialInterval || 4) - 1); } },
+  ],
+  astral: [
+    { name:'五曜星盘', icon:'GYO', bonus:'星仪折返与术式冻结增强', cost:250, effect(t){ t.orbitBounceBonus = (t.orbitBounceBonus || 0) + 1; t.orbitHoming = Math.max(t.orbitHoming || 0, 0.032); t.freezeDurationMul = (t.freezeDurationMul || 1) * 1.1; } },
+    { name:'贤者天球', icon:'SPH', bonus:'轨道修正，慢速控场稳定化', cost:440, effect(t){ t.orbitSpeedBonus = (t.orbitSpeedBonus || 0) + 0.1; t.orbitHoming = Math.max(t.orbitHoming || 0, 0.04); t.reloadTime = Math.max(122, t.reloadTime - 6); } },
   ],
 };
 
@@ -7188,6 +7401,27 @@ const TANK_UPGRADE_DEFS = {
     { id:'firerate', name:'边界闸门', icon:'⇆', desc:'冷却-1帧', max:3, costBase:28, effect(t){ t.shootDelay = Math.max(34, t.shootDelay - 1); } },
     { id:'seal', name:'结界封钉', icon:'⬡', desc:'装填-3帧', max:3, costBase:28, effect(t){ t.reloadTime = Math.max(110, t.reloadTime - 3); } },
     { id:'speed', name:'裂隙步进', icon:'⇢', desc:'移速+0.03', max:4, costBase:24, effect(t){ t.speed += 0.03; } },
+  ],
+  blade: [
+    { id:'slash', name:'魂刃导轨', icon:'KAT', desc:'斩击弹速+0.10', max:4, costBase:30, effect(t){ t.slashSpeedBonus = (t.slashSpeedBonus || 0) + 0.1; } },
+    { id:'speed', name:'半灵履带', icon:'MOV', desc:'移速+0.035', max:4, costBase:26, effect(t){ t.speed += 0.035; } },
+    { id:'firerate', name:'居合联锁', icon:'CYC', desc:'冷却-1帧', max:3, costBase:30, effect(t){ t.shootDelay = Math.max(20, t.shootDelay - 1); } },
+    { id:'sheath', name:'白楼鞘仓', icon:'SHD', desc:'装填-4帧', max:3, costBase:28, effect(t){ t.reloadTime = Math.max(96, t.reloadTime - 4); } },
+    { id:'armor', name:'轻甲骨架', icon:'ARM', desc:'HP+1', max:3, costBase:24, effect(t){ t.hpBonus += 1; } },
+  ],
+  scarlet: [
+    { id:'lance', name:'红枪磁轨', icon:'LNC', desc:'血枪弹速+0.18', max:4, costBase:32, effect(t){ t.lanceSpeedBonus = (t.lanceSpeedBonus || 0) + 0.18; } },
+    { id:'blood', name:'汲血回路', icon:'RED', desc:'命中汲取+5%', max:3, costBase:34, effect(t){ t.lanceDrainBonus = (t.lanceDrainBonus || 0) + 0.05; } },
+    { id:'dmg', name:'绯枪弹芯', icon:'DMG', desc:'基础伤害+1', max:3, costBase:38, effect(t){ t.bulletDamage += 1; } },
+    { id:'armor', name:'红雾装甲', icon:'ARM', desc:'HP+1', max:4, costBase:28, effect(t){ t.hpBonus += 1; } },
+    { id:'ritual', name:'夜仪装填', icon:'RIT', desc:'装填-5帧', max:3, costBase:32, effect(t){ t.reloadTime = Math.max(120, t.reloadTime - 5); } },
+  ],
+  astral: [
+    { id:'orbit', name:'星仪环轨', icon:'ORB', desc:'折返追踪+0.005', max:4, costBase:30, effect(t){ t.orbitHoming = (t.orbitHoming || 0.026) + 0.005; } },
+    { id:'tome', name:'贤者术册', icon:'TOM', desc:'冰冻+0.25秒', max:4, costBase:28, effect(t){ t.freezeDurationBonus = (t.freezeDurationBonus || 0) + 15; } },
+    { id:'prism', name:'七曜棱镜', icon:'PRI', desc:'星仪弹速+0.08', max:4, costBase:28, effect(t){ t.orbitSpeedBonus = (t.orbitSpeedBonus || 0) + 0.08; } },
+    { id:'hp', name:'静止结界', icon:'ARM', desc:'HP+1', max:3, costBase:26, effect(t){ t.hpBonus += 1; } },
+    { id:'firerate', name:'星盘校时', icon:'CYC', desc:'冷却-1帧', max:3, costBase:30, effect(t){ t.shootDelay = Math.max(42, t.shootDelay - 1); } },
   ],
 };
 Object.keys(TANK_UPGRADE_DEFS).forEach(k => {
@@ -7385,6 +7619,9 @@ function getTankUnlockConditionStatus(tankType) {
   const maxEliteSeen = Math.max(tankUnlockProgress.maxEliteKills || 0, sessionEliteKills || 0);
   const dailyDone = (tankUnlockProgress.dailyClears || 0) > 0 || dailyCompletedToday || dailyTargetAchieved;
   const borderEchoSeen = tankUnlockProgress.borderEcho || maxWaveSeen >= 12 || (tankUnlockProgress.bossKills || 0) >= 2;
+  const combo35Seen = maxComboReached >= 35 || unlockedAchievements.has('combo_35');
+  const score10000Seen = score >= 10000 || unlockedAchievements.has('score_10000');
+  const wave20Seen = maxWaveSeen >= 20 || unlockedAchievements.has('wave_20');
   switch (tankType) {
     case 'spread': return { met: true, label: '初始机体' };
     case 'focus': return { met: maxWaveSeen >= 5, label: '已到达第5波' };
@@ -7393,6 +7630,9 @@ function getTankUnlockConditionStatus(tankType) {
     case 'sniper': return { met: (tankUnlockProgress.bossKills || 0) >= 1, label: 'Boss击杀记录已归档' };
     case 'homing': return { met: dailyDone, label: '每日挑战已完成' };
     case 'border': return { met: borderEchoSeen, label: '境界残响已观测' };
+    case 'blade': return { met: combo35Seen, label: '35连击记录已归档' };
+    case 'scarlet': return { met: score10000Seen, label: '10000分战斗记录已归档' };
+    case 'astral': return { met: wave20Seen, label: '第20波观测记录已归档' };
     default: return { met: false, label: '' };
   }
 }
@@ -7852,7 +8092,7 @@ function renderLeaderboard() {
   grid.innerHTML = scores.map((s, i) => {
     const rankClass = i === 0 ? 'gold' : (i === 1 ? 'silver' : (i === 2 ? 'bronze' : ''));
     const rankCodes = ['RK-I','RK-II','RK-III'];
-    const tankNames = {spread:'扩散',focus:'集中',wide:'广域',burst:'爆裂',sniper:'狙击',homing:'追踪',border:'境界'};
+    const tankNames = {spread:'扩散',focus:'集中',wide:'广域',burst:'爆裂',sniper:'狙击',homing:'追踪',border:'境界',blade:'斩魂',scarlet:'红枪',astral:'星仪'};
     return `<div class="leader-row">
       <span class="leader-rank ${rankClass}">${rankCodes[i] || ('RK-' + String(i+1).padStart(2,'0'))}</span>
       <div class="leader-info">
@@ -8265,6 +8505,24 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
       if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
         if (!bullet.railgun && !bullet.pierce) bullet.alive = false;
         const destroyed = tank.hit(bullet);
+        if (bullet.drainOnHit > 0 && fromPlayer && player && player.alive && rng() < bullet.drainOnHit) {
+          player.hp = Math.min(player.maxHp, player.hp + 1);
+          spawnDamageNumber(player.x, player.y - 22, 1, false);
+          bullet.drainOnHit = 0;
+        }
+        if (bullet.shardBurst > 0 && fromPlayer) {
+          const shards = Math.min(3, bullet.shardBurst + 1);
+          for (let s = 0; s < shards; s++) {
+            const offset = (s - (shards - 1) / 2) * 0.32;
+            const shard = new Bullet(bullet.x, bullet.y, bullet.angle + offset, Math.max(2.4, bullet.speed * 0.78), '#bdfcff', true, Math.max(1, Math.floor((bullet.damage || 1) * 0.55)));
+            shard.radius = 2.4;
+            shard.pierce = false;
+            shard.homing = true;
+            shard.homingStrength = 0.018;
+            playerBullets.push(shard);
+          }
+          bullet.shardBurst = 0;
+        }
         if (bullet.explosive && fromPlayer) {
           const explosionRadius = getExplosionRadius();
           for (const other of tanks) {
