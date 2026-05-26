@@ -674,7 +674,23 @@ canvas { display: block; background: #0a0f18; }
   margin-bottom: 10px; font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
   text-shadow: 0 0 20px rgba(244,152,0,0.3);
 }
-#bestiary-screen .best-tabs { display: flex; gap: 0; margin-bottom: 10px; }
+#bestiary-screen .best-archive-nav {
+  display: flex; flex-direction: column; align-items: center; gap: 7px; margin-bottom: 10px;
+}
+#bestiary-screen .best-section-tabs,
+#bestiary-screen .best-tabs { display: flex; gap: 0; }
+#bestiary-screen .best-section-tab {
+  min-width: 156px;
+  padding: 8px 22px; font-size: 13px; font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
+  letter-spacing: 3px; border: 1px solid rgba(107,125,149,0.16); cursor: pointer;
+  color: #7e8fa5; background: rgba(10,14,22,0.72); transition: all 0.2s;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+#bestiary-screen .best-section-tab.active {
+  color: #f6e5aa; border-color: rgba(246,229,170,0.38);
+  background: linear-gradient(90deg, rgba(244,152,0,0.18), rgba(12,18,24,0.86), rgba(140,232,255,0.1));
+  box-shadow: inset 0 0 16px rgba(246,229,170,0.06), 0 0 24px rgba(244,152,0,0.08);
+}
 #bestiary-screen .best-tab {
   padding: 6px 18px; font-size: 12px; font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
   letter-spacing: 2px; border: 1px solid rgba(107,125,149,0.12); cursor: pointer;
@@ -683,6 +699,24 @@ canvas { display: block; background: #0a0f18; }
 }
 #bestiary-screen .best-tab.active {
   color: #f49800; border-color: rgba(244,152,0,0.3); background: rgba(20,26,36,0.7);
+}
+#bestiary-screen .best-tab-code {
+  color: rgba(140,232,255,0.56);
+  font: 700 8px 'Courier New', monospace;
+  letter-spacing: 1px;
+  margin-right: 7px;
+}
+#bestiary-screen .best-archive-summary {
+  color: #8394aa;
+  max-width: 720px;
+  font-size: 10px;
+  line-height: 1.55;
+  letter-spacing: 1.2px;
+  text-align: center;
+  padding: 4px 14px;
+  border: 1px solid rgba(140,232,255,0.08);
+  background: rgba(4,8,12,0.42);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 #bestiary-screen .best-grid {
   display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px;
@@ -861,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.2 moonstone model, calmer E2 form and item tier rebalance */
+/* v3.7.3 split bestiary archive navigation */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -1005,6 +1039,8 @@ canvas { background: #070d13; }
 #achievements-screen .ach-back-btn,
 #achievements-screen .achieve-grid,
 #bestiary-screen h1,
+#bestiary-screen .best-archive-nav,
+#bestiary-screen .best-section-tabs,
 #bestiary-screen .best-tabs,
 #bestiary-screen .best-grid,
 #bestiary-screen .best-back-btn,
@@ -1374,6 +1410,24 @@ canvas { background: #070d13; }
   border: 1px solid rgba(140,232,255,0.08);
   clip-path: var(--ui-cut-sm);
 }
+#bestiary-screen .best-section-tabs {
+  padding: 5px;
+  background:
+    linear-gradient(90deg, rgba(244,152,0,0.08), rgba(4,8,12,0.68), rgba(140,232,255,0.06));
+  border: 1px solid rgba(246,229,170,0.14);
+  clip-path: var(--ui-cut);
+  box-shadow: inset 0 0 18px rgba(246,229,170,0.035), 0 14px 38px rgba(0,0,0,0.24);
+}
+#bestiary-screen .best-section-tab {
+  border-color: transparent;
+  background: transparent;
+}
+#bestiary-screen .best-section-tab.active {
+  color: var(--ui-holy);
+  border-color: rgba(246,229,170,0.42);
+  background:
+    linear-gradient(90deg, rgba(244,152,0,0.2), rgba(12,18,24,0.82), rgba(140,232,255,0.1));
+}
 #bestiary-screen .best-tab {
   border-color: transparent;
   background: transparent;
@@ -1382,6 +1436,12 @@ canvas { background: #070d13; }
   color: var(--ui-cyan);
   border-color: rgba(140,232,255,0.38);
   background: rgba(140,232,255,0.08);
+}
+#bestiary-screen .best-archive-summary {
+  color: #9aa8ba;
+  border-color: rgba(246,229,170,0.1);
+  background:
+    linear-gradient(90deg, rgba(246,229,170,0.045), rgba(5,9,14,0.58), rgba(140,232,255,0.035));
 }
 #bestiary-screen .best-grid {
   max-width: 860px;
@@ -1951,6 +2011,11 @@ canvas { background: #070d13; }
   #tank-select-screen .tank-card .tank-icon { font-size: 34px; }
   #tank-select-screen .tank-card .tank-name { font-size: 15px; }
   #modifier-screen .mod-choices { grid-template-columns: 1fr; max-width: 280px; }
+  #bestiary-screen .best-section-tabs,
+  #bestiary-screen .best-tabs { flex-wrap: wrap; justify-content: center; }
+  #bestiary-screen .best-section-tab { min-width: 132px; padding: 7px 14px; font-size: 11px; }
+  #bestiary-screen .best-tab { padding: 6px 12px; font-size: 10px; }
+  #bestiary-screen .best-archive-summary { max-width: 92%; font-size: 9px; }
   #bestiary-screen .best-grid,
   #achievements-screen .achieve-grid,
   #lab-screen .lab-detail-panel { max-width: 92%; }
@@ -2082,12 +2147,16 @@ canvas { background: #070d13; }
   </div>
   <div id="bestiary-screen">
     <h1>灰 域 史 书</h1>
-    <div class="best-tabs">
-      <button class="best-tab active" id="tab-items-basic" onclick="switchBestiaryTab('items_basic')">道具 / 基础</button>
-      <button class="best-tab" id="tab-items-fusion" onclick="switchBestiaryTab('items_fusion')">道具 / 融合</button>
-      <button class="best-tab" id="tab-enemies-normal" onclick="switchBestiaryTab('enemies_normal')">敌人 / 普通</button>
-      <button class="best-tab" id="tab-enemies-elite" onclick="switchBestiaryTab('enemies_elite')">敌人 / 精英</button>
-      <button class="best-tab" id="tab-enemies-boss" onclick="switchBestiaryTab('enemies_boss')">敌人 / 首领</button>
+    <div class="best-archive-nav">
+      <div class="best-section-tabs" id="bestiary-section-tabs">
+        <button class="best-section-tab active" id="section-items" onclick="switchBestiarySection('items')">道 具 档 案</button>
+        <button class="best-section-tab" id="section-enemies" onclick="switchBestiarySection('enemies')">敌 人 档 案</button>
+      </div>
+      <div class="best-tabs" id="bestiary-tabs">
+        <button class="best-tab active" id="tab-items-basic" onclick="switchBestiaryTab('items_basic')">基础模块</button>
+        <button class="best-tab" id="tab-items-fusion" onclick="switchBestiaryTab('items_fusion')">融合协议</button>
+      </div>
+      <div class="best-archive-summary" id="bestiary-summary">道具档案记录月光石补给、战术模块与禁忌融合协议。</div>
     </div>
     <div class="best-grid" id="bestiary-grid"></div>
     <button class="best-back-btn" onclick="hideBestiary()">返回</button>
@@ -3715,6 +3784,26 @@ function hideAchievements() {
 let bestiaryTab = 'items_basic';
 const BESTIARY_DISCOVERY_KEY = 'tankbattle_bestiary_discovered';
 const BESTIARY_TAB_IDS = ['items_basic', 'items_fusion', 'enemies_normal', 'enemies_elite', 'enemies_boss'];
+let bestiarySection = 'items';
+const BESTIARY_SECTIONS = {
+  items: {
+    label: '道具档案',
+    tabs: ['items_basic', 'items_fusion'],
+    summary: '道具档案记录月光石补给、战术模块与禁忌融合协议。拾取或触发后，档案会逐步解密。'
+  },
+  enemies: {
+    label: '敌人档案',
+    tabs: ['enemies_normal', 'enemies_elite', 'enemies_boss'],
+    summary: '敌人档案按威胁阶级封存普通单位、精英单位与首领敌人。遭遇后才会公开真实记录。'
+  }
+};
+const BESTIARY_TAB_META = {
+  items_basic: { label: '基础模块', code: 'MODULE' },
+  items_fusion: { label: '融合协议', code: 'FUSION' },
+  enemies_normal: { label: '普通单位', code: 'COMMON' },
+  enemies_elite: { label: '精英单位', code: 'ELITE' },
+  enemies_boss: { label: '首领敌人', code: 'BOSS' },
+};
 let discoveredBestiary = {
   powerups: new Set(),
   fusions: new Set(),
@@ -3768,6 +3857,34 @@ function discoverBestiary(kind, id) {
   if (discoveredBestiary[kind].has(id)) return;
   discoveredBestiary[kind].add(id);
   saveBestiaryDiscovery();
+}
+
+function getBestiarySectionForTab(tab) {
+  for (const [sectionId, section] of Object.entries(BESTIARY_SECTIONS)) {
+    if (section.tabs.includes(tab)) return sectionId;
+  }
+  return 'items';
+}
+
+function renderBestiaryNavigation() {
+  const section = BESTIARY_SECTIONS[bestiarySection] || BESTIARY_SECTIONS.items;
+  for (const sectionId of Object.keys(BESTIARY_SECTIONS)) {
+    const el = document.getElementById('section-' + sectionId);
+    if (el) el.classList.toggle('active', bestiarySection === sectionId);
+  }
+  const tabs = document.getElementById('bestiary-tabs');
+  if (tabs) {
+    tabs.innerHTML = section.tabs.map(tab => {
+      const meta = BESTIARY_TAB_META[tab] || { label: tab, code: 'ARC' };
+      const active = bestiaryTab === tab ? 'active' : '';
+      const id = 'tab-' + tab.replace('_', '-');
+      return `<button class="best-tab ${active}" id="${id}" onclick="switchBestiaryTab('${tab}')">
+        <span class="best-tab-code">${escapeHtml(meta.code)}</span>${escapeHtml(meta.label)}
+      </button>`;
+    }).join('');
+  }
+  const summary = document.getElementById('bestiary-summary');
+  if (summary) summary.textContent = section.summary;
 }
 
 function getNormalEnemyDescription(kind) {
@@ -3871,10 +3988,16 @@ function renderBestiary() {
 
 function switchBestiaryTab(tab) {
   bestiaryTab = BESTIARY_TAB_IDS.includes(tab) ? tab : 'items_basic';
-  for (const id of BESTIARY_TAB_IDS) {
-    const el = document.getElementById('tab-' + id.replace('_', '-'));
-    if (el) el.classList.toggle('active', bestiaryTab === id);
-  }
+  bestiarySection = getBestiarySectionForTab(bestiaryTab);
+  renderBestiaryNavigation();
+  renderBestiary();
+}
+
+function switchBestiarySection(sectionId) {
+  bestiarySection = BESTIARY_SECTIONS[sectionId] ? sectionId : 'items';
+  const section = BESTIARY_SECTIONS[bestiarySection];
+  if (!section.tabs.includes(bestiaryTab)) bestiaryTab = section.tabs[0];
+  renderBestiaryNavigation();
   renderBestiary();
 }
 
