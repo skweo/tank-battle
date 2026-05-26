@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.7 fix stale run callbacks after returning home */
+/* v3.7.8 add firing movement slowdown */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -3753,7 +3753,8 @@ function getExplosionRadius() {
 }
 
 function getEffectiveSpeed() {
-  return player.speed * (buffs.speed > 0 ? 1.12 : 1) * playerSpeedMul;
+  const fireSlow = player && player.getFireSlowMultiplier ? player.getFireSlowMultiplier() : 1;
+  return player.speed * (buffs.speed > 0 ? 1.12 : 1) * playerSpeedMul * fireSlow;
 }
 
 function getPlayerInputVector() {
@@ -3778,6 +3779,65 @@ function getEffectiveReloadTime() {
   const base = player && player._tankDef ? (player._tankDef.reloadTime || 120) : 120;
   const rapidMul = buffs.rapid > 0 ? 0.82 : 1;
   return Math.max(36, Math.floor(base * rapidMul * playerShootDelayMul * playerReloadMul));
+}
+
+function getPlayerFireSlowProfile(tankType, def) {
+  const baseProfiles = {
+    spread:  { duration: 16, mul: 0.74 },
+    focus:   { duration: 18, mul: 0.68 },
+    wide:    { duration: 20, mul: 0.66 },
+    burst:   { duration: 24, mul: 0.58 },
+    sniper:  { duration: 28, mul: 0.52 },
+    homing:  { duration: 16, mul: 0.76 },
+    border:  { duration: 18, mul: 0.70 },
+    blade:   { duration: 12, mul: 0.84 },
+    scarlet: { duration: 24, mul: 0.58 },
+    astral:  { duration: 20, mul: 0.66 },
+  };
+  const type = tankType || currentTankType || 'spread';
+  const profile = baseProfiles[type] || baseProfiles.spread;
+  const baseCount = tankTypes[type] ? tankTypes[type].bulletCount : 1;
+  const upgradedCount = def ? (def.bulletCount || baseCount) : baseCount;
+  const extraWeight = Math.max(0, upgradedCount - baseCount);
+  return {
+    duration: profile.duration + Math.min(8, Math.floor(extraWeight * 1.5)),
+    mul: Math.max(0.48, profile.mul - extraWeight * 0.015),
+  };
+}
+
+function getEnemyFireSlowProfile(unit) {
+  if (!unit) return { duration: 18, mul: 0.70 };
+  if (unit.bossDef) {
+    return unit.currentPhase > 0
+      ? { duration: 26, mul: 0.56 }
+      : { duration: 22, mul: 0.62 };
+  }
+  if (unit.isElite) {
+    const eliteProfiles = {
+      heavy:   { duration: 24, mul: 0.58 },
+      sniper:  { duration: 28, mul: 0.50 },
+      fast:    { duration: 12, mul: 0.82 },
+      flame:   { duration: 20, mul: 0.64 },
+      summoner:{ duration: 17, mul: 0.72 },
+      stealth: { duration: 15, mul: 0.78 },
+      splitter:{ duration: 17, mul: 0.72 },
+      regen:   { duration: 18, mul: 0.70 },
+      laser:   { duration: 28, mul: 0.48 },
+      miner:   { duration: 18, mul: 0.72 },
+      barrier: { duration: 21, mul: 0.65 },
+      missile: { duration: 15, mul: 0.76 },
+      warden:  { duration: 23, mul: 0.58 },
+      phase:   { duration: 17, mul: 0.74 },
+    };
+    return eliteProfiles[unit.special] || { duration: 18, mul: 0.70 };
+  }
+  const normalProfiles = {
+    scout:     { duration: 16, mul: 0.72 },
+    runner:    { duration: 12, mul: 0.82 },
+    brute:     { duration: 22, mul: 0.58 },
+    artillery: { duration: 24, mul: 0.56 },
+  };
+  return normalProfiles[unit.kind] || normalProfiles.scout;
 }
 
 function getEnemyBulletSpeedMul() {
@@ -4891,6 +4951,31 @@ class Tank {
     this.alive = true;
     this.shootCooldown = 0;
     this.shootDelay = 40;
+    this.fireSlowTimer = 0;
+    this.fireSlowDuration = 0;
+    this.fireSlowMul = 1;
+  }
+  applyFireSlow(duration = 18, mul = 0.72) {
+    const safeDuration = Math.max(1, Math.floor(Number.isFinite(duration) ? duration : 18));
+    const safeMul = Math.max(0.35, Math.min(1, Number.isFinite(mul) ? mul : 0.72));
+    const currentMul = this.fireSlowTimer > 0 ? (this.fireSlowMul || 1) : 1;
+    this.fireSlowTimer = safeDuration;
+    this.fireSlowDuration = safeDuration;
+    this.fireSlowMul = Math.min(currentMul, safeMul);
+  }
+  getFireSlowMultiplier() {
+    if (!this.fireSlowTimer || this.fireSlowTimer <= 0) return 1;
+    const ratio = Math.max(0, Math.min(1, this.fireSlowTimer / Math.max(1, this.fireSlowDuration || this.fireSlowTimer)));
+    return 1 - (1 - (this.fireSlowMul || 1)) * ratio;
+  }
+  tickFireSlow() {
+    if (!this.fireSlowTimer || this.fireSlowTimer <= 0) return;
+    this.fireSlowTimer--;
+    if (this.fireSlowTimer <= 0) {
+      this.fireSlowTimer = 0;
+      this.fireSlowDuration = 0;
+      this.fireSlowMul = 1;
+    }
   }
   draw(ctx) {
     ctx.save();
@@ -4981,6 +5066,7 @@ class PlayerTank extends Tank {
     if (!this.alive) return;
     if (this.invincible > 0) this.invincible--;
     if (this.shootCooldown > 0) this.shootCooldown--;
+    this.tickFireSlow();
     const wantsToShoot = mouseDown || keys[' '] || keys['j'];
     if (wantsToShoot && this.partialReloading && this.reloadTimer > 0 && this.ammo > 0) {
       this.reloadTimer = 0;
@@ -5169,6 +5255,8 @@ class PlayerTank extends Tank {
       if (spType === 'blood_lance') b.drainOnHit = Math.min(0.6, 0.22 + (def.lanceDrainBonus || 0));
       playerBullets.push(b);
     }
+    const fireSlow = getPlayerFireSlowProfile(this.tankType, def);
+    this.applyFireSlow(fireSlow.duration, fireSlow.mul);
     sfxShoot(this.tankType);
     if (isSpecial && spType) {
       spawnExplosion(bx, by, 6, baseColor, '#fff');
@@ -5625,6 +5713,7 @@ class EnemyTank extends Tank {
   update() {
     if (!this.alive) return;
     if (this.shootCooldown > 0) this.shootCooldown--;
+    this.tickFireSlow();
     if (this.frozen > 0) {
       this.frozen--;
       this.speed = this._origSpeed * 0.4;
@@ -5697,8 +5786,9 @@ class EnemyTank extends Tank {
       }
     }
 
-    const newX = this.x + moveX * this.speed * enemySlow;
-    const newY = this.y + moveY * this.speed * enemySlow;
+    const fireSlow = this.getFireSlowMultiplier();
+    const newX = this.x + moveX * this.speed * enemySlow * fireSlow;
+    const newY = this.y + moveY * this.speed * enemySlow * fireSlow;
     if (newX > 25 && newX < W - 25 && !tankCollidesObstacle(newX, this.y, 36, 36)) this.x = newX;
     else { this.moveDir *= -1; this.strafeBias *= -1; }
     if (newY > 25 && newY < H - 25 && !tankCollidesObstacle(this.x, newY, 36, 36)) this.y = newY;
@@ -5807,6 +5897,8 @@ class EnemyTank extends Tank {
     const spread = (rng() - 0.5) * 0.15;
     const ebs = 1.7;
     enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, ebs, '#f44', false));
+    const fireSlow = getEnemyFireSlowProfile(this);
+    this.applyFireSlow(fireSlow.duration, fireSlow.mul);
   }
   hit(bullet) {
     if (this.armor && rng() < 0.4) {
@@ -5999,6 +6091,8 @@ class EliteEnemy extends EnemyTank {
             enemyBullets.push(b);
           }
           spawnExplosion(this.x, this.y, 10, '#f6e5aa', '#fff');
+          const fireSlow = getEnemyFireSlowProfile(this);
+          this.applyFireSlow(fireSlow.duration, fireSlow.mul);
           this.wardenCooldown = 150 + rng() * 80;
         }
       } else if (this.wardenCooldown <= 0 && player && player.alive) {
@@ -6081,7 +6175,10 @@ class EliteEnemy extends EnemyTank {
       }
     } else {
       super.shoot();
+      return;
     }
+    const fireSlow = getEnemyFireSlowProfile(this);
+    this.applyFireSlow(fireSlow.duration, fireSlow.mul);
   }
   draw(ctx) {
     if (this.special === 'stealth' && this.stealthPhase === 1) {
@@ -6623,6 +6720,7 @@ class BossEnemy extends EliteEnemy {
   update() {
     if (!this.alive) return;
     if (this.shootCooldown > 0) this.shootCooldown--;
+    this.tickFireSlow();
     if (this.frozen > 0) {
       this.frozen--;
       this.speed = this.baseSpeed * 0.5;
@@ -6733,8 +6831,9 @@ class BossEnemy extends EliteEnemy {
     }
 
     const slowMul = this.currentPhase > 0 ? 1.18 : 1;
-    const newX = this.x + moveX * this.speed * slowMul;
-    const newY = this.y + moveY * this.speed * slowMul;
+    const fireSlow = this.getFireSlowMultiplier();
+    const newX = this.x + moveX * this.speed * slowMul * fireSlow;
+    const newY = this.y + moveY * this.speed * slowMul * fireSlow;
     if (newX > 34 && newX < W - 34 && !tankCollidesObstacle(newX, this.y, 54, 54)) this.x = newX;
     if (newY > 34 && newY < H - 34 && !tankCollidesObstacle(this.x, newY, 54, 54)) this.y = newY;
 
@@ -6907,6 +7006,8 @@ class BossEnemy extends EliteEnemy {
       spawnExplosion(this.x, this.y, this.currentPhase > 0 ? 28 : 20, '#4ff', '#fff');
       triggerShake(this.currentPhase > 0 ? 8 : 5, 8);
     }
+    const fireSlow = getEnemyFireSlowProfile(this);
+    this.applyFireSlow(fireSlow.duration, fireSlow.mul);
   }
   emitPhaseBurst(isTransition) {
     const count = isTransition ? 16 : (this.currentPhase > 0 ? 12 : 10);
@@ -6917,6 +7018,8 @@ class BossEnemy extends EliteEnemy {
       b.radius = isTransition ? 3.6 : 2.8;
       enemyBullets.push(b);
     }
+    const fireSlow = getEnemyFireSlowProfile(this);
+    this.applyFireSlow(fireSlow.duration, fireSlow.mul);
   }
   teleportToSafePoint(minPlayerDist) {
     const safe = findSafeTankSpawn({
@@ -6960,6 +7063,8 @@ class BossEnemy extends EliteEnemy {
       b.radius = 2.2;
       enemyBullets.push(b);
     }
+    const fireSlow = getEnemyFireSlowProfile(this);
+    this.applyFireSlow(fireSlow.duration, fireSlow.mul);
   }
   spawnBossEscort() {
     if (enemies.length >= getWaveConcurrentEnemyCap()) return;
