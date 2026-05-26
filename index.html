@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.9 expand systemic Web Audio sound effects */
+/* v3.7.10 add UI button and battle result sound feedback */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -2220,7 +2220,10 @@ let audioNodes = {}; // category gain nodes
 let audioSfxLast = {};
 
 function initAudio() {
-  if (audioCtx) return;
+  if (audioCtx) {
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    return;
+  }
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
   // Master gain
@@ -2460,9 +2463,42 @@ function sfxCombo(level) {
   playTone(baseFreq * 1.5, 0.08, 'square', audioNodes.sfxGain, Math.min(0.2, 0.06 + level * 0.015));
 }
 
-function sfxUIClick() {
-  if (!audioCtx) return;
-  playTone(600, 0.04, 'sine', audioNodes.uiGain, 0.08);
+function getUiSoundKind(el) {
+  if (!el) return 'default';
+  const cls = String(el.className || '').toLowerCase();
+  const action = String(el.getAttribute?.('onclick') || '').toLowerCase();
+  const text = String(el.textContent || '').toLowerCase();
+  if (cls.includes('locked') || text.includes('lock')) return 'locked';
+  if (action.includes('hide') || action.includes('returnhome') || action.includes('restartgame') || cls.includes('back') || cls.includes('pause-home')) return 'back';
+  if (action.includes('startgame') || action.includes('quickrestart') || action.includes('startdaily') || action.includes('confirm') || action.includes('claim') || action.includes('pickmodifier') || action.includes('purchase') || action.includes('tryevolve') || action.includes('tryunlock')) return 'confirm';
+  if (action.includes('switch') || action.includes('show') || cls.includes('tab') || cls.includes('achieve-link')) return 'nav';
+  return 'default';
+}
+
+function sfxUIClick(kind='default') {
+  if (!canPlaySfx('uiClick:' + kind, 0.055)) return;
+  if (kind === 'confirm') {
+    playFilteredNoise(0.032, 0.018, audioNodes.uiGain, 'highpass', 1800, 0.7);
+    playTone(620, 0.04, 'triangle', audioNodes.uiGain, 0.05);
+    playTone(980, 0.055, 'sine', audioNodes.uiGain, 0.04, true, 0.035);
+    playTone(1480, 0.045, 'sine', audioNodes.uiGain, 0.026, true, 0.075);
+  } else if (kind === 'back') {
+    playSweep(620, 360, 0.075, 'triangle', audioNodes.uiGain, 0.04);
+    playTone(240, 0.06, 'sine', audioNodes.uiGain, 0.025, true, 0.035);
+  } else if (kind === 'locked') {
+    playFilteredNoise(0.045, 0.026, audioNodes.uiGain, 'bandpass', 520, 2.0);
+    playTone(180, 0.07, 'square', audioNodes.uiGain, 0.032, true, 0.01, 120);
+  } else if (kind === 'nav') {
+    playTone(440, 0.035, 'sine', audioNodes.uiGain, 0.038);
+    playTone(660, 0.042, 'triangle', audioNodes.uiGain, 0.032, true, 0.028);
+  } else {
+    playTone(560, 0.035, 'sine', audioNodes.uiGain, 0.042);
+    playTone(840, 0.03, 'triangle', audioNodes.uiGain, 0.026, true, 0.02);
+  }
+}
+
+function sfxUIButtonTarget(el) {
+  sfxUIClick(getUiSoundKind(el));
 }
 
 function sfxAchievement() {
@@ -2663,13 +2699,56 @@ function sfxPauseState(paused) {
 }
 
 function sfxRunEnd(victory=false) {
-  if (!canPlaySfx(victory ? 'victory' : 'defeat', 1.0)) return;
-  if (victory) playChord([392, 523, 659, 784, 1047], 0.34, 'triangle', audioNodes.uiGain, 0.055, 0.08);
-  else {
-    playFilteredNoise(0.3, 0.08, audioNodes.sfxGain, 'lowpass', 360, 1.0);
-    playChord([196, 147, 98], 0.42, 'sawtooth', audioNodes.uiGain, 0.052, 0.08);
+  if (!canPlaySfx(victory ? 'victory' : 'defeat', 1.4)) return;
+  if (victory) {
+    playFilteredNoise(0.24, 0.038, audioNodes.uiGain, 'highpass', 1700, 0.6);
+    playSweep(196, 392, 0.45, 'sine', audioNodes.sfxGain, 0.045);
+    [392, 523, 659, 784, 1047, 1319].forEach((freq, i) => {
+      playTone(freq, 0.2 + i * 0.018, i < 2 ? 'triangle' : 'sine', audioNodes.uiGain, 0.052 - i * 0.004, true, i * 0.075);
+    });
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      playTone(freq, 0.42, 'triangle', audioNodes.uiGain, 0.024, true, 0.36 + i * 0.025);
+    });
+    playFilteredNoise(0.16, 0.024, audioNodes.uiGain, 'bandpass', 2400, 1.4, 0.42);
+  } else {
+    playFilteredNoise(0.55, 0.105, audioNodes.sfxGain, 'lowpass', 280, 1.1);
+    playSweep(220, 55, 0.78, 'sawtooth', audioNodes.uiGain, 0.068);
+    playTone(98, 0.66, 'triangle', audioNodes.sfxGain, 0.07, true, 0.08, 49);
+    [196, 147, 110, 82].forEach((freq, i) => {
+      playTone(freq, 0.22, i % 2 ? 'triangle' : 'sawtooth', audioNodes.uiGain, 0.044 - i * 0.004, true, 0.12 + i * 0.12);
+    });
+    playFilteredNoise(0.13, 0.045, audioNodes.uiGain, 'bandpass', 620, 2.2, 0.22);
+    playTone(440, 0.07, 'square', audioNodes.uiGain, 0.032, true, 0.18, 330);
+    playTone(330, 0.09, 'square', audioNodes.uiGain, 0.026, true, 0.38, 220);
   }
 }
+
+let uiSfxBound = false;
+function bindGlobalUiSfx() {
+  if (uiSfxBound) return;
+  uiSfxBound = true;
+  const selector = 'button, [onclick], [role="button"], .tank-card, .mod-card, .achieve-link, .lab-tank-card, .leader-tab, .best-tab, .best-section-tab';
+  const playForTarget = (target) => {
+    if (!target || !target.closest) return;
+    const clickable = target.closest(selector);
+    if (!clickable || !document.body.contains(clickable)) return;
+    const button = clickable.closest('button');
+    if (button && button.disabled) return;
+    initAudio();
+    sfxUIButtonTarget(clickable);
+  };
+  document.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    playForTarget(e.target);
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.repeat || (e.key !== 'Enter' && e.key !== ' ')) return;
+    const active = document.activeElement;
+    if (!active || active === document.body) return;
+    playForTarget(active);
+  }, true);
+}
+bindGlobalUiSfx();
 
 // Background music - procedural bass pulse
 let musicTimeout = null;
