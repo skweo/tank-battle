@@ -789,7 +789,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.6.13 bestiary fix and tiered achievements */
+/* v3.6.14 lab chassis preview and staged evolution */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -909,7 +909,8 @@ canvas { background: #070d13; }
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
 }
 #achievements-screen,
-#bestiary-screen {
+#bestiary-screen,
+#lab-screen {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -917,11 +918,14 @@ canvas { background: #070d13; }
   scrollbar-color: rgba(244,152,0,0.55) rgba(7,10,16,0.7);
 }
 #achievements-screen::-webkit-scrollbar,
-#bestiary-screen::-webkit-scrollbar { width: 8px; }
+#bestiary-screen::-webkit-scrollbar,
+#lab-screen::-webkit-scrollbar { width: 8px; }
 #achievements-screen::-webkit-scrollbar-track,
-#bestiary-screen::-webkit-scrollbar-track { background: rgba(7,10,16,0.72); }
+#bestiary-screen::-webkit-scrollbar-track,
+#lab-screen::-webkit-scrollbar-track { background: rgba(7,10,16,0.72); }
 #achievements-screen::-webkit-scrollbar-thumb,
-#bestiary-screen::-webkit-scrollbar-thumb {
+#bestiary-screen::-webkit-scrollbar-thumb,
+#lab-screen::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, rgba(244,152,0,0.75), rgba(140,232,255,0.32));
   border: 2px solid rgba(7,10,16,0.72);
 }
@@ -931,7 +935,14 @@ canvas { background: #070d13; }
 #bestiary-screen h1,
 #bestiary-screen .best-tabs,
 #bestiary-screen .best-grid,
-#bestiary-screen .best-back-btn {
+#bestiary-screen .best-back-btn,
+#lab-screen h1,
+#lab-screen .lab-fragment-line,
+#lab-screen .lab-route-line,
+#lab-screen .lab-tank-grid,
+#lab-screen .lab-ornament,
+#lab-screen .lab-detail-panel,
+#lab-screen .lab-actions {
   flex-shrink: 0;
 }
 #start-screen > *,
@@ -1274,12 +1285,16 @@ canvas { background: #070d13; }
 
 #lab-screen {
   background:
-    radial-gradient(circle at 50% 31%, rgba(246,229,170,0.09), transparent 30%),
+    radial-gradient(circle at 50% 27%, rgba(246,229,170,0.1), transparent 28%),
+    radial-gradient(ellipse at 50% 76%, rgba(77,50,38,0.2), transparent 42%),
     linear-gradient(180deg, rgba(9,12,16,0.98), rgba(6,8,12,0.99));
+  gap: 7px;
 }
 #lab-screen::before {
   background:
     radial-gradient(circle at 50% 36%, transparent 0 58px, rgba(246,229,170,0.18) 59px 60px, transparent 61px 128px, rgba(140,232,255,0.1) 129px 130px, transparent 132px),
+    linear-gradient(125deg, transparent 0 46%, rgba(246,229,170,0.04) 46.3% 47%, transparent 47.4%),
+    linear-gradient(235deg, transparent 0 49%, rgba(244,152,0,0.035) 49.3% 50%, transparent 50.4%),
     repeating-linear-gradient(90deg, transparent 0 52px, rgba(246,229,170,0.025) 52px 53px),
     repeating-linear-gradient(0deg, transparent 0 26px, rgba(255,255,255,0.018) 26px 27px);
 }
@@ -1294,8 +1309,8 @@ canvas { background: #070d13; }
 #lab-screen .lab-route-line {
   margin: -4px 0 0;
   color: #8a94a4;
-  font-size: 10px;
-  letter-spacing: 2px;
+  font-size: 12px;
+  letter-spacing: 2.6px;
 }
 #lab-screen .lab-ornament {
   width: 200px;
@@ -1316,7 +1331,7 @@ canvas { background: #070d13; }
 #lab-screen .lab-current-flag {
   margin-top: 2px;
   color: var(--ui-holy);
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 1px;
 }
 #lab-screen .lab-locked-panel,
@@ -1337,9 +1352,9 @@ canvas { background: #070d13; }
 }
 #lab-screen .lab-evo-current,
 #lab-screen .lab-evo-next {
-  padding: 5px;
+  padding: 6px 8px;
   color: var(--ui-holy);
-  font-size: 13px;
+  font-size: 14px;
   text-align: center;
 }
 #lab-screen .lab-evo-btn {
@@ -1352,29 +1367,148 @@ canvas { background: #070d13; }
   border-color: rgba(188,207,226,0.13);
   color: #8a94a4;
 }
+#lab-screen .lab-evo-btn.ready {
+  color: #0b0f14;
+  background: linear-gradient(90deg, rgba(246,229,170,0.92), rgba(244,152,0,0.86));
+  box-shadow: 0 0 22px rgba(244,152,0,0.24);
+}
+#lab-screen .lab-detail-grid {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+#lab-screen .lab-preview-panel {
+  position: relative;
+  min-height: 232px;
+  padding: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(246,229,170,0.16);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(246,229,170,0.14), transparent 34%),
+    linear-gradient(180deg, rgba(4,7,10,0.88), rgba(12,15,18,0.76));
+  clip-path: var(--ui-cut);
+}
+#lab-screen .lab-preview-panel::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(140,232,255,0.08);
+  clip-path: polygon(50% 0, 92% 25%, 92% 75%, 50% 100%, 8% 75%, 8% 25%);
+}
+#lab-screen .lab-preview-header,
+#lab-screen .lab-preview-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #8a94a4;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+}
+#lab-screen .lab-preview-header strong,
+#lab-screen .lab-preview-footer strong {
+  color: var(--ui-holy);
+  font-weight: 700;
+}
+#lab-screen .lab-preview-canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 190px;
+  height: 150px;
+  margin: 8px auto 4px;
+  border: 1px solid rgba(246,229,170,0.08);
+  background:
+    radial-gradient(circle at center, rgba(244,152,0,0.1), transparent 44%),
+    repeating-linear-gradient(90deg, transparent 0 18px, rgba(255,255,255,0.025) 18px 19px),
+    repeating-linear-gradient(0deg, transparent 0 18px, rgba(255,255,255,0.018) 18px 19px);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+#lab-screen .lab-preview-lore {
+  position: relative;
+  z-index: 1;
+  margin-top: 8px;
+  color: #6f7f92;
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: left;
+}
+#lab-screen .lab-data-panel {
+  min-width: 0;
+}
+#lab-screen .lab-stage-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 8px 0;
+}
+#lab-screen .lab-stage-chip {
+  padding: 7px 6px;
+  border: 1px solid rgba(188,207,226,0.12);
+  color: #667486;
+  font-size: 11px;
+  text-align: center;
+  letter-spacing: 1px;
+  background: rgba(255,255,255,0.03);
+  clip-path: var(--ui-cut-sm);
+}
+#lab-screen .lab-stage-chip.active {
+  border-color: rgba(246,229,170,0.4);
+  color: var(--ui-holy);
+  background: linear-gradient(180deg, rgba(246,229,170,0.12), rgba(244,152,0,0.05));
+  box-shadow: inset 0 0 18px rgba(246,229,170,0.06);
+}
+#lab-screen .lab-stage-chip.done {
+  border-color: rgba(140,232,255,0.25);
+  color: #8ce8ff;
+}
+#lab-screen .lab-stage-chip span {
+  display: block;
+  margin-top: 3px;
+  color: #8a94a4;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+#lab-screen .lab-gate-note {
+  margin: 4px 0 8px;
+  padding: 7px 9px;
+  border-left: 2px solid rgba(246,229,170,0.48);
+  color: #9aa7b8;
+  font-size: 12px;
+  line-height: 1.45;
+  background: linear-gradient(90deg, rgba(246,229,170,0.07), transparent);
+}
 #lab-screen .lab-stat-upgrade-row {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 4px 0;
-  padding: 7px 8px;
+  padding: 8px 9px;
   border: 1px solid rgba(246,229,170,0.08);
   background: linear-gradient(90deg, rgba(246,229,170,0.04), rgba(8,13,18,0.64));
   clip-path: var(--ui-cut-sm);
 }
 #lab-screen .lab-stat-icon {
-  width: 60px;
+  width: 50px;
   color: var(--ui-ivory);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-align: center;
+  border: 1px solid rgba(246,229,170,0.16);
+  background: rgba(0,0,0,0.18);
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
 #lab-screen .lab-stat-name {
-  width: 55px;
+  width: 70px;
   color: #c0c8d0;
-  font-size: 12px;
+  font-size: 13px;
 }
 #lab-screen .lab-stat-meter {
   flex: 1;
-  height: 6px;
+  height: 8px;
   overflow: hidden;
   background: rgba(255,255,255,0.08);
   clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
@@ -1390,20 +1524,28 @@ canvas { background: #070d13; }
   background: #4a5a70;
   box-shadow: none;
 }
+#lab-screen .lab-stat-fill.gated {
+  background: linear-gradient(90deg, rgba(140,232,255,0.7), rgba(246,229,170,0.82));
+  box-shadow: 0 0 12px rgba(140,232,255,0.2);
+}
+#lab-screen .lab-stat-upgrade-row.gate-pending {
+  border-color: rgba(140,232,255,0.18);
+}
 #lab-screen .lab-stat-desc {
-  width: 60px;
+  width: 82px;
   color: #8a94a4;
-  font-size: 10px;
+  font-size: 11px;
   text-align: right;
 }
 #lab-screen .lab-stat-desc.capped { color: #5a6878; }
 #lab-screen .lab-stat-buy {
-  padding: 5px 12px;
+  min-width: 64px;
+  padding: 6px 12px;
   border: 1px solid var(--ui-amber);
   background: rgba(244,152,0,0.14);
   color: var(--ui-amber);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   clip-path: var(--ui-cut-sm);
 }
@@ -1416,15 +1558,22 @@ canvas { background: #070d13; }
 }
 #lab-screen .lab-detail-title {
   color: var(--ui-holy);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
   text-align: center;
   letter-spacing: 2px;
 }
+#lab-screen .lab-detail-subtitle {
+  margin-top: 4px;
+  color: #8a94a4;
+  font-size: 12px;
+  text-align: center;
+  letter-spacing: 1.2px;
+}
 #lab-screen .lab-stats-wrap { margin: 8px 0; }
 #lab-screen .lab-progress-note {
   color: #8a94a4;
-  font-size: 10px;
+  font-size: 12px;
   text-align: center;
 }
 #lab-screen .lab-error-panel {
@@ -1443,18 +1592,91 @@ canvas { background: #070d13; }
   border-color: rgba(246,229,170,0.12);
   background: linear-gradient(180deg, rgba(246,229,170,0.045), rgba(9,14,20,0.78));
 }
+#lab-screen .lab-tank-card:hover {
+  transform: translateY(-2px);
+}
 #lab-screen .lab-tank-card.selected {
   border-color: var(--ui-holy);
   box-shadow: 0 0 18px rgba(246,229,170,0.18);
 }
+#lab-screen .lab-tank-card.locked {
+  filter: saturate(0.45);
+}
+#lab-screen .lab-tank-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid rgba(246,229,170,0.14);
+  color: var(--ui-holy);
+  font-family: 'Courier New','Microsoft YaHei',monospace;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  background: rgba(0,0,0,0.26);
+  clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
+}
+#lab-screen .lab-tank-card.evolved .lab-tank-icon {
+  color: #0b1016;
+  background: linear-gradient(90deg, rgba(246,229,170,0.95), rgba(244,152,0,0.82));
+}
+#lab-screen .lab-tank-name {
+  margin-top: 5px;
+  font-size: 12px;
+}
+#lab-screen .lab-tank-dots {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 5px;
+  font-size: 0;
+}
+#lab-screen .lab-progress-cell {
+  width: 8px;
+  height: 4px;
+  background: rgba(188,207,226,0.14);
+  border: 1px solid rgba(188,207,226,0.12);
+}
+#lab-screen .lab-progress-cell.filled {
+  background: var(--ui-amber);
+  border-color: rgba(246,229,170,0.48);
+  box-shadow: 0 0 7px rgba(244,152,0,0.22);
+}
+#lab-screen .lab-progress-cell.gate {
+  background: #8ce8ff;
+  border-color: rgba(140,232,255,0.56);
+}
+#lab-screen .lab-lock-cost {
+  color: #667486;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+#lab-screen .lab-evo-badge {
+  top: 2px;
+  right: 2px;
+  font-size: 9px;
+  color: #0b0f14;
+  background: var(--ui-holy);
+}
 #lab-screen .lab-detail-panel {
-  max-width: 560px;
+  width: min(92%, 840px);
+  max-width: 840px;
   border: 1px solid rgba(246,229,170,0.2);
   background:
     linear-gradient(160deg, rgba(246,229,170,0.08), rgba(10,15,21,0.86) 38%),
     rgba(7,10,14,0.88);
   clip-path: var(--ui-cut);
   box-shadow: 0 24px 54px rgba(0,0,0,0.36);
+}
+@media (max-width: 760px) {
+  #lab-screen .lab-detail-grid { grid-template-columns: 1fr; }
+  #lab-screen .lab-preview-panel { min-height: 210px; }
+  #lab-screen .lab-preview-canvas { width: 100%; max-width: 210px; }
+  #lab-screen .lab-stat-upgrade-row { flex-wrap: wrap; }
+  #lab-screen .lab-stat-meter { min-width: 120px; }
+  #lab-screen .lab-stat-desc { flex: 1; }
 }
 
 #leaderboard-screen {
@@ -1602,7 +1824,7 @@ canvas { background: #070d13; }
     <p class="achieve-link" onclick="showBestiary()">📖 图 鉴</p>
     <p class="achieve-link" onclick="showLeaderboard()">🏅 排 行 榜</p>
     <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()">📅 每 日 挑 战</p>
-    <p class="achieve-link" onclick="showLabScreen()">🔬 机 装 研 究 室</p>
+    <p class="achieve-link" onclick="showLabScreen()">LAB / 机 装 研 究 室</p>
   </div>
   <div id="leaderboard-screen">
     <h1>🏅 排 行 榜</h1>
@@ -1611,14 +1833,14 @@ canvas { background: #070d13; }
     <button class="best-back-btn" onclick="hideLeaderboard()">返 回</button>
   </div>
   <div id="lab-screen">
-    <h1>🔬 机 装 研 究 室</h1>
-    <p class="subtitle lab-fragment-line" id="lab-fragments">💎 月光石: 0</p>
-    <p class="lab-route-line">选择机体 → 升级强化 → 确认出战</p>
+    <h1>机 装 研 究 室</h1>
+    <p class="subtitle lab-fragment-line" id="lab-fragments">MOONSTONE: 0</p>
+    <p class="lab-route-line">CHASSIS SELECT / PART CALIBRATION / EVOLUTION RITE</p>
     <div class="lab-tank-grid" id="lab-tank-grid"></div>
     <div class="ornament lab-ornament"></div>
     <div class="lab-detail-panel" id="lab-detail"></div>
     <div class="lab-actions">
-      <button class="lab-btn sortie-btn" id="lab-confirm-btn" onclick="confirmActiveTank(labSelectedTank)">✅ 确认出战</button>
+      <button class="lab-btn sortie-btn" id="lab-confirm-btn" onclick="confirmActiveTank(labSelectedTank)">SORTIE CONFIRM</button>
       <button class="best-back-btn lab-return-btn" onclick="hideLabScreen()">返 回</button>
     </div>
   </div>
@@ -3321,6 +3543,70 @@ function drawWeaponBarrel(ctx, x, y, w, h, fill, stroke, tipColor) {
   }
 }
 
+function drawTankEvolutionOverlay(ctx, evoLevel, tankType, accentColor) {
+  if (!evoLevel) return;
+  const t = Date.now() / 260;
+  const pulse = 0.55 + Math.sin(t) * 0.18;
+  const holy = evoLevel >= 2 ? '#f6e5aa' : '#8ce8ff';
+  const ember = accentColor || '#f49800';
+
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.strokeStyle = evoLevel >= 2 ? 'rgba(246,229,170,0.48)' : 'rgba(140,232,255,0.38)';
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.arc(0, 0, 24 + evoLevel * 3 + pulse * 2, -Math.PI * 0.88, Math.PI * 0.88);
+  ctx.stroke();
+
+  const plateFill = evoLevel >= 2 ? 'rgba(12,10,9,0.86)' : 'rgba(9,15,21,0.78)';
+  const plateStroke = evoLevel >= 2 ? 'rgba(246,229,170,0.72)' : 'rgba(140,232,255,0.52)';
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * 13, -16);
+    ctx.lineTo(side * (23 + evoLevel * 2), -10);
+    ctx.lineTo(side * (21 + evoLevel * 3), 10);
+    ctx.lineTo(side * 13, 16);
+    ctx.lineTo(side * (16 + evoLevel), 4);
+    ctx.lineTo(side * (16 + evoLevel), -4);
+    ctx.closePath();
+    ctx.fillStyle = plateFill;
+    ctx.fill();
+    ctx.strokeStyle = plateStroke;
+    ctx.stroke();
+  }
+
+  withGlow(ctx, holy, evoLevel >= 2 ? 13 : 8, () => {
+    ctx.strokeStyle = holy;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-7, -18);
+    ctx.lineTo(0, -25 - evoLevel * 2);
+    ctx.lineTo(7, -18);
+    ctx.moveTo(0, -25 - evoLevel * 2);
+    ctx.lineTo(0, -10);
+    ctx.stroke();
+  });
+
+  if (evoLevel >= 2) {
+    ctx.globalAlpha = 0.86;
+    withGlow(ctx, ember, 16, () => {
+      ctx.strokeStyle = ember;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-18, 18);
+      ctx.lineTo(-6, 26);
+      ctx.lineTo(0, 18);
+      ctx.lineTo(6, 26);
+      ctx.lineTo(18, 18);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, 33 + Math.sin(t * 1.3) * 1.8, Math.PI * 1.08, Math.PI * 1.92);
+      ctx.stroke();
+    });
+  }
+  ctx.restore();
+}
+
 function traceHexCell(ctx, radius, inset) {
   const cut = inset || 0;
   ctx.beginPath();
@@ -4112,6 +4398,7 @@ class PlayerTank extends Tank {
     ctx.translate(x, y);
     const body = color, turretC = turretColor;
     const t = Date.now() / 220;
+    const evoLevel = this._tankDef?.evoLevel || 0;
 
     switch(tankType) {
 
@@ -4257,6 +4544,7 @@ class PlayerTank extends Tank {
       ctx.restore();
     }
 
+    drawTankEvolutionOverlay(ctx, evoLevel, tankType, turretC);
     ctx.restore();
   }
   hit() {
@@ -5684,37 +5972,64 @@ let labSelectedTank = 'spread';
 
 const TANK_UNLOCK_CONDITIONS = {
   spread: { cost:0, desc:'初始机体' },
-  focus:  { cost:100, desc:'到达第5波 或 100💎' },
-  wide:   { cost:150, desc:'到达第8波 或 150💎' },
-  burst:  { cost:200, desc:'单局击杀5精英 或 200💎' },
-  sniper: { cost:250, desc:'击杀任意Boss 或 250💎' },
-  homing: { cost:300, desc:'完成每日挑战 或 300💎' },
+  focus:  { cost:100, desc:'到达第5波 或 100月光石' },
+  wide:   { cost:150, desc:'到达第8波 或 150月光石' },
+  burst:  { cost:200, desc:'单局击杀5精英 或 200月光石' },
+  sniper: { cost:250, desc:'击杀任意Boss 或 250月光石' },
+  homing: { cost:300, desc:'完成每日挑战 或 300月光石' },
+};
+
+const LAB_TANK_MARKS = {
+  spread: { code:'H-01', role:'散华制压', motto:'花瓣状弹幕被封存在黑铁装甲内。' },
+  focus:  { code:'L-02', role:'直线贯穿', motto:'把所有祈祷压缩成一束发烫的光。' },
+  wide:   { code:'F-03', role:'冰域封锁', motto:'霜层不是装甲，是延迟死亡的仪式。' },
+  burst:  { code:'B-04', role:'燃爆清场', motto:'火药与圣印共振，像末日里的钟声。' },
+  sniper: { code:'S-05', role:'远距裁决', motto:'它开火前会停顿，像在替目标写墓志铭。' },
+  homing: { code:'O-06', role:'命运追猎', motto:'导引线会绕过废墟，也绕不过命运。' },
+};
+
+const LAB_PART_CODES = {
+  bullets:'MUN',
+  spread:'ARC',
+  speed:'DRV',
+  core:'COR',
+  armor:'ARM',
+  dmg:'WAR',
+  firerate:'CLK',
+  railgun:'MAG',
+  mobility:'JET',
+  stability:'FCS',
+  freeze:'CRY',
+  hp:'PLT',
+  explosion:'BLZ',
+  special:'SIG',
+  tracking:'NAV',
 };
 
 const TANK_EVOLUTION = {
   spread: [
-    { name:'夢想散華', icon:'🌸', bonus:'扩散密度提升', cost:180, effect(t){ t.bulletCount += 1; t.spreadAngle *= 0.94; } },
-    { name:'結界弹阵', icon:'❖', bonus:'稳定穿刺阵列', cost:320, effect(t){ t.bulletCount += 1; t.pierceDamageBonus = (t.pierceDamageBonus || 0) + 1; } },
+    { name:'夢想散華', icon:'MSK', bonus:'扩散密度提升', cost:180, effect(t){ t.bulletCount += 1; t.spreadAngle *= 0.94; } },
+    { name:'結界弹阵', icon:'KAI', bonus:'稳定穿刺阵列', cost:320, effect(t){ t.bulletCount += 1; t.pierceDamageBonus = (t.pierceDamageBonus || 0) + 1; } },
   ],
   focus: [
-    { name:'極限火花', icon:'💫', bonus:'主炮输出强化', cost:180, effect(t){ t.bulletDamage += 1; t.bulletSpeed += 0.2; } },
-    { name:'星脉贯穿', icon:'✦', bonus:'电磁压缩束', cost:320, effect(t){ t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + 0.3; t.shootDelay = Math.max(14, t.shootDelay - 1); } },
+    { name:'極限火花', icon:'IGN', bonus:'主炮输出强化', cost:180, effect(t){ t.bulletDamage += 1; t.bulletSpeed += 0.2; } },
+    { name:'星脉贯穿', icon:'AST', bonus:'电磁压缩束', cost:320, effect(t){ t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + 0.3; t.shootDelay = Math.max(14, t.shootDelay - 1); } },
   ],
   wide: [
-    { name:'永恆凍土', icon:'❄️', bonus:'冰域滞留延长', cost:180, effect(t){ t.freezeDurationMul = (t.freezeDurationMul || 1) * 1.25; } },
-    { name:'霜华矩阵', icon:'✼', bonus:'广域压制稳定', cost:320, effect(t){ t.bulletCount += 1; t.spreadAngle *= 0.95; } },
+    { name:'永恆凍土', icon:'FRZ', bonus:'冰域滞留延长', cost:180, effect(t){ t.freezeDurationMul = (t.freezeDurationMul || 1) * 1.25; } },
+    { name:'霜华矩阵', icon:'RIM', bonus:'广域压制稳定', cost:320, effect(t){ t.bulletCount += 1; t.spreadAngle *= 0.95; } },
   ],
   burst: [
-    { name:'終焉爆碎', icon:'💥', bonus:'爆燃半径提升', cost:180, effect(t){ t.explosionRadiusBonus = (t.explosionRadiusBonus || 0) + 0.18; } },
-    { name:'灼界轰芯', icon:'✹', bonus:'连爆节奏优化', cost:320, effect(t){ t.bulletDamage += 1; t.shootDelay = Math.max(34, t.shootDelay - 3); } },
+    { name:'終焉爆碎', icon:'END', bonus:'爆燃半径提升', cost:180, effect(t){ t.explosionRadiusBonus = (t.explosionRadiusBonus || 0) + 0.18; } },
+    { name:'灼界轰芯', icon:'PYR', bonus:'连爆节奏优化', cost:320, effect(t){ t.bulletDamage += 1; t.shootDelay = Math.max(34, t.shootDelay - 3); } },
   ],
   sniper: [
-    { name:'神域狙擊', icon:'🎯', bonus:'狙击校准增强', cost:180, effect(t){ t.bulletDamage += 1; t.bulletSpeed += 0.35; } },
-    { name:'天穹锁定', icon:'⟡', bonus:'终端追猎弹道', cost:320, effect(t){ t.sniperSpecialHoming = true; t.specialInterval = Math.max(2, (t.specialInterval || 3)); } },
+    { name:'神域狙擊', icon:'JDG', bonus:'狙击校准增强', cost:180, effect(t){ t.bulletDamage += 1; t.bulletSpeed += 0.35; } },
+    { name:'天穹锁定', icon:'SKY', bonus:'终端追猎弹道', cost:320, effect(t){ t.sniperSpecialHoming = true; t.specialInterval = Math.max(2, (t.specialInterval || 3)); } },
   ],
   homing: [
-    { name:'命運導引', icon:'🔮', bonus:'导引回路强化', cost:180, effect(t){ t.baseHomingStrength = Math.max(t.baseHomingStrength || 0, 0.018); } },
-    { name:'星轨追猎', icon:'◉', bonus:'多目标锁定优化', cost:320, effect(t){ t.bulletCount += 1; t.baseHomingStrength = Math.max(t.baseHomingStrength || 0, 0.028); } },
+    { name:'命運導引', icon:'FAT', bonus:'导引回路强化', cost:180, effect(t){ t.baseHomingStrength = Math.max(t.baseHomingStrength || 0, 0.018); } },
+    { name:'星轨追猎', icon:'ORB', bonus:'多目标锁定优化', cost:320, effect(t){ t.bulletCount += 1; t.baseHomingStrength = Math.max(t.baseHomingStrength || 0, 0.028); } },
   ],
 };
 
@@ -5763,7 +6078,7 @@ const TANK_UPGRADE_DEFS = {
     { id:'armor', name:'导航外壳', icon:'▣', desc:'HP+1', max:3, costBase:24, effect(t){ t.hpBonus+=1; } },
   ],
 };
-const PROGRESSION_VERSION = 2;
+const PROGRESSION_VERSION = 3;
 const TANK_PROGRESS_KEY = 'tankbattle_progress_version';
 
 function loadProgression() {
@@ -5833,6 +6148,13 @@ function migrateProgressionIfNeeded() {
     });
     const legacyEvolved = evolvedTanks.has(k);
     if (legacyEvolved) setEvolutionLevel(k, 1);
+    const evoLevel = getEvolutionLevel(k);
+    if (version < 3 && evoLevel === 0) {
+      (TANK_UPGRADE_DEFS[k] || []).forEach(def => {
+        const cap = getCurrentPartCap(def, 0);
+        tankUpgrades[k][def.id] = Math.min(tankUpgrades[k][def.id] || 0, cap);
+      });
+    }
   });
   [...evolvedTanks].forEach(v => {
     if (!v.includes(':') && !tankTypes[v]) evolvedTanks.delete(v);
@@ -5878,12 +6200,55 @@ function getTankUpgradeCost(tank, statId) {
   const lvl = (tankUpgrades[tank] && tankUpgrades[tank][statId]) || 0;
   return Math.floor(def.costBase * Math.pow(1.32, lvl) + lvl * 8);
 }
+
+function getUpgradePartCode(def) {
+  return LAB_PART_CODES[def?.id] || String(def?.id || 'MOD').slice(0, 3).toUpperCase();
+}
+
+function getFirstEvolutionRequirement(def) {
+  return Math.max(1, Math.min(def.max, Math.ceil(def.max * 0.6)));
+}
+
+function getStageRequirementForPart(def, evoLevel) {
+  if (evoLevel <= 0) return getFirstEvolutionRequirement(def);
+  if (evoLevel === 1) return def.max;
+  return def.max;
+}
+
+function getCurrentPartCap(def, evoLevel) {
+  if (evoLevel <= 0) return getFirstEvolutionRequirement(def);
+  return def.max;
+}
+
+function getTankStageStatus(tank) {
+  const defs = TANK_UPGRADE_DEFS[tank] || [];
+  const ug = tankUpgrades[tank] || {};
+  const evoLevel = getEvolutionLevel(tank);
+  const nextLevel = Math.min(evoLevel + 1, (TANK_EVOLUTION[tank] || []).length);
+  const partStatus = defs.map(def => {
+    const lvl = ug[def.id] || 0;
+    const gate = getStageRequirementForPart(def, evoLevel);
+    const cap = getCurrentPartCap(def, evoLevel);
+    return { def, lvl, gate, cap, ready: lvl >= gate, capped: lvl >= cap, fullyCapped: lvl >= def.max };
+  });
+  const readyParts = partStatus.filter(p => p.ready).length;
+  return {
+    evoLevel,
+    nextLevel,
+    partStatus,
+    readyParts,
+    totalParts: defs.length,
+    ready: defs.length > 0 && readyParts === defs.length,
+  };
+}
+
 function purchaseTankUpgrade(tank, statId) {
   if (!unlockedTanks.has(tank)) return;
   const def = (TANK_UPGRADE_DEFS[tank] || []).find(d => d.id === statId);
   if (!def) return;
   const lvl = (tankUpgrades[tank] && tankUpgrades[tank][statId]) || 0;
-  if (lvl >= def.max) return;
+  const stageCap = getCurrentPartCap(def, getEvolutionLevel(tank));
+  if (lvl >= stageCap) return;
   const cost = getTankUpgradeCost(tank, statId);
   if (coreFragments < cost) {
     // Flash the fragment display
@@ -5904,12 +6269,7 @@ function canEvolve(tank) {
   const evoLevel = getEvolutionLevel(tank);
   const evoEntries = TANK_EVOLUTION[tank] || [];
   if (evoLevel >= evoEntries.length) return false;
-  const defs = TANK_UPGRADE_DEFS[tank] || [];
-  if (defs.length === 0) return false;
-  const totalCurrent = defs.reduce((s, d) => s + ((tankUpgrades[tank] && tankUpgrades[tank][d.id]) || 0), 0);
-  const totalMax = defs.reduce((s, d) => s + d.max, 0);
-  if (evoLevel === 0) return totalCurrent >= Math.ceil(totalMax * 0.55);
-  return totalCurrent >= totalMax;
+  return getTankStageStatus(tank).ready;
 }
 function tryEvolveTank(tank) {
   if (!canEvolve(tank)) return false;
@@ -5939,6 +6299,9 @@ function getPlayerTankDefinition(tankType) {
     railgunSpeedBonus: 0,
     pierceDamageBonus: 0,
   };
+  const evoLevel = getEvolutionLevel(tankType);
+  t.evoLevel = evoLevel;
+  t.labMark = LAB_TANK_MARKS[tankType] || LAB_TANK_MARKS.spread;
   const defs = TANK_UPGRADE_DEFS[tankType] || [];
   defs.forEach(d => {
     const lvl = ug[d.id] || 0;
@@ -5947,7 +6310,6 @@ function getPlayerTankDefinition(tankType) {
     }
   });
   const evoEntries = TANK_EVOLUTION[tankType] || [];
-  const evoLevel = getEvolutionLevel(tankType);
   for (let i = 0; i < evoLevel; i++) {
     const evo = evoEntries[i];
     if (evo && evo.effect) evo.effect(t);
@@ -5966,32 +6328,100 @@ function applyTankUpgrades(tankType) {
   if (player.hp > player.maxHp) player.hp = player.maxHp;
 }
 
+function buildLabProgressCells(status) {
+  return status.partStatus.map(p => {
+    const cls = p.ready ? 'gate' : (p.lvl > 0 ? 'filled' : '');
+    return `<span class="lab-progress-cell ${cls}" title="${escapeHtml(p.def.name)} ${p.lvl}/${p.def.max}"></span>`;
+  }).join('');
+}
+
+function renderLabPreviewCanvas() {
+  const canvas = document.getElementById('lab-preview-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const tankType = canvas.dataset.tank || labSelectedTank || currentTankType || 'spread';
+  const evoLevel = parseInt(canvas.dataset.evo || String(getEvolutionLevel(tankType)), 10) || 0;
+  const base = tankTypes[tankType] || tankTypes.spread;
+  const mark = LAB_TANK_MARKS[tankType] || LAB_TANK_MARKS.spread;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  bg.addColorStop(0, 'rgba(8,12,16,0.98)');
+  bg.addColorStop(0.55, 'rgba(17,16,14,0.94)');
+  bg.addColorStop(1, 'rgba(6,9,13,0.98)');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.strokeStyle = 'rgba(246,229,170,0.08)';
+  ctx.lineWidth = 1;
+  for (let x = 18; x < canvas.width; x += 18) {
+    ctx.beginPath(); ctx.moveTo(x, 10); ctx.lineTo(x, canvas.height - 12); ctx.stroke();
+  }
+  for (let y = 18; y < canvas.height; y += 18) {
+    ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(canvas.width - 10, y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = evoLevel >= 2 ? 'rgba(246,229,170,0.42)' : 'rgba(140,232,255,0.25)';
+  ctx.beginPath();
+  ctx.arc(canvas.width / 2, canvas.height / 2 + 8, 54 + evoLevel * 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(canvas.width / 2 - 70, canvas.height / 2 + 44);
+  ctx.lineTo(canvas.width / 2 + 70, canvas.height / 2 + 44);
+  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2 + 13);
+  ctx.scale(2.05, 2.05);
+  const previewTank = {
+    x: 0,
+    y: 0,
+    color: base.color,
+    turretColor: base.turret,
+    turretAngle: -Math.PI / 10,
+    tankType,
+    _tankDef: { evoLevel },
+    drawTankModel: PlayerTank.prototype.drawTankModel,
+  };
+  previewTank.drawTankModel(ctx);
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(246,229,170,0.82)';
+  ctx.font = "700 11px 'Courier New','Microsoft YaHei',monospace";
+  ctx.textAlign = 'left';
+  ctx.fillText(mark.code + ' / ' + (evoLevel ? 'EVOLVED-' + evoLevel : 'BASE'), 14, 20);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(140,232,255,0.68)';
+  ctx.fillText(mark.role, canvas.width - 14, canvas.height - 16);
+  ctx.restore();
+}
+
 // Tank Lab UI (replaces old upgrade screen)
 function renderLabUI() {
   const grid = document.getElementById('lab-tank-grid');
   const detail = document.getElementById('lab-detail');
   if (!grid) return;
   const tankKeys = Object.keys(tankTypes);
-  const icons = {spread:'⬣',focus:'▸',wide:'◫',burst:'✹',sniper:'⟐',homing:'◉'};
   const selected = labSelectedTank;
   grid.innerHTML = tankKeys.map(k => {
     const unlocked = unlockedTanks.has(k);
-    const defs = TANK_UPGRADE_DEFS[k] || [];
-    const maxUpg = defs.reduce((s,d) => s + d.max, 0);
-    const totalUpg = defs.reduce((s,d) => s + ((tankUpgrades[k] && tankUpgrades[k][d.id]) || 0), 0);
+    const status = getTankStageStatus(k);
     const evoLevel = getEvolutionLevel(k);
     const evoEntries = TANK_EVOLUTION[k] || [];
     const evolved = evoLevel > 0;
-    const evoName = evolved ? evoEntries[evoLevel - 1].name : '';
     const isSelected = (selected === k);
     const cond = TANK_UNLOCK_CONDITIONS[k];
-    const label = unlocked ? (evolved ? `✦${evoName}` : tankTypes[k].name) : (cond.cost+'💎');
+    const mark = LAB_TANK_MARKS[k] || LAB_TANK_MARKS.spread;
+    const cardCode = unlocked ? (evolved ? evoEntries[evoLevel - 1].icon : mark.code) : 'LOCK';
+    const lockedLabel = cond && cond.cost > 0 ? `COST ${cond.cost}` : 'SEALED';
     return `<div class="lab-tank-card ${unlocked?'':'locked'} ${isSelected?'selected':''} ${evolved?'evolved':''}" onclick="${unlocked?'selectLabTank(\''+k+'\')':'tryUnlockFromLab(\''+k+'\')'}">
-      <span class="lab-tank-icon">${unlocked ? (evolved ? evoEntries[evoLevel - 1].icon : icons[k]) : '🔒'}</span>
+      <span class="lab-tank-icon">${escapeHtml(cardCode)}</span>
       <div class="lab-tank-name">${unlocked ? tankTypes[k].name : '???'}</div>
-      <div class="lab-tank-dots">${unlocked ? '★'.repeat(totalUpg)+'☆'.repeat(Math.max(0, maxUpg-totalUpg)) : label}</div>
+      <div class="lab-tank-dots">${unlocked ? buildLabProgressCells(status) : `<span class="lab-lock-cost">${escapeHtml(lockedLabel)}</span>`}</div>
       ${evolved ? `<div class="lab-evo-badge">E${evoLevel}</div>` : ''}
-      ${isSelected ? '<div class="lab-current-flag">▼ 当前</div>' : ''}
+      ${isSelected ? '<div class="lab-current-flag">ACTIVE VIEW</div>' : ''}
     </div>`;
   }).join('');
   // Detail panel
@@ -6006,64 +6436,93 @@ function renderLabUI() {
   const evoDef = evolved ? evoEntries[evoLevel - 1] : null;
   const nextEvo = evoEntries[evoLevel] || null;
   const fragDisplay = document.getElementById('lab-fragments');
-  if (fragDisplay) fragDisplay.textContent = '💎 月光石: ' + coreFragments;
+  if (fragDisplay) fragDisplay.textContent = 'MOONSTONE: ' + coreFragments;
 
   if (!unlocked) {
     const cond = TANK_UNLOCK_CONDITIONS[k];
+    const mark = LAB_TANK_MARKS[k] || LAB_TANK_MARKS.spread;
     detail.innerHTML = `<div class="lab-locked-panel">
-      <div class="lab-locked-title">🔒 ${tankTypes[k].name}</div>
-      <div class="lab-locked-desc">${cond.desc}</div>
-      ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">💎 解锁 (${cond.cost})</button>` : ''}</div>`;
+      <div class="lab-locked-title">LOCKED / ${escapeHtml(mark.code)}</div>
+      <canvas class="lab-preview-canvas" id="lab-preview-canvas" width="240" height="170" data-tank="${escapeHtml(k)}" data-evo="0"></canvas>
+      <div class="lab-locked-desc">${escapeHtml(tankTypes[k].name)} · ${escapeHtml(mark.role)}<br>${escapeHtml(cond.desc)}</div>
+      ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">UNSEAL / ${cond.cost} MS</button>` : ''}</div>`;
   } else {
+    const status = getTankStageStatus(k);
     const defs = TANK_UPGRADE_DEFS[k] || [];
     const totalCurrent = defs.reduce((s,d) => s + (ug[d.id] || 0), 0);
     const totalMax = defs.reduce((s,d) => s + d.max, 0);
     const stageReady = canEvolve(k);
+    const mark = LAB_TANK_MARKS[k] || LAB_TANK_MARKS.spread;
+    const stageText = nextEvo
+      ? (evoLevel === 0 ? '一阶改装要求：5个部件全部达到中段校准' : '二阶进化要求：5个部件全部满级')
+      : '二阶进化已完成：机体进入终末稳定态';
+    const stageHTML = [0,1,2].map(stage => {
+      const cls = stage < evoLevel ? 'done' : (stage === evoLevel ? 'active' : '');
+      const label = stage === 0 ? 'E0 原型' : (stage === 1 ? 'E1 改装' : 'E2 终式');
+      const sub = stage === 0 ? '部件校准' : (stage === 1 ? '重构装甲' : '圣痕核心');
+      return `<div class="lab-stage-chip ${cls}">${label}<span>${sub}</span></div>`;
+    }).join('');
     let evoHTML = '';
     if (evolved) {
-      evoHTML += `<div class="lab-evo-current">当前阶段 E${evoLevel}: ${evoDef.icon} ${evoDef.name} · ${evoDef.bonus}</div>`;
+      evoHTML += `<div class="lab-evo-current">CURRENT E${evoLevel}: ${escapeHtml(evoDef.icon)} / ${escapeHtml(evoDef.name)} · ${escapeHtml(evoDef.bonus)}</div>`;
     }
     if (nextEvo) {
       evoHTML += `<div class="lab-evo-next">
-        <button class="lab-btn lab-evo-btn ${stageReady ? '' : 'locked'}" onclick="tryEvolveTank('${k}');renderLabUI();">
-          ${stageReady ? '✨' : '◌'} 进化 E${evoLevel + 1} → ${nextEvo.name} (${nextEvo.cost}💎)
+        <button class="lab-btn lab-evo-btn ${stageReady ? 'ready' : 'locked'}" onclick="tryEvolveTank('${k}');renderLabUI();">
+          ${stageReady ? 'AUTHORIZE' : 'SEALED'} / E${evoLevel + 1} ${escapeHtml(nextEvo.name)} / ${nextEvo.cost} MS
         </button>
       </div>`;
     }
     let statsHTML = '';
-    for (const d of defs) {
-      const lvl = (ug[d.id]||0);
-      const capped = lvl >= d.max;
+    for (const part of status.partStatus) {
+      const d = part.def;
+      const lvl = part.lvl;
+      const capped = part.capped;
       const cost = capped ? 999 : getTankUpgradeCost(k, d.id);
       const canAfford = coreFragments >= cost;
-      const costText = capped ? 'MAX' : (cost + '💎');
+      const costText = capped ? (part.fullyCapped ? 'MAX' : 'GATE') : (cost + ' MS');
       const barW = Math.floor((lvl / d.max) * 100);
-      statsHTML += `<div class="lab-stat-upgrade-row">
-        <span class="lab-stat-icon">${d.icon}</span>
-        <span class="lab-stat-name">${d.name}</span>
+      const desc = part.fullyCapped ? 'MAX' : `${lvl}/${d.max} · gate ${part.gate}`;
+      statsHTML += `<div class="lab-stat-upgrade-row ${part.ready ? '' : 'gate-pending'}">
+        <span class="lab-stat-icon">${escapeHtml(getUpgradePartCode(d))}</span>
+        <span class="lab-stat-name">${escapeHtml(d.name)}</span>
         <span class="lab-stat-meter">
-          <span class="lab-stat-fill ${capped ? 'capped' : ''}" style="--fill:${barW}%;"></span>
+          <span class="lab-stat-fill ${capped ? 'capped' : (part.ready ? 'gated' : '')}" style="--fill:${barW}%;"></span>
         </span>
-        <span class="lab-stat-desc ${capped ? 'capped' : ''}">${capped?'MAX':'→ '+d.desc}</span>
+        <span class="lab-stat-desc ${capped ? 'capped' : ''}">${escapeHtml(desc)}</span>
         <button onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}
           class="lab-stat-buy ${canAfford ? '' : 'no-funds'}">${costText}</button>
       </div>`;
     }
     detail.innerHTML = `
-      <div class="lab-detail-title">${evolved ? evoDef.icon+' '+evoDef.name : tankTypes[k].name} ${(selected===k && selected===currentTankType) ? '✅ 出战中' : ''}</div>
-      ${evoHTML}
-      <div class="lab-stats-wrap">${statsHTML}</div>
-      <div class="lab-progress-note">💎 ${coreFragments} · ${defs.length}项升级 · 进度 ${totalCurrent}/${totalMax} · ${nextEvo ? (stageReady ? '可进行下一阶段进化' : '继续强化以解锁进化') : '已完成全部进化'}</div>`;
+      <div class="lab-detail-grid">
+        <div class="lab-preview-panel">
+          <div class="lab-preview-header"><span>${escapeHtml(mark.code)}</span><strong>E${evoLevel}</strong></div>
+          <canvas class="lab-preview-canvas" id="lab-preview-canvas" width="240" height="170" data-tank="${escapeHtml(k)}" data-evo="${evoLevel}"></canvas>
+          <div class="lab-preview-footer"><span>${escapeHtml(mark.role)}</span><strong>${escapeHtml(evolved ? evoDef.icon : 'BASE')}</strong></div>
+          <div class="lab-preview-lore">${escapeHtml(mark.motto)}</div>
+        </div>
+        <div class="lab-data-panel">
+          <div class="lab-detail-title">${escapeHtml(evolved ? evoDef.name : tankTypes[k].name)} ${(selected===k && selected===currentTankType) ? '/ SORTIE' : ''}</div>
+          <div class="lab-detail-subtitle">${escapeHtml(tankTypes[k].desc)} · ${escapeHtml(stageText)}</div>
+          <div class="lab-stage-row">${stageHTML}</div>
+          <div class="lab-gate-note">阶段校准 ${status.readyParts}/${status.totalParts} · ${nextEvo ? (stageReady ? '进化许可已解锁，消耗月光石进行改装仪式。' : '每个部件都必须达到本阶段门槛，不能再用单项堆叠跳过改装。') : '所有进化完成，剩余升级仅作为终式维护记录。'}</div>
+          ${evoHTML}
+          <div class="lab-stats-wrap">${statsHTML}</div>
+          <div class="lab-progress-note">MS ${coreFragments} · ${defs.length} PARTS · TOTAL ${totalCurrent}/${totalMax}</div>
+        </div>
+      </div>`;
   }
+  renderLabPreviewCanvas();
   // Update fixed confirm button visibility
   const confirmBtn = document.getElementById('lab-confirm-btn');
   if (confirmBtn) {
     const sel = labSelectedTank;
     confirmBtn.style.display = (sel !== currentTankType && unlockedTanks.has(sel)) ? 'inline-block' : 'none';
-    confirmBtn.textContent = '✅ 出战: ' + (tankTypes[sel]?.name || '??');
+    confirmBtn.textContent = 'SORTIE / ' + (tankTypes[sel]?.name || '??');
   }
   } catch(e) {
-    if (detail) detail.innerHTML = '<div class="lab-error-panel">❌ ERROR: ' + e.message + '<br><small>' + e.stack.split('\\n')[0] + '</small></div>';
+    if (detail) detail.innerHTML = '<div class="lab-error-panel">ERROR: ' + escapeHtml(e.message) + '<br><small>' + escapeHtml(e.stack.split('\\n')[0]) + '</small></div>';
   }
 }
 function selectLabTank(tank) {
@@ -6071,7 +6530,9 @@ function selectLabTank(tank) {
   renderLabUI();
 }
 function tryUnlockFromLab(tank) {
-  if (tryUnlockTank(tank)) renderLabUI();
+  labSelectedTank = tank;
+  tryUnlockTank(tank);
+  renderLabUI();
 }
 function confirmActiveTank(tank) {
   if (!unlockedTanks.has(tank)) return;
