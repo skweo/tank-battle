@@ -895,7 +895,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.5 add three player tank chassis */
+/* v3.7.6 bullet clash power resolution */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -9042,13 +9042,24 @@ function checkBulletBulletCollisions() {
       const dy = p.y - e.y;
       const r = (p.radius || 3) + (e.radius || 3) + 2;
       if (dx * dx + dy * dy <= r * r) {
-        p.alive = false;
-        e.alive = false;
+        const pPower = Math.max(1, Math.ceil(p.damage || 1));
+        const ePower = Math.max(1, Math.ceil(e.damage || 1));
+        if (pPower > ePower) {
+          p.damage = pPower - ePower;
+          e.alive = false;
+        } else if (ePower > pPower) {
+          e.damage = ePower - pPower;
+          p.alive = false;
+        } else {
+          p.alive = false;
+          e.alive = false;
+        }
         if (sparks < 16) {
-          spawnExplosion((p.x + e.x) / 2, (p.y + e.y) / 2, 4, '#8ce8ff', '#f6e5aa');
+          const strongColor = pPower === ePower ? '#f6e5aa' : (pPower > ePower ? p.color : e.color);
+          spawnExplosion((p.x + e.x) / 2, (p.y + e.y) / 2, pPower === ePower ? 4 : 5, strongColor, '#f6e5aa');
           sparks++;
         }
-        break;
+        if (!p.alive) break;
       }
     }
   }
