@@ -795,7 +795,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.7.0 faction war, tactical reload and seventh chassis */
+/* v3.7.1 campaign rotation, archive bestiary and run-level tactics */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -1317,7 +1317,27 @@ canvas { background: #070d13; }
   border-color: rgba(140,232,255,0.38);
   background: rgba(140,232,255,0.08);
 }
-#bestiary-screen .best-grid { max-width: 620px; border-color: rgba(140,232,255,0.1); }
+#bestiary-screen .best-grid {
+  max-width: 860px;
+  border-color: rgba(246,229,170,0.16);
+  padding: 14px 16px;
+  background:
+    linear-gradient(90deg, rgba(246,229,170,0.055), transparent 16%, transparent 84%, rgba(140,232,255,0.045)),
+    linear-gradient(180deg, rgba(15,18,20,0.88), rgba(5,9,14,0.82));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025), 0 22px 70px rgba(0,0,0,0.36);
+  position: relative;
+}
+#bestiary-screen .best-grid::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(246,229,170,0.18), transparent);
+  box-shadow: 0 0 18px rgba(246,229,170,0.1);
+  pointer-events: none;
+}
 #bestiary-screen .best-row {
   min-height: 64px;
   border-color: rgba(140,232,255,0.1);
@@ -1328,6 +1348,7 @@ canvas { background: #070d13; }
 #bestiary-screen .best-row:hover {
   border-color: var(--threat, #f49800);
   transform: translateX(3px);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--threat, #f49800) 22%, transparent);
 }
 #bestiary-screen .best-row.locked {
   filter: saturate(0.55);
@@ -1793,6 +1814,29 @@ canvas { background: #070d13; }
   text-shadow: 0 0 28px rgba(255,93,82,0.38);
 }
 #game-over p { color: var(--ui-ivory); }
+#game-over.victory {
+  background:
+    linear-gradient(180deg, rgba(244,152,0,0.2), rgba(8,10,14,0.94)),
+    rgba(6,8,12,0.92);
+  border-color: rgba(246,229,170,0.5);
+  box-shadow: 0 0 70px rgba(244,152,0,0.2), 0 30px 70px rgba(0,0,0,0.62);
+}
+#game-over.victory h1 {
+  color: var(--ui-holy);
+  text-shadow: 0 0 32px rgba(246,229,170,0.42);
+}
+#game-over .ending-story {
+  display: none;
+  max-width: 560px;
+  padding: 12px 16px;
+  color: #b8c4d2;
+  font-size: 13px;
+  line-height: 1.7;
+  letter-spacing: 1px;
+  text-align: left;
+  border-left: 2px solid rgba(246,229,170,0.46);
+  background: rgba(246,229,170,0.055);
+}
 #wave-notify {
   color: var(--ui-holy);
   font-weight: 300;
@@ -1851,15 +1895,17 @@ canvas { background: #070d13; }
 <div id="game-container">
   <canvas id="game"></canvas>
   <div id="ui">
-    <span>💥 <span id="score">0</span></span>
-    <span>❤️ <span id="lives">3</span></span>
-    <span>🏆 <span id="level">1</span></span>
+    <span>SC <span id="score">0</span></span>
+    <span>HP <span id="lives">3</span></span>
+    <span>LV <span id="level">1</span></span>
+    <span>XP <span id="xp">0/100</span></span>
     <span>AMMO <span id="ammo">--</span></span>
   </div>
   <div id="daily-target" style="display:none;"></div>
   <div id="game-over">
-    <h1>游戏结束</h1>
+    <h1 id="final-title">游戏结束</h1>
     <p>最终得分: <span id="final-score">0</span></p>
+    <p class="ending-story" id="ending-story"></p>
     <div class="game-over-actions">
       <button onclick="restartGame()">返回主页</button>
       <button class="retry-btn" onclick="quickRestart()">再来一局</button>
@@ -1885,18 +1931,18 @@ canvas { background: #070d13; }
     <h1>幻 月 战 记</h1>
     <p class="subtitle">G E N G E T S U &nbsp; S E N K I</p>
     <div class="ornament"></div>
-    <p class="currency-display" id="currency-display">💎 0</p>
+    <p class="currency-display" id="currency-display">MOONSTONE 0</p>
     <div class="difficulty-buttons" id="difficulty-buttons"></div>
     <p class="diff-info" id="diff-info"></p>
     <div class="ornament" style="width:120px;"></div>
-    <p class="achieve-link" onclick="showAchievements()">🏆 成 就</p>
-    <p class="achieve-link" onclick="showBestiary()">📖 图 鉴</p>
-    <p class="achieve-link" onclick="showLeaderboard()">🏅 排 行 榜</p>
-    <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()">📅 每 日 挑 战</p>
+    <p class="achieve-link" onclick="showAchievements()"><span class="menu-code">ACH</span> 成 就</p>
+    <p class="achieve-link" onclick="showBestiary()"><span class="menu-code">ARC</span> 图 鉴</p>
+    <p class="achieve-link" onclick="showLeaderboard()"><span class="menu-code">RANK</span> 排 行 榜</p>
+    <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()"><span class="menu-code">DAILY</span> 每 日 挑 战</p>
     <p class="achieve-link" onclick="showLabScreen()">LAB / 机 装 研 究 室</p>
   </div>
   <div id="leaderboard-screen">
-    <h1>🏅 排 行 榜</h1>
+    <h1>排 行 榜</h1>
     <div class="leader-tabs" id="leader-tabs"></div>
     <div class="leader-grid" id="leader-grid"></div>
     <button class="best-back-btn" onclick="hideLeaderboard()">返 回</button>
@@ -1962,17 +2008,18 @@ canvas { background: #070d13; }
     <button class="tank-back-btn" onclick="hideTankSelect()">返回</button>
   </div>
   <div id="achievements-screen">
-    <h1>🏆 成 就</h1>
+    <h1>成 就</h1>
     <div class="achieve-grid" id="achieve-grid"></div>
     <button class="ach-back-btn" onclick="hideAchievements()">返回</button>
   </div>
   <div id="bestiary-screen">
-    <h1>📖 图 鉴</h1>
+    <h1>灰 域 史 书</h1>
     <div class="best-tabs">
-      <button class="best-tab active" id="tab-powerups" onclick="switchBestiaryTab('powerups')">道具</button>
-      <button class="best-tab" id="tab-elites" onclick="switchBestiaryTab('elites')">精英敌人</button>
-      <button class="best-tab" id="tab-bosses" onclick="switchBestiaryTab('bosses')">Boss</button>
-      <button class="best-tab" id="tab-fusions" onclick="switchBestiaryTab('fusions')">融合</button>
+      <button class="best-tab active" id="tab-items-basic" onclick="switchBestiaryTab('items_basic')">道具 / 基础</button>
+      <button class="best-tab" id="tab-items-fusion" onclick="switchBestiaryTab('items_fusion')">道具 / 融合</button>
+      <button class="best-tab" id="tab-enemies-normal" onclick="switchBestiaryTab('enemies_normal')">敌人 / 普通</button>
+      <button class="best-tab" id="tab-enemies-elite" onclick="switchBestiaryTab('enemies_elite')">敌人 / 精英</button>
+      <button class="best-tab" id="tab-enemies-boss" onclick="switchBestiaryTab('enemies_boss')">敌人 / 首领</button>
     </div>
     <div class="best-grid" id="bestiary-grid"></div>
     <button class="best-back-btn" onclick="hideBestiary()">返回</button>
@@ -1988,8 +2035,8 @@ canvas { background: #070d13; }
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const W = 1180;
-const H = 780;
+const W = 1480;
+const H = 960;
 canvas.width = W;
 canvas.height = H;
 
@@ -2010,6 +2057,12 @@ let waveNotificationTimer = 0;
 let comboCount = 0;
 let comboTimer = 0;
 const COMBO_TIMEOUT = 120; // 2 seconds at 60fps
+let runXp = 0;
+let xpToNext = 100;
+let modifierChoiceMode = 'level';
+let runBossesSeen = new Set();
+let lastBossName = null;
+let difficultyCleared = false;
 
 // --- Screen Shake ---
 let shakeIntensity = 0;
@@ -2353,10 +2406,10 @@ function renderDailyTarget() {
     targetEl.style.display = 'none';
     return;
   }
-  const rewardText = dailyCompletedToday ? '已领取' : (dailyTarget.reward + '💎');
+  const rewardText = dailyCompletedToday ? '已领取' : (dailyTarget.reward + ' MS');
   const statusText = dailyTargetAchieved ? ' · 已达成' : '';
   const bestText = dailyBestScore > 0 ? (' · 最高分 ' + dailyBestScore) : '';
-  targetEl.textContent = '🎯 今日目标: ' + dailyTarget.desc + ' (奖励' + rewardText + ')' + statusText + bestText;
+  targetEl.textContent = 'DAILY 今日目标: ' + dailyTarget.desc + ' (奖励 ' + rewardText + ')' + statusText + bestText;
   targetEl.style.display = 'block';
 }
 
@@ -2364,8 +2417,8 @@ function getDailyTarget(seed) {
   const targets = [
     { desc:'单局得分达到3000', check:()=>score>=3000, reward:60 },
     { desc:'单局得分达到5000', check:()=>score>=5000, reward:80 },
-    { desc:'到达第5波', check:()=>level>=5, reward:50 },
-    { desc:'到达第8波', check:()=>level>=8, reward:80 },
+    { desc:'到达第5波', check:()=>wave>=5, reward:50 },
+    { desc:'到达第8波', check:()=>wave>=8, reward:80 },
     { desc:'击杀任意Boss', check:()=>bossRef&&!bossRef.alive, reward:100 },
     { desc:'击杀5个精英敌人', check:()=>sessionEliteKills>=5, reward:70 },
     { desc:'收集15个道具', check:()=>sessionPowerUpsCollected>=15, reward:60 },
@@ -2378,7 +2431,7 @@ function checkDailyTarget() {
   if (dailyTarget.check()) {
     dailyTargetAchieved = true;
     const toast = document.getElementById('achieve-toast');
-    toast.querySelector('.achieve-icon').textContent = '🎯';
+    toast.querySelector('.achieve-icon').textContent = 'DAY';
     toast.querySelector('.achieve-name').textContent = '每日目标达成!';
     if (!dailyCompletedToday) {
       coreFragments += dailyTarget.reward;
@@ -2431,6 +2484,11 @@ let activeModifiers = [];
 let playerBulletDmgMul = 1, playerSpeedMul = 1, playerShootDelayMul = 1;
 let playerReloadMul = 1, powerUpDropMul = 1, bulletSpeedMul = 1, comboBonusMul = 1;
 let eliteDropMul = 0, explosionRadiusMul = 1;
+const MODIFIER_STACK_LIMITS = { extra_life: 2, firerate: 4, dmg_up: 5, hp_up: 5, big_explosion: 4 };
+
+function getModifierStackCount(id) {
+  return activeModifiers.filter(m => m.id === id).length;
+}
 
 function pickWeightedModifier(pool) {
   const total = pool.reduce((sum, m) => sum + (m.weight || 10), 0);
@@ -2444,8 +2502,8 @@ function pickWeightedModifier(pool) {
 
 function getModifierChoices() {
   const choices = [];
-  let available = [...MODIFIER_DEFS].filter(m => !activeModifiers.find(a => a.id === m.id));
-  if (activeModifiers.length < 2) {
+  let available = [...MODIFIER_DEFS].filter(m => getModifierStackCount(m.id) < (MODIFIER_STACK_LIMITS[m.id] || 5));
+  if (level < 3) {
     available = available.filter(m => (m.rarity || 'standard') !== 'mythic');
   }
   const standardChoices = available
@@ -2462,10 +2520,14 @@ function getModifierChoices() {
   return choices;
 }
 
-function showModifierChoice() {
+function showModifierChoice(mode = 'level') {
+  modifierChoiceMode = mode;
   const choices = getModifierChoices();
+  if (choices.length === 0) return;
   const container = document.getElementById('modifier-screen');
   const grid = document.getElementById('modifier-choices');
+  const title = container.querySelector('h2');
+  if (title) title.textContent = mode === 'level' ? '局 内 升 级 / 选 择 改 造' : '选 择 改 造 器';
   grid.innerHTML = choices.map(m =>
     `<div class="mod-card" data-rarity="${escapeHtml((m.rarity || 'standard').toUpperCase())}" style="--mod-accent:${escapeHtml(m.color || '#8ce8ff')};--mod-rgb:${escapeHtml(m.rgb || '140,232,255')}" onclick="pickModifier('${m.id}')">
       <span class="mod-icon">${m.icon}</span>
@@ -2486,7 +2548,7 @@ function pickModifier(id) {
   document.getElementById('modifier-screen').style.display = 'none';
   gameRunning = true;
   isPaused = false;
-  startNextWave();
+  if (modifierChoiceMode === 'wave') startNextWave();
   const toast = document.getElementById('achieve-toast');
   toast.querySelector('.achieve-icon').textContent = def.icon;
   toast.querySelector('.achieve-name').textContent = '改造器: ' + def.name;
@@ -2528,11 +2590,11 @@ const difficultySettings = {
 };
 const DIFFICULTY_ORDER = ['easy','normal','hard','extreme','nightmare'];
 const DIFFICULTY_TUNING = {
-  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 0, playerHp: 11, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 0.76 },
-  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 1, playerHp: 8,  enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 0.96 },
-  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 3, playerHp: 6,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 1.15 },
-  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 4, playerHp: 5,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 1.34 },
-  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 6, playerHp: 4,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 1.55 },
+  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 0, playerHp: 11, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 0.76, unlockScore: 0,     clearWave: 20 },
+  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 1, playerHp: 8,  enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 0.96, unlockScore: 2800,  clearWave: 24 },
+  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 3, playerHp: 6,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 1.15, unlockScore: 7200,  clearWave: 28 },
+  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 4, playerHp: 5,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 1.34, unlockScore: 12800, clearWave: 32 },
+  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 6, playerHp: 4,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 1.55, unlockScore: 20500, clearWave: 36 },
 };
 Object.keys(DIFFICULTY_TUNING).forEach(key => Object.assign(difficultySettings[key], DIFFICULTY_TUNING[key]));
 
@@ -2625,7 +2687,7 @@ function renderDifficultyButtons() {
     if (unlocked) {
       return `<button class="diff-btn ${cls}" onclick="startGame('${key}')">${diff.label}</button>`;
     } else {
-      return `<button class="diff-btn ${cls} locked" disabled>🔒 ${diff.label}<br><span class="lock-hint">${diff.label}模式获得${diff.unlockScore}分解锁</span></button>`;
+      return `<button class="diff-btn ${cls} locked" disabled>LOCK ${diff.label}<br><span class="lock-hint">${diff.label}模式获得${diff.unlockScore}分解锁</span></button>`;
     }
   }).join('');
   // Update info text
@@ -2634,12 +2696,12 @@ function renderDifficultyButtons() {
     const d = difficultySettings[key];
     const unlocked = unlockedDifficulties.has(key);
     return unlocked
-      ? `${d.label}: ${d.lives}条命 · 敌HP+${d.enemyHpBonus} · 速度×${d.enemySpeedMul}`
-      : `<span class="locked-info">${d.label}: 🔒 需分数${d.unlockScore}解锁</span>`;
+      ? `${d.label}: ${d.lives}条命 · 通关第${d.clearWave}波 · 敌HP+${d.enemyHpBonus} · 速度×${d.enemySpeedMul}`
+      : `<span class="locked-info">${d.label}: LOCK · 需分数${d.unlockScore}解锁</span>`;
   }).join('<br>');
   // Update currency + active tank
   const curEl = document.getElementById('currency-display');
-  if (curEl) curEl.textContent = '💎 ' + coreFragments + '  |  🚀 ' + (tankTypes[currentTankType]?.name || '??');
+  if (curEl) curEl.textContent = 'MOONSTONE ' + coreFragments + '  |  CHASSIS ' + (tankTypes[currentTankType]?.name || '??');
 }
 
 function showTankSelect(difficulty) {
@@ -2685,56 +2747,56 @@ function hideTankSelect() {
 
 // --- Achievements ---
 const achievementsDef = [
-  { id: 'first_blood', name: '首次击杀', desc: '消灭第一个敌人', icon: '🎯', reward: 4 },
-  { id: 'sharpshooter', name: '百发百中', desc: '累计消灭10个敌人', icon: '🔫', reward: 5 },
-  { id: 'tank_hunter', name: '坦克杀手', desc: '累计消灭50个敌人', icon: '💥', reward: 8 },
-  { id: 'battle_veteran', name: '战斗老兵', desc: '累计消灭100个敌人', icon: '🏅', reward: 12 },
-  { id: 'survivor', name: '生存专家', desc: '到达第5关', icon: '🛡️', reward: 6 },
-  { id: 'tenacious', name: '顽强战士', desc: '到达第10关', icon: '⚔️', reward: 10 },
-  { id: 'score_500', name: '初露锋芒', desc: '单局得分达到500', icon: '⭐', reward: 4 },
-  { id: 'score_2000', name: '高分玩家', desc: '单局得分达到2000', icon: '🌟', reward: 8 },
-  { id: 'score_5000', name: '积分之王', desc: '单局得分达到5000', icon: '👑', reward: 14 },
-  { id: 'hardcore', name: '硬核玩家', desc: '困难难度到达第5关', icon: '💀', reward: 12 },
-  { id: 'flawless', name: '无伤过关', desc: '一关内未受任何伤害', icon: '✨', reward: 8 },
-  { id: 'tank_spread_win', name: '扩散大师', desc: '使用扩散型通关第5波', icon: '☆', reward: 7 },
-  { id: 'tank_focus_win', name: '集中火力', desc: '使用集中型通关第5波', icon: '★', reward: 7 },
-  { id: 'tank_wide_win', name: '广域压制', desc: '使用广域型通关第5波', icon: '❋', reward: 7 },
-  { id: 'tank_burst_win', name: '爆裂艺术家', desc: '使用爆裂型通关第5波', icon: '✦', reward: 7 },
-  { id: 'tank_sniper_win', name: '致命狙击', desc: '使用狙击型通关第5波', icon: '◈', reward: 7 },
-  { id: 'tank_homing_win', name: '追踪猎手', desc: '使用追踪型通关第5波', icon: '◎', reward: 7 },
-  { id: 'tank_border_win', name: '境界观测者', desc: '使用境界型通关第5波', icon: '◇', reward: 9 },
-  { id: 'combo_20', name: '连击大师', desc: '达成20连击', icon: '🔥', reward: 9 },
-  { id: 'elite_hunter', name: '精英猎手', desc: '累计消灭10个精英敌人', icon: '💀', reward: 10 },
-  { id: 'speed_demon', name: '闪电通关', desc: '在180秒内通关第5波', icon: '⚡', reward: 10 },
-  { id: 'powerup_collector', name: '道具收藏家', desc: '单局收集20个道具', icon: '🎒', reward: 8 },
-  { id: 'mine_dodger', name: '排雷专家', desc: '一局内未触发任何地雷', icon: '🚫', reward: 8 },
-  { id: 'wave_15', name: '无尽征途', desc: '到达第15波', icon: '🌌', reward: 16 },
-  { id: 'perfect_run', name: '完美通关', desc: '一整局未受伤到达第5波', icon: '💎', reward: 14 },
-  { id: 'score_10000', name: '战场显圣', desc: '单局得分达到10000', icon: '✴', reward: 18 },
-  { id: 'score_20000', name: '月面王冠', desc: '单局得分达到20000', icon: '☾', reward: 26 },
-  { id: 'wave_20', name: '灰域远征', desc: '到达第20波', icon: '▣', reward: 24 },
-  { id: 'wave_25', name: '碎月行军', desc: '到达第25波', icon: '◬', reward: 34 },
-  { id: 'combo_35', name: '火线礼赞', desc: '达成35连击', icon: '✹', reward: 18 },
-  { id: 'combo_50', name: '弹幕圣歌', desc: '达成50连击', icon: '✺', reward: 28 },
-  { id: 'elite_hunter_25', name: '精英清算者', desc: '单局消灭25个精英敌人', icon: '◇', reward: 22 },
-  { id: 'powerup_collector_40', name: '模块掠夺者', desc: '单局收集40个道具', icon: '⬡', reward: 18 },
-  { id: 'fragment_500', name: '月光石库管', desc: '持有500个月光石', icon: '◆', reward: 16 },
-  { id: 'fragment_1000', name: '碎月银行', desc: '持有1000个月光石', icon: '◈', reward: 25 },
-  { id: 'all_tanks_unlocked', name: '机装全谱系', desc: '解锁全部七种我方坦克', icon: '▰', reward: 32 },
-  { id: 'upgrade_apprentice', name: '整备学徒', desc: '累计完成10次坦克强化', icon: '▱', reward: 14 },
-  { id: 'upgrade_master', name: '机装技师', desc: '累计完成30次坦克强化', icon: '▰', reward: 30 },
-  { id: 'evolution_first', name: '初次进化', desc: '完成任意坦克1次进化', icon: '✧', reward: 20 },
-  { id: 'evolution_six', name: '六相开花', desc: '累计完成6次坦克进化', icon: '✦', reward: 38 },
-  { id: 'daily_clear', name: '日课清算', desc: '完成一次每日挑战目标', icon: '☉', reward: 20 },
-  { id: 'nightmare_survivor', name: '梦魇存活者', desc: '梦魇难度到达第5关', icon: '☄', reward: 28 },
-  { id: 'boss_witness', name: '首领目击者', desc: '抵达第4波并直面Boss', icon: '⬢', reward: 14 },
-  { id: 'boss_breaker', name: '破城记录', desc: '抵达第12波，多次突破Boss战线', icon: '⬣', reward: 26 },
-  { id: 'untouched_combo', name: '无伤连祷', desc: '未受伤时达成15连击', icon: '✶', tier: 'elite' },
-  { id: 'wave_30', name: '长夜尽头', desc: '到达第30波', icon: '◫', tier: 'mythic' },
-  { id: 'score_30000', name: '碎月铭刻', desc: '单局得分达到30000', icon: '▧', tier: 'mythic' },
-  { id: 'combo_75', name: '弹道圣裁', desc: '达成75连击', icon: '✷', tier: 'mythic' },
-  { id: 'elite_hunter_40', name: '肃清令执行者', desc: '单局消灭40个精英敌人', icon: '⬗', tier: 'mythic' },
-  { id: 'fusion_first', name: '首次融合协议', desc: '首次触发任意融合道具', icon: '⟡', tier: 'elite' },
+  { id: 'first_blood', name: '首次击杀', desc: '消灭第一个敌人', icon: 'K01', reward: 4 },
+  { id: 'sharpshooter', name: '百发百中', desc: '累计消灭10个敌人', icon: 'A10', reward: 5 },
+  { id: 'tank_hunter', name: '坦克杀手', desc: '累计消灭50个敌人', icon: 'K50', reward: 8 },
+  { id: 'battle_veteran', name: '战斗老兵', desc: '累计消灭100个敌人', icon: 'K100', reward: 12 },
+  { id: 'survivor', name: '生存专家', desc: '到达第5关', icon: 'W05', reward: 6 },
+  { id: 'tenacious', name: '顽强战士', desc: '到达第10关', icon: 'W10', reward: 10 },
+  { id: 'score_500', name: '初露锋芒', desc: '单局得分达到500', icon: 'S05', reward: 4 },
+  { id: 'score_2000', name: '高分玩家', desc: '单局得分达到2000', icon: 'S20', reward: 8 },
+  { id: 'score_5000', name: '积分之王', desc: '单局得分达到5000', icon: 'S50', reward: 14 },
+  { id: 'hardcore', name: '硬核玩家', desc: '困难难度到达第5关', icon: 'HD5', reward: 12 },
+  { id: 'flawless', name: '无伤过关', desc: '一关内未受任何伤害', icon: 'NOD', reward: 8 },
+  { id: 'tank_spread_win', name: '扩散大师', desc: '使用扩散型通关第5波', icon: 'SPR', reward: 7 },
+  { id: 'tank_focus_win', name: '集中火力', desc: '使用集中型通关第5波', icon: 'FOC', reward: 7 },
+  { id: 'tank_wide_win', name: '广域压制', desc: '使用广域型通关第5波', icon: 'WID', reward: 7 },
+  { id: 'tank_burst_win', name: '爆裂艺术家', desc: '使用爆裂型通关第5波', icon: 'BST', reward: 7 },
+  { id: 'tank_sniper_win', name: '致命狙击', desc: '使用狙击型通关第5波', icon: 'SNP', reward: 7 },
+  { id: 'tank_homing_win', name: '追踪猎手', desc: '使用追踪型通关第5波', icon: 'HOM', reward: 7 },
+  { id: 'tank_border_win', name: '境界观测者', desc: '使用境界型通关第5波', icon: 'BDR', reward: 9 },
+  { id: 'combo_20', name: '连击大师', desc: '达成20连击', icon: 'C20', reward: 9 },
+  { id: 'elite_hunter', name: '精英猎手', desc: '累计消灭10个精英敌人', icon: 'E10', reward: 10 },
+  { id: 'speed_demon', name: '闪电通关', desc: '在180秒内通关第5波', icon: 'SPD', reward: 10 },
+  { id: 'powerup_collector', name: '道具收藏家', desc: '单局收集20个道具', icon: 'M20', reward: 8 },
+  { id: 'mine_dodger', name: '排雷专家', desc: '一局内未触发任何地雷', icon: 'MIN', reward: 8 },
+  { id: 'wave_15', name: '无尽征途', desc: '到达第15波', icon: 'W15', reward: 16 },
+  { id: 'perfect_run', name: '完美通关', desc: '一整局未受伤到达第5波', icon: 'PFT', reward: 14 },
+  { id: 'score_10000', name: '战场显圣', desc: '单局得分达到10000', icon: 'S100', reward: 18 },
+  { id: 'score_20000', name: '月面王冠', desc: '单局得分达到20000', icon: 'S200', reward: 26 },
+  { id: 'wave_20', name: '灰域远征', desc: '到达第20波', icon: 'W20', reward: 24 },
+  { id: 'wave_25', name: '碎月行军', desc: '到达第25波', icon: 'W25', reward: 34 },
+  { id: 'combo_35', name: '火线礼赞', desc: '达成35连击', icon: 'C35', reward: 18 },
+  { id: 'combo_50', name: '弹幕圣歌', desc: '达成50连击', icon: 'C50', reward: 28 },
+  { id: 'elite_hunter_25', name: '精英清算者', desc: '单局消灭25个精英敌人', icon: 'E25', reward: 22 },
+  { id: 'powerup_collector_40', name: '模块掠夺者', desc: '单局收集40个道具', icon: 'M40', reward: 18 },
+  { id: 'fragment_500', name: '月光石库管', desc: '持有500个月光石', icon: 'MS5', reward: 16 },
+  { id: 'fragment_1000', name: '碎月银行', desc: '持有1000个月光石', icon: 'MS1K', reward: 25 },
+  { id: 'all_tanks_unlocked', name: '机装全谱系', desc: '解锁全部七种我方坦克', icon: 'ALL', reward: 32 },
+  { id: 'upgrade_apprentice', name: '整备学徒', desc: '累计完成10次坦克强化', icon: 'UP10', reward: 14 },
+  { id: 'upgrade_master', name: '机装技师', desc: '累计完成30次坦克强化', icon: 'UP30', reward: 30 },
+  { id: 'evolution_first', name: '初次进化', desc: '完成任意坦克1次进化', icon: 'EVO1', reward: 20 },
+  { id: 'evolution_six', name: '六相开花', desc: '累计完成6次坦克进化', icon: 'EVO6', reward: 38 },
+  { id: 'daily_clear', name: '日课清算', desc: '完成一次每日挑战目标', icon: 'DAY', reward: 20 },
+  { id: 'nightmare_survivor', name: '梦魇存活者', desc: '梦魇难度到达第5关', icon: 'NM5', reward: 28 },
+  { id: 'boss_witness', name: '首领目击者', desc: '抵达第4波并直面Boss', icon: 'B04', reward: 14 },
+  { id: 'boss_breaker', name: '破城记录', desc: '抵达第12波，多次突破Boss战线', icon: 'B12', reward: 26 },
+  { id: 'untouched_combo', name: '无伤连祷', desc: '未受伤时达成15连击', icon: 'NC15', tier: 'elite' },
+  { id: 'wave_30', name: '长夜尽头', desc: '到达第30波', icon: 'W30', tier: 'mythic' },
+  { id: 'score_30000', name: '碎月铭刻', desc: '单局得分达到30000', icon: 'S300', tier: 'mythic' },
+  { id: 'combo_75', name: '弹道圣裁', desc: '达成75连击', icon: 'C75', tier: 'mythic' },
+  { id: 'elite_hunter_40', name: '肃清令执行者', desc: '单局消灭40个精英敌人', icon: 'E40', tier: 'mythic' },
+  { id: 'fusion_first', name: '首次融合协议', desc: '首次触发任意融合道具', icon: 'FUS', tier: 'elite' },
 ];
 
 const ACHIEVEMENT_LORE = {
@@ -2924,7 +2986,7 @@ function checkDifficultyUnlock() {
       unlockedDifficulties.add(nextDiff);
       saveUnlocks();
       const toast = document.getElementById('achieve-toast');
-      toast.querySelector('.achieve-icon').textContent = '🔓';
+      toast.querySelector('.achieve-icon').textContent = 'KEY';
       toast.querySelector('.achieve-name').textContent = '新难度解锁!';
       toast.querySelector('.achieve-label').textContent = difficultySettings[nextDiff].label + ' 模式已解锁';
       toast.style.display = 'block';
@@ -2984,17 +3046,17 @@ function checkAchievements() {
   if (sessionKills >= 10) unlockAchievement('sharpshooter');
   if (sessionKills >= 50) unlockAchievement('tank_hunter');
   if (sessionKills >= 100) unlockAchievement('battle_veteran');
-  if (level >= 5) unlockAchievement('survivor');
-  if (level >= 10) unlockAchievement('tenacious');
-  if (level >= 15) unlockAchievement('wave_15');
+  if (wave >= 5) unlockAchievement('survivor');
+  if (wave >= 10) unlockAchievement('tenacious');
+  if (wave >= 15) unlockAchievement('wave_15');
   if (score >= 500) unlockAchievement('score_500');
   if (score >= 2000) unlockAchievement('score_2000');
   if (score >= 5000) unlockAchievement('score_5000');
   if (score >= 10000) unlockAchievement('score_10000');
   if (score >= 20000) unlockAchievement('score_20000');
   if (score >= 30000) unlockAchievement('score_30000');
-  if (currentDifficulty === 'hard' && level >= 5) unlockAchievement('hardcore');
-  if (currentDifficulty === 'nightmare' && level >= 5) unlockAchievement('nightmare_survivor');
+  if (currentDifficulty === 'hard' && wave >= 5) unlockAchievement('hardcore');
+  if (currentDifficulty === 'nightmare' && wave >= 5) unlockAchievement('nightmare_survivor');
   if (maxComboReached >= 20) unlockAchievement('combo_20');
   if (maxComboReached >= 35) unlockAchievement('combo_35');
   if (maxComboReached >= 50) unlockAchievement('combo_50');
@@ -3020,7 +3082,7 @@ function checkAchievements() {
   const totalEvolutions = getTotalEvolutionCount();
   if (totalEvolutions >= 1) unlockAchievement('evolution_first');
   if (totalEvolutions >= 6) unlockAchievement('evolution_six');
-  if (level >= 5) {
+  if (wave >= 5) {
     const tankAch = {spread:'tank_spread_win',focus:'tank_focus_win',wide:'tank_wide_win',burst:'tank_burst_win',sniper:'tank_sniper_win',homing:'tank_homing_win',border:'tank_border_win'};
     if (tankAch[currentTankType]) unlockAchievement(tankAch[currentTankType]);
     if (!sessionGotHit) unlockAchievement('perfect_run');
@@ -3034,6 +3096,32 @@ function onLevelUp() {
   if (!gotHitThisLevel) unlockAchievement('flawless');
   gotHitThisLevel = false;
   sfxLevelUp();
+  showModifierChoice('level');
+}
+
+function getRunXpReward(enemy) {
+  if (enemy && enemy.bossDef) return 120;
+  if (enemy && enemy.isElite) return 42;
+  return 18;
+}
+
+function addRunXp(amount) {
+  if (!amount || difficultyCleared) return;
+  runXp += amount;
+  updateRunXpHud();
+  if (runXp >= xpToNext && document.getElementById('modifier-screen').style.display !== 'flex') {
+    runXp -= xpToNext;
+    level++;
+    xpToNext = Math.floor(95 + level * 38 + level * level * 4.5);
+    updateRunXpHud();
+    onLevelUp();
+    checkAchievements();
+  }
+}
+
+function updateRunXpHud() {
+  const xpEl = document.getElementById('xp');
+  if (xpEl) xpEl.textContent = Math.floor(runXp) + '/' + xpToNext;
 }
 
 function resetAchievementTracking() {
@@ -3047,10 +3135,13 @@ function resetAchievementTracking() {
   sessionGotHit = false;
 }
 
-function onEnemyKilled(isElite) {
+function onEnemyKilled(enemyOrElite) {
+  const killedEnemy = typeof enemyOrElite === 'object' ? enemyOrElite : null;
+  const isElite = killedEnemy ? !!killedEnemy.isElite : !!enemyOrElite;
   sessionKills++;
   if (isElite) sessionEliteKills++;
   waveEnemiesRemaining = Math.max(0, waveEnemiesRemaining - 1);
+  addRunXp(getRunXpReward(killedEnemy));
 
   // Combo system
   comboCount++;
@@ -3104,12 +3195,13 @@ function showWaveNotification(text, sub) {
 
 function getWaveEnemyBudget(waveNo) {
   const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
-  const base = Math.min(10, 2 + Math.floor(waveNo * 0.38) + Math.floor(waveNo * waveNo / 122));
+  const base = Math.min(9, 2 + Math.floor(waveNo * 0.34) + Math.floor(waveNo * waveNo / 150));
   return Math.max(2, Math.floor(base * (diff.waveBudgetMul || 1)));
 }
 
 function getBossSupportCount(waveNo) {
-  return Math.min(3, 1 + Math.floor(waveNo / 10));
+  if (waveNo < 16) return 0;
+  return Math.min(1, Math.floor(waveNo / 16));
 }
 
 function getWaveSpawnBurst(waveNo) {
@@ -3126,6 +3218,50 @@ function getWaveSpawnRate(diff) {
   return Math.max(92, diff.spawnRate - wave * 3 - level * 2);
 }
 
+function selectBossForWave(waveNo) {
+  const bossWaveIndex = Math.floor(waveNo / 4) - 1;
+  if (bossWaveIndex < BOSS_TYPES.length) return BOSS_TYPES[bossWaveIndex];
+  const diffIdx = Math.max(0, DIFFICULTY_ORDER.indexOf(currentDifficulty));
+  const maxPool = Math.min(BOSS_TYPES.length, 3 + diffIdx);
+  let pool = BOSS_TYPES.slice(0, maxPool);
+  if (lastBossName && pool.length > 1) pool = pool.filter(b => b.name !== lastBossName);
+  const lastBoss = BOSS_TYPES.find(b => b.name === lastBossName);
+  if (lastBoss && pool.length > 1) {
+    const factionShift = pool.filter(b => b.faction !== lastBoss.faction);
+    if (factionShift.length > 0) pool = factionShift;
+  }
+  return pool[Math.floor(rng() * pool.length)] || BOSS_TYPES[0];
+}
+
+function hasSeenAllRunBosses() {
+  return BOSS_TYPES.every(b => runBossesSeen.has(b.name));
+}
+
+function shouldClearDifficulty() {
+  const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
+  return !isDailyChallenge && wave >= (diff.clearWave || 20) && hasSeenAllRunBosses();
+}
+
+function getEndingStory() {
+  const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
+  const seen = [...runBossesSeen].join('、') || '无记录';
+  return '第' + wave + '波之后，灰域的雷达第一次没有回声。' +
+    diff.label + '难度的五项首领档案已归档：' + seen +
+    '。机装研究室没有宣布胜利，只在终端写下：月面仍在远处发光，但这一次，它没有立刻吞下你。';
+}
+
+function clearDifficulty() {
+  if (difficultyCleared) return;
+  difficultyCleared = true;
+  showWaveNotification('难 度 通 关', difficultySettings[currentDifficulty].label + '战线已完成，首领档案归档');
+  const idx = DIFFICULTY_ORDER.indexOf(currentDifficulty);
+  if (idx >= 0 && idx < DIFFICULTY_ORDER.length - 1) {
+    unlockedDifficulties.add(DIFFICULTY_ORDER[idx + 1]);
+    saveUnlocks();
+  }
+  setTimeout(() => endGame(true), 650);
+}
+
 function startNextWave() {
   wave++;
   // Earn fragments for previous wave clear
@@ -3139,8 +3275,9 @@ function startNextWave() {
     waveEnemiesRemaining = 1 + bossSupportCount;
     waveEnemiesToSpawn = bossSupportCount;
     wavePause = 0;
-    const bossIdx = (Math.floor(wave / 4) - 1) % BOSS_TYPES.length;
-    const bossDef = BOSS_TYPES[bossIdx];
+    const bossDef = selectBossForWave(wave);
+    lastBossName = bossDef.name;
+    runBossesSeen.add(bossDef.name);
     const bossSpawn = findSafeTankSpawn({
       w: 54,
       h: 54,
@@ -3188,25 +3325,25 @@ const RARITY_CONFIG = {
   legendary: { weight: 7, durationMul: 1.45, descSuffix: ' [传说]', glowColor: '#fd0', size: 14 },
 };
 const powerUpDefs = [
-  { type: 'speed',    name: '加强履带', icon: '⚡', color: '#4af', desc: '移速×1.12', duration: 660 },
-  { type: 'railgun',  name: '电磁炮',   icon: '🔫', color: '#a4f', desc: '短时穿透脉冲', duration: 540 },
-  { type: 'ricochet', name: '反弹弹',   icon: '💫', color: '#fa4', desc: '子弹弹射', duration: 660 },
-  { type: 'shield',   name: '能量护盾', icon: '🛡️', color: '#4ff', desc: '短时无敌', duration: 300 },
-  { type: 'rapid',    name: '急速连射', icon: '🔥', color: '#f44', desc: '射速提升', duration: 480 },
-  { type: 'repair',   name: '维修工具', icon: '🔧', color: '#4f4', desc: '恢复少量HP', duration: 0 },
-  { type: 'freeze',   name: '冰冻弹',   icon: '❄️', color: '#8cf', desc: '短时减缓敌人', duration: 420 },
-  { type: 'multishot',name: '散射炮',   icon: '💥', color: '#f8f', desc: '子弹+2发', duration: 540 },
-  { type: 'magnet',   name: '磁铁',     icon: '🧲', color: '#c8f', desc: '吸取范围提升', duration: 540 },
-  { type: 'pierce',   name: '穿甲弹',   icon: '🗡️', color: '#ff8', desc: '子弹穿透敌人', duration: 480 },
-  { type: 'vampire',  name: '生命汲取', icon: '🩸', color: '#f66', desc: '击杀概率恢复HP', duration: 540 },
-  { type: 'double_score', name: '双倍积分', icon: '✨', color: '#ff0', desc: '积分×1.5', duration: 540 },
-  { type: 'big_bullet', name: '巨型子弹', icon: '💣', color: '#f80', desc: '子弹判定扩大', duration: 480 },
-  { type: 'explosive',name: '爆炸弹',   icon: '💢', color: '#f84', desc: '子弹爆炸溅射', duration: 480 },
-  { type: 'invisible',name: '光学迷彩', icon: '👻', color: '#aaa', desc: '敌人索敌降低', duration: 540 },
-  { type: 'thorns',   name: '荆棘护甲', icon: '🌵', color: '#8f8', desc: '反弹接触伤害', duration: 420 },
-  { type: 'overdrive', name: '火力全开', icon: '🔥', color: '#f80', desc: '短时伤害+1', duration: 420 },
-  { type: 'timewarp', name: '时间减缓', icon: '⏳', color: '#8cf', desc: '敌方弹速降低', duration: 360 },
-  { type: 'goldrush', name: '黄金时刻', icon: '💰', color: '#fd0', desc: '分数和碎片×2', duration: 300 },
+  { type: 'speed',    name: '加强履带', icon: 'DRV', color: '#4af', desc: '移速×1.12', duration: 660 },
+  { type: 'railgun',  name: '电磁炮',   icon: 'RAIL', color: '#a4f', desc: '短时穿透脉冲', duration: 540 },
+  { type: 'ricochet', name: '反弹弹',   icon: 'RICO', color: '#fa4', desc: '子弹弹射', duration: 660 },
+  { type: 'shield',   name: '能量护盾', icon: 'SHD', color: '#4ff', desc: '短时无敌', duration: 300 },
+  { type: 'rapid',    name: '急速连射', icon: 'RPD', color: '#f44', desc: '射速提升', duration: 480 },
+  { type: 'repair',   name: '维修工具', icon: 'FIX', color: '#4f4', desc: '恢复少量HP', duration: 0 },
+  { type: 'freeze',   name: '冰冻弹',   icon: 'CRY', color: '#8cf', desc: '短时减缓敌人', duration: 420 },
+  { type: 'multishot',name: '散射炮',   icon: 'ARC', color: '#f8f', desc: '子弹+2发', duration: 540 },
+  { type: 'magnet',   name: '磁铁',     icon: 'MAG', color: '#c8f', desc: '吸取范围提升', duration: 540 },
+  { type: 'pierce',   name: '穿甲弹',   icon: 'PEN', color: '#ff8', desc: '子弹穿透敌人', duration: 480 },
+  { type: 'vampire',  name: '生命汲取', icon: 'VAM', color: '#f66', desc: '击杀概率恢复HP', duration: 540 },
+  { type: 'double_score', name: '双倍积分', icon: 'SCO', color: '#ff0', desc: '积分×1.5', duration: 540 },
+  { type: 'big_bullet', name: '巨型子弹', icon: 'HVY', color: '#f80', desc: '子弹判定扩大', duration: 480 },
+  { type: 'explosive',name: '爆炸弹',   icon: 'BLZ', color: '#f84', desc: '子弹爆炸溅射', duration: 480 },
+  { type: 'invisible',name: '光学迷彩', icon: 'CLM', color: '#aaa', desc: '敌人索敌降低', duration: 540 },
+  { type: 'thorns',   name: '荆棘护甲', icon: 'RET', color: '#8f8', desc: '反弹接触伤害', duration: 420 },
+  { type: 'overdrive', name: '火力全开', icon: 'OVR', color: '#f80', desc: '短时伤害+1', duration: 420 },
+  { type: 'timewarp', name: '时间减缓', icon: 'TIM', color: '#8cf', desc: '敌方弹速降低', duration: 360 },
+  { type: 'goldrush', name: '黄金时刻', icon: 'GLD', color: '#fd0', desc: '分数和碎片×2', duration: 300 },
 ];
 function getRandomRarity() {
   const r = rng() * 100;
@@ -3248,14 +3385,14 @@ function spawnPowerUp(x, y) {
 
 // Power-up synergy pairs
 const SYNERGIES = {
-  'magnet+pierce': { name:'磁力穿刺', desc:'磁铁吸引+穿甲穿透', icon:'🧲🗡️' },
-  'explosive+big_bullet': { name:'巨型炸弹', desc:'爆炸溅射+巨型判定', icon:'💢💣' },
-  'vampire+thorns': { name:'吸血荆棘', desc:'击杀回血+接触反弹', icon:'🩸🌵' },
-  'freeze+rapid': { name:'寒冰风暴', desc:'冰冻减速+高速连射', icon:'❄️🔥' },
-  'railgun+pierce': { name:'超电磁炮', desc:'穿透脉冲+穿甲弹', icon:'🔫🗡️' },
-  'shield+thorns': { name:'反射护盾', desc:'无敌+荆棘反弹', icon:'🛡️🌵' },
-  'double_score+vampire': { name:'收割时刻', desc:'双倍积分+击杀回血', icon:'✨🩸' },
-  'magnet+double_score': { name:'财富磁铁', desc:'磁铁吸引+双倍积分', icon:'🧲✨' },
+  'magnet+pierce': { name:'磁力穿刺', desc:'磁铁吸引+穿甲穿透', icon:'MAG-PEN' },
+  'explosive+big_bullet': { name:'巨型炸弹', desc:'爆炸溅射+巨型判定', icon:'BLZ-HVY' },
+  'vampire+thorns': { name:'吸血荆棘', desc:'击杀回血+接触反弹', icon:'VAM-RET' },
+  'freeze+rapid': { name:'寒冰风暴', desc:'冰冻减速+高速连射', icon:'CRY-RPD' },
+  'railgun+pierce': { name:'超电磁炮', desc:'穿透脉冲+穿甲弹', icon:'RAIL-PEN' },
+  'shield+thorns': { name:'反射护盾', desc:'无敌+荆棘反弹', icon:'SHD-RET' },
+  'double_score+vampire': { name:'收割时刻', desc:'双倍积分+击杀回血', icon:'SCO-VAM' },
+  'magnet+double_score': { name:'财富磁铁', desc:'磁铁吸引+双倍积分', icon:'MAG-SCO' },
 };
 
 function checkSynergy(newType) {
@@ -3270,15 +3407,15 @@ function checkSynergy(newType) {
 
 // --- Item Fusion Recipes ---
 const FUSION_RECIPES = [
-  { id:'gold_magnet', name:'黄金磁铁', icon:'🧲✨', desc:'自动吸取+4倍积分', requires:['magnet','double_score'],
+  { id:'gold_magnet', name:'黄金磁铁', icon:'AUR-MAG', desc:'自动吸取+4倍积分', requires:['magnet','double_score'],
     apply(){ buffs.magnet=660; buffs.double_score=660; if(buffs.goldrush) buffs.goldrush+=360; else buffs.goldrush=360; } },
-  { id:'railgun_plus', name:'超电磁炮', icon:'🔫🗡️', desc:'穿透+穿甲+高速弹', requires:['railgun','pierce'],
+  { id:'railgun_plus', name:'超电磁炮', icon:'RAIL-SIG', desc:'穿透+穿甲+高速弹', requires:['railgun','pierce'],
     apply(){ buffs.railgun=660; buffs.pierce=660; } },
-  { id:'frost_blast', name:'冰火爆裂', icon:'❄️💢', desc:'冰冻+爆炸+大范围', requires:['freeze','explosive'],
+  { id:'frost_blast', name:'冰火爆裂', icon:'CRY-BLZ', desc:'冰冻+爆炸+大范围', requires:['freeze','explosive'],
     apply(){ buffs.freeze=660; buffs.explosive=660; explosionRadiusMul+=0.2; } },
-  { id:'undying_thorns', name:'不死荆棘', icon:'🩸🌵', desc:'吸血+荆棘+HP上限+3', requires:['vampire','thorns'],
+  { id:'undying_thorns', name:'不死荆棘', icon:'RED-RET', desc:'吸血+荆棘+HP上限+3', requires:['vampire','thorns'],
     apply(){ buffs.vampire=660; buffs.thorns=660; player.maxHp+=1; player.hp=Math.min(player.maxHp, player.hp+2); } },
-  { id:'bullet_storm', name:'弹幕风暴', icon:'💣💥', desc:'巨型子弹+5方向弹幕', requires:['big_bullet','multishot'],
+  { id:'bullet_storm', name:'弹幕风暴', icon:'HVY-ARC', desc:'巨型子弹+5方向弹幕', requires:['big_bullet','multishot'],
     apply(){ buffs.big_bullet=660; buffs.multishot=660; } },
 ];
 
@@ -3314,7 +3451,7 @@ function applyPowerUp(p) {
     fusion.apply();
     const toast = document.getElementById('achieve-toast');
     toast.querySelector('.achieve-icon').textContent = fusion.icon;
-    toast.querySelector('.achieve-name').textContent = '💫 融合: ' + fusion.name + '!';
+    toast.querySelector('.achieve-name').textContent = '融合协议: ' + fusion.name + '!';
     toast.querySelector('.achieve-label').textContent = fusion.desc;
     toast.querySelector('.achieve-name').style.color = '#f8d';
     sfxAchievement();
@@ -3332,7 +3469,7 @@ function applyPowerUp(p) {
     const toast = document.getElementById('achieve-toast');
     if (synergy) {
       toast.querySelector('.achieve-icon').textContent = synergy.icon;
-      toast.querySelector('.achieve-name').textContent = '⚡ 协同: ' + synergy.name;
+      toast.querySelector('.achieve-name').textContent = '协同协议: ' + synergy.name;
       toast.querySelector('.achieve-label').textContent = synergy.desc;
       toast.querySelector('.achieve-name').style.color = '#fd0';
       sfxAchievement();
@@ -3384,8 +3521,8 @@ function openChest(chest) {
   }
   // Toast
   const toast = document.getElementById('achieve-toast');
-  toast.querySelector('.achieve-icon').textContent = isBoss ? '🎁' : '📦';
-  toast.querySelector('.achieve-name').textContent = (isBoss ? 'Boss宝箱!' : '分数宝箱!') + ' +' + fragAmt + '💎';
+  toast.querySelector('.achieve-icon').textContent = isBoss ? 'BOS' : 'BOX';
+  toast.querySelector('.achieve-name').textContent = (isBoss ? '首领宝箱' : '分数宝箱') + ' +' + fragAmt + ' MS';
   toast.querySelector('.achieve-label').textContent = '获得' + itemCount + '个道具';
   toast.querySelector('.achieve-name').style.color = '#fd0';
   toast.style.display = 'block'; toast.style.animation = 'none'; toast.offsetHeight;
@@ -3483,14 +3620,26 @@ function hideAchievements() {
 }
 
 // --- Bestiary ---
-let bestiaryTab = 'powerups';
+let bestiaryTab = 'items_basic';
 const BESTIARY_DISCOVERY_KEY = 'tankbattle_bestiary_discovered';
+const BESTIARY_TAB_IDS = ['items_basic', 'items_fusion', 'enemies_normal', 'enemies_elite', 'enemies_boss'];
 let discoveredBestiary = {
   powerups: new Set(),
+  fusions: new Set(),
+  normals: new Set(),
   elites: new Set(),
   bosses: new Set(),
-  fusions: new Set(),
 };
+
+function makeEmptyBestiaryDiscovery() {
+  return {
+    powerups: new Set(),
+    fusions: new Set(),
+    normals: new Set(),
+    elites: new Set(),
+    bosses: new Set(),
+  };
+}
 
 function loadBestiaryDiscovery() {
   try {
@@ -3499,23 +3648,25 @@ function loadBestiaryDiscovery() {
       const data = JSON.parse(raw);
       discoveredBestiary = {
         powerups: new Set(data.powerups || []),
+        fusions: new Set(data.fusions || []),
+        normals: new Set(data.normals || data.enemies_normal || []),
         elites: new Set(data.elites || []),
         bosses: new Set(data.bosses || []),
-        fusions: new Set(data.fusions || []),
       };
+      return;
     }
-  } catch(e) {
-    discoveredBestiary = { powerups: new Set(), elites: new Set(), bosses: new Set(), fusions: new Set() };
-  }
+  } catch(e) {}
+  discoveredBestiary = makeEmptyBestiaryDiscovery();
 }
 
 function saveBestiaryDiscovery() {
   try {
     localStorage.setItem(BESTIARY_DISCOVERY_KEY, JSON.stringify({
       powerups: [...discoveredBestiary.powerups],
+      fusions: [...discoveredBestiary.fusions],
+      normals: [...discoveredBestiary.normals],
       elites: [...discoveredBestiary.elites],
       bosses: [...discoveredBestiary.bosses],
-      fusions: [...discoveredBestiary.fusions],
     }));
   } catch(e) {}
 }
@@ -3527,21 +3678,66 @@ function discoverBestiary(kind, id) {
   saveBestiaryDiscovery();
 }
 
+function getNormalEnemyDescription(kind) {
+  switch (kind) {
+    case 'scout': return '标准侦察单位，弹幕稀疏但会持续牵制走位';
+    case 'runner': return '高速突击单位，擅长贴近后用短间隔火力逼迫转向';
+    case 'brute': return '重装推进单位，血量更高，会压缩玩家活动空间';
+    case 'artillery': return '远程炮击单位，偏好保持距离并进行预判射击';
+    default: return '灰域中最常见的无人作战单位';
+  }
+}
+
+function getNormalEnemyName(kind) {
+  switch (kind) {
+    case 'scout': return '巡哨车';
+    case 'runner': return '疾袭车';
+    case 'brute': return '重铠车';
+    case 'artillery': return '弧炮车';
+    default: return '敌方单位';
+  }
+}
+
 function renderBestiary() {
   const grid = document.getElementById('bestiary-grid');
-  let items;
-  if (bestiaryTab === 'powerups') {
+  let items = [];
+  if (bestiaryTab === 'items_basic') {
     items = powerUpDefs.map(p => ({
-      glyph: getEnemyVisualProfile('powerup').glyph, color: p.color, classLabel: 'MODULE',
+      glyph: getEnemyVisualProfile('powerup').glyph, color: p.color, classLabel: 'BASIC-MODULE',
       name: p.name, desc: p.desc, powerType: p.type,
       tag: p.duration > 0 ? (p.duration/60).toFixed(0) + '秒' : '即时',
       subTag: '拾取强化',
       lore: BESTIARY_LORE.powerups[p.type],
       unlocked: discoveredBestiary.powerups.has(p.type),
-      lockedName: '未解析模块',
+      lockedName: '未解析基础模块',
       lockedDesc: '???',
     }));
-  } else if (bestiaryTab === 'elites') {
+  } else if (bestiaryTab === 'items_fusion') {
+    items = FUSION_RECIPES.map(f => ({
+      glyph: getEnemyVisualProfile('fusion').glyph, color: '#f6e5aa', classLabel: 'RELIC-FUSION',
+      name: f.name, fusionId: f.id,
+      desc: f.desc,
+      tag: f.requires.map(r => powerUpDefs.find(p => p.type === r)?.name || r).join(' + '),
+      subTag: '融合协议',
+      lore: BESTIARY_LORE.fusions[f.id],
+      unlocked: discoveredBestiary.fusions.has(f.id),
+      lockedName: '未解密融合协议',
+      lockedDesc: '???',
+    }));
+  } else if (bestiaryTab === 'enemies_normal') {
+    items = enemyTypes.map(e => {
+      const profile = getEnemyVisualProfile(e.kind);
+      return {
+        glyph: profile.glyph, color: profile.color, classLabel: profile.label,
+        name: getNormalEnemyName(e.kind), desc: getNormalEnemyDescription(e.kind), tag: '普通',
+        subTag: 'HP ' + e.hp + ' · SPD ' + e.speed,
+        lore: BESTIARY_LORE.normals[e.kind],
+        unlocked: discoveredBestiary.normals.has(e.kind),
+        lockedName: '未知普通单位',
+        lockedDesc: '???',
+      };
+    });
+  } else if (bestiaryTab === 'enemies_elite') {
     items = eliteTypes.map(e => {
       const profile = getEnemyVisualProfile(e.special);
       const faction = getFactionInfo(e.faction);
@@ -3555,7 +3751,7 @@ function renderBestiary() {
         lockedDesc: '???',
       };
     });
-  } else if (bestiaryTab === 'bosses') {
+  } else if (bestiaryTab === 'enemies_boss') {
     const bossProfile = getEnemyVisualProfile('boss');
     items = BOSS_TYPES.map(b => {
       const faction = getFactionInfo(b.faction);
@@ -3571,39 +3767,22 @@ function renderBestiary() {
         lockedDesc: '???',
       };
     });
-  } else {
-    items = FUSION_RECIPES.map(f => ({
-      glyph: getEnemyVisualProfile('fusion').glyph, color: '#f6e5aa', classLabel: 'RELIC-FUSION',
-      name: f.name, fusionId: f.id,
-      desc: f.desc,
-      tag: f.requires.map(r => powerUpDefs.find(p => p.type === r)?.name || r).join(' + '),
-      subTag: '组合协议',
-      lore: BESTIARY_LORE.fusions[f.id],
-      unlocked: discoveredBestiary.fusions.has(f.id),
-      lockedName: '未解密融合协议',
-      lockedDesc: '???',
-    }));
   }
   grid.innerHTML = items.map(buildBestiaryRow).join('');
   renderBestiaryCanvases();
 }
 
 function switchBestiaryTab(tab) {
-  bestiaryTab = tab;
-  document.getElementById('tab-powerups').classList.toggle('active', tab === 'powerups');
-  document.getElementById('tab-elites').classList.toggle('active', tab === 'elites');
-  document.getElementById('tab-bosses').classList.toggle('active', tab === 'bosses');
-  document.getElementById('tab-fusions').classList.toggle('active', tab === 'fusions');
+  bestiaryTab = BESTIARY_TAB_IDS.includes(tab) ? tab : 'items_basic';
+  for (const id of BESTIARY_TAB_IDS) {
+    const el = document.getElementById('tab-' + id.replace('_', '-'));
+    if (el) el.classList.toggle('active', bestiaryTab === id);
+  }
   renderBestiary();
 }
 
 function showBestiary() {
-  bestiaryTab = 'powerups';
-  document.getElementById('tab-powerups').classList.add('active');
-  document.getElementById('tab-elites').classList.remove('active');
-  document.getElementById('tab-bosses').classList.remove('active');
-  document.getElementById('tab-fusions').classList.remove('active');
-  renderBestiary();
+  switchBestiaryTab('items_basic');
   document.getElementById('bestiary-screen').style.display = 'flex';
   document.getElementById('start-screen').style.display = 'none';
 }
@@ -4181,6 +4360,10 @@ function drawSupplyChest(ctx, chest, t) {
 
 const ENEMY_VISUAL_PROFILE = {
   normal: { glyph: '◇', color: '#7f8ea3', label: 'STANDARD', threat: '一般' },
+  scout: { glyph: '◇', color: '#ff7272', label: 'SCOUT', threat: '巡哨' },
+  runner: { glyph: '⟫', color: '#ffbf72', label: 'RUSH', threat: '疾袭' },
+  brute: { glyph: '⬒', color: '#ca8cff', label: 'BULWARK', threat: '重铠' },
+  artillery: { glyph: '⌁', color: '#ff8bd4', label: 'ARTILLERY', threat: '弧炮' },
   heavy: { glyph: '⬒', color: '#ff6767', label: 'ASSAULT', threat: '重装' },
   sniper: { glyph: '⟐', color: '#8dff8d', label: 'PRECISION', threat: '狙击' },
   fast: { glyph: '⟫', color: '#6bbcff', label: 'RAPID', threat: '高速' },
@@ -5080,11 +5263,12 @@ class EnemyTank extends Tank {
         this.hp = 0;
         this.alive = false;
         spawnExplosion(this.x, this.y, 20, '#8f8', '#0f0');
-        onEnemyKilled(this.isElite);
+        onEnemyKilled(this);
       } else {
         this.hp = 0;
         this.alive = false;
         spawnExplosion(this.x, this.y, 20, '#f80', '#ff0');
+        onEnemyKilled(this);
         if (!player.hit()) {
           player.hp = 0;
           player.alive = false;
@@ -5190,7 +5374,7 @@ class EnemyTank extends Tank {
     if (this.hp <= 0) {
       this.alive = false;
       spawnExplosion(this.x, this.y, 20, '#f80', '#f44');
-      onEnemyKilled(this.isElite);
+      onEnemyKilled(this);
       if (this.isElite && rng() < Math.min(1, 0.7 + eliteDropMul)) {
         spawnPowerUp(this.x, this.y);
       }
@@ -5857,11 +6041,11 @@ const BOSS_TYPES = [
       { name:'装甲镇压', hpPct:1.0, attack:'spiral', shootDelay:36, burstShots:3, burstRest:120, bulletCount:12, bulletSpeed:1.65, pressure:0.9 },
       { name:'过载破城', hpPct:0.58, attack:'enrage', shootDelay:32, burstShots:3, burstRest:148, bulletCount:13, bulletSpeed:2.05, pressure:1.18 },
     ]},
-  { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.78, hp:52, icon:'PHZ', faction:'void_cult',
+  { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.68, hp:48, icon:'PHZ', faction:'void_cult',
     desc:'高速相位Boss，折跃猎杀+镜像围杀',
     phases:[
-      { name:'折跃猎杀', hpPct:1.0, attack:'teleport', shootDelay:40, burstShots:3, burstRest:118, bulletCount:8, bulletSpeed:2.08, pressure:0.94 },
-      { name:'镜像歼灭', hpPct:0.6, attack:'clone_barrage', shootDelay:36, burstShots:3, burstRest:148, bulletCount:8, bulletSpeed:2.28, pressure:1.22 },
+      { name:'折跃猎杀', hpPct:1.0, attack:'teleport', shootDelay:44, burstShots:3, burstRest:135, bulletCount:7, bulletSpeed:1.92, pressure:0.86 },
+      { name:'镜像歼灭', hpPct:0.6, attack:'clone_barrage', shootDelay:40, burstShots:3, burstRest:170, bulletCount:7, bulletSpeed:2.05, pressure:1.08 },
     ]},
   { name:'要塞坦克', color:'#664', turret:'#ca4', speed:0.08, hp:84, icon:'FRT', faction:'ash_church',
     desc:'堡垒压场Boss，多炮塔火网+雷区封锁',
@@ -5904,6 +6088,12 @@ const BESTIARY_LORE = {
     overdrive: '解除安全栓后的红线模式。研究员称它为效率，驾驶员称它为把明天提前烧掉。',
     timewarp: '观测站的失败钟摆。它不能改变时间，只能让敌人的子弹在一瞬间想起重力。',
     goldrush: '月光石粉尘被高温点燃后的短暂丰收。所有仪表都会亮成金色，像末日前的庆典。',
+  },
+  normals: {
+    scout: '巡哨车来自灰域最廉价的侦察批次。它们没有名字，只有路线；路线越简单，牺牲越容易被统计。',
+    runner: '疾袭车的引擎常年过热，像一颗拒绝熄灭的心脏。它们被派去撞开阵线，也撞开幸存者的犹豫。',
+    brute: '重铠车由旧矿区拖车改造而来，装甲上仍能看到矿尘。它们不懂胜利，只懂把前方压成道路。',
+    artillery: '弧炮车的炮口总是微微上扬，仿佛在向碎月祈祷。炮弹落下时，祈祷才抵达地面。',
   },
   elites: {
     heavy: '圣城正门的旧守卫，装甲层比墓碑还厚。它们不追击，只把战线向前推。',
@@ -6048,14 +6238,14 @@ class BossEnemy extends EliteEnemy {
         this.ramTimer = 0;
       }
     } else if (this.bossDef.name === '幻影坦克') {
-      moveX += -dy / dist * strafeDir * 0.9;
-      moveY += dx / dist * strafeDir * 0.9;
+      moveX += -dy / dist * strafeDir * 0.68;
+      moveY += dx / dist * strafeDir * 0.68;
       if (dist > 210) {
-        moveX += dx / dist * 0.55;
-        moveY += dy / dist * 0.55;
+        moveX += dx / dist * 0.4;
+        moveY += dy / dist * 0.4;
       }
-      if (this.currentPhase > 0 && this.zoneTimer % 72 === 0) {
-        this.teleportToSafePoint(190);
+      if (this.currentPhase > 0 && this.zoneTimer % 110 === 0) {
+        this.teleportToSafePoint(220);
       }
     } else if (this.bossDef.name === '要塞坦克') {
       if (dist < 150) {
@@ -6097,7 +6287,7 @@ class BossEnemy extends EliteEnemy {
     if (this.currentPhase > 0 && this.summonCooldown > 0) this.summonCooldown--;
     if (this.currentPhase > 0 && this.summonCooldown <= 0) {
       this.spawnBossEscort();
-      this.summonCooldown = this.bossDef.name === '幻影坦克' ? 150 : 210;
+      this.summonCooldown = this.bossDef.name === '幻影坦克' ? 260 : 240;
     }
 
     const effectiveShootDelay = Math.max(14, this.shootDelay - Math.floor(this.currentPhase > 0 ? 1 : 0));
@@ -6166,7 +6356,7 @@ class BossEnemy extends EliteEnemy {
         }
       }
     } else if (phase.attack === 'teleport') {
-      this.teleportToSafePoint(this.currentPhase > 0 ? 220 : 180);
+      if (this.attackBurstShots === 0) this.teleportToSafePoint(this.currentPhase > 0 ? 235 : 195);
       const total = phase.bulletCount + bonusBullets;
       for (let i = 0; i < total; i++) {
         const a = (i / total) * Math.PI * 2 + this.phaseTimer * 0.04;
@@ -6183,19 +6373,19 @@ class BossEnemy extends EliteEnemy {
         }
       }
     } else if (phase.attack === 'clone_barrage') {
-      const clusters = this.currentPhase > 0 ? 3 : 2;
+      const clusters = 2;
       for (let j = 0; j < clusters; j++) {
         const angle = (j / clusters) * Math.PI * 2 + this.phaseTimer * 0.05;
-        const cx = player.x + Math.cos(angle) * (this.currentPhase > 0 ? 120 : 90);
-        const cy = player.y + Math.sin(angle) * (this.currentPhase > 0 ? 100 : 70);
-        for (let i = 0; i < 5; i++) {
-          const a = (i / 5) * Math.PI * 2 + angle * 0.4;
+        const cx = player.x + Math.cos(angle) * (this.currentPhase > 0 ? 112 : 90);
+        const cy = player.y + Math.sin(angle) * (this.currentPhase > 0 ? 92 : 70);
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * Math.PI * 2 + angle * 0.4;
           const b = new Bullet(cx, cy, a, phase.bulletSpeed + 0.15, '#aaf', false, 1);
-          b.radius = 3.2;
+          b.radius = 3;
           enemyBullets.push(b);
         }
       }
-      this.teleportToSafePoint(210);
+      if (this.attackBurstShots === 0) this.teleportToSafePoint(235);
     } else if (phase.attack === 'turret_salvo') {
       const offsets = [-30, 0, 30];
       for (const offset of offsets) {
@@ -6321,7 +6511,9 @@ class BossEnemy extends EliteEnemy {
     }
   }
   spawnBossEscort() {
-    if (enemies.length >= Math.max(6, getWaveConcurrentEnemyCap() + 1)) return;
+    if (enemies.length >= getWaveConcurrentEnemyCap()) return;
+    const activeEscorts = enemies.filter(e => e.alive && e !== this && e.isElite).length;
+    if (activeEscorts >= 1) return;
     let escortDef = eliteTypes[0];
     if (this.bossDef.name === '巨兽坦克') escortDef = eliteTypes[0];
     else if (this.bossDef.name === '幻影坦克') escortDef = eliteTypes[2];
@@ -6851,7 +7043,7 @@ function earnFragments(amount) {
   coreFragments += amount;
   saveProgression();
   const toast = document.getElementById('achieve-toast');
-  toast.querySelector('.achieve-icon').textContent = '💎';
+  toast.querySelector('.achieve-icon').textContent = 'MS';
   toast.querySelector('.achieve-name').textContent = '+' + amount + ' 月光石';
   toast.querySelector('.achieve-label').textContent = '总计: ' + coreFragments;
   toast.querySelector('.achieve-name').style.color = '#da0';
@@ -7300,10 +7492,10 @@ function renderLeaderboard() {
   }
   grid.innerHTML = scores.map((s, i) => {
     const rankClass = i === 0 ? 'gold' : (i === 1 ? 'silver' : (i === 2 ? 'bronze' : ''));
-    const icons = ['🥇','🥈','🥉'];
-    const tankNames = {spread:'扩散',focus:'集中',wide:'广域',burst:'爆裂',sniper:'狙击',homing:'追踪'};
+    const rankCodes = ['RK-I','RK-II','RK-III'];
+    const tankNames = {spread:'扩散',focus:'集中',wide:'广域',burst:'爆裂',sniper:'狙击',homing:'追踪',border:'境界'};
     return `<div class="leader-row">
-      <span class="leader-rank ${rankClass}">${icons[i] || (i+1)}</span>
+      <span class="leader-rank ${rankClass}">${rankCodes[i] || ('RK-' + String(i+1).padStart(2,'0'))}</span>
       <div class="leader-info">
         <div class="leader-score">${s.score.toLocaleString()} 分</div>
         <div class="leader-detail">${tankNames[s.tank]||'?'}型 · 第${s.wave}波 · ${s.date}</div>
@@ -7695,6 +7887,7 @@ function spawnEnemy() {
   const enemy = new EnemyTank(x, y, type.color, type.turret, type.speed * speedMul, hp, type.kind);
   enemy.shootDelay = Math.max(42, Math.floor(enemy.shootDelay * (type.kind === 'brute' ? 1.12 : (type.kind === 'runner' ? 0.82 : 0.95))));
   enemies.push(enemy);
+  discoverBestiary('normals', type.kind);
   return true;
 }
 
@@ -7852,6 +8045,7 @@ function update() {
   for (const b of enemyBullets) b.update();
 
   // Collisions
+  checkBulletBulletCollisions();
   checkBulletTankCollisions(playerBullets, enemies, true);
   checkBulletTankCollisions(enemyBullets, [player], false);
 
@@ -7865,10 +8059,9 @@ function update() {
     // Wave cleared - pause before next wave
     if (wavePause === 0) {
       showWaveNotification('第 ' + wave + ' 波 清除!', (wave % 3 === 0) ? '补给时间! 准备迎接下一波' : '');
-      // Show modifier choice every 2 waves (starting from wave 1)
-      if (wave >= 1 && wave % 2 === 0 && activeModifiers.length < 8) {
-        setTimeout(() => showModifierChoice(), 800);
-        return; // wait for modifier choice
+      if (shouldClearDifficulty()) {
+        clearDifficulty();
+        return;
       }
     }
     wavePause++;
@@ -7902,21 +8095,6 @@ function update() {
     waveNotificationTimer--;
     if (waveNotificationTimer <= 0) {
       document.getElementById('wave-notify').classList.remove('show');
-    }
-  }
-
-  // Increase difficulty
-  difficultyTimer++;
-  if (difficultyTimer >= 1800) {
-    difficultyTimer = 0;
-    level++;
-    onLevelUp();
-    checkAchievements();
-    if (enemies.length < getWaveConcurrentEnemyCap()) {
-      waveEnemiesRemaining++;
-      waveEnemiesToSpawn++;
-      waveEnemiesTotal++;
-      if (spawnEnemy()) waveEnemiesToSpawn = Math.max(0, waveEnemiesToSpawn - 1);
     }
   }
 
@@ -7999,6 +8177,7 @@ function update() {
   document.getElementById('score').textContent = score;
   document.getElementById('lives').textContent = lives;
   document.getElementById('level').textContent = level;
+  updateRunXpHud();
   const ammoEl = document.getElementById('ammo');
   if (ammoEl && player) {
     ammoEl.textContent = player.reloadTimer > 0
@@ -8179,7 +8358,7 @@ function draw() {
   if (shakeIntensity > 0.1) ctx.restore();
 }
 
-function endGame() {
+function endGame(victory = false) {
   gameOverFlag = true;
   gameRunning = false;
   isPaused = false;
@@ -8192,9 +8371,20 @@ function endGame() {
   if (!isDailyChallenge) addToLeaderboard(currentDifficulty, score, currentTankType, wave);
   document.getElementById('final-score').textContent = score;
   if (!isDailyChallenge) document.getElementById('daily-target').style.display = 'none';
-  document.getElementById('game-over').classList.add('visible');
+  const gameOverPanel = document.getElementById('game-over');
+  const finalTitle = document.getElementById('final-title');
+  const endingStory = document.getElementById('ending-story');
+  if (finalTitle) finalTitle.textContent = victory ? '难 度 通 关' : '游戏结束';
+  if (endingStory) {
+    endingStory.textContent = victory
+      ? getEndingStory()
+      : '雷达重新归零，灰域把这次失败收进尘埃。整备室仍保留着你的机体编号，等待下一次出击。';
+    endingStory.style.display = victory ? 'block' : 'none';
+  }
+  gameOverPanel.classList.toggle('victory', !!victory);
+  gameOverPanel.classList.add('visible');
   // Show quick restart hint
-  const hint = document.getElementById('game-over');
+  const hint = gameOverPanel;
   if (!hint.querySelector('.quick-hint')) {
     const span = document.createElement('p');
     span.className = 'quick-hint';
@@ -8206,7 +8396,8 @@ function endGame() {
 
 function quickRestart() {
   if (!gameOverFlag) return;
-  document.getElementById('game-over').classList.remove('visible');
+  const gameOverPanel = document.getElementById('game-over');
+  gameOverPanel.classList.remove('visible', 'victory');
   document.getElementById('pause-screen').style.display = 'none';
   isPaused = false;
   const hint = document.querySelector('.quick-hint');
@@ -8223,6 +8414,28 @@ function quickRestart() {
     });
   } else {
     startGame(savedDiff, savedTank);
+  }
+}
+
+function checkBulletBulletCollisions() {
+  let sparks = 0;
+  for (const p of playerBullets) {
+    if (!p.alive) continue;
+    for (const e of enemyBullets) {
+      if (!e.alive) continue;
+      const dx = p.x - e.x;
+      const dy = p.y - e.y;
+      const r = (p.radius || 3) + (e.radius || 3) + 2;
+      if (dx * dx + dy * dy <= r * r) {
+        p.alive = false;
+        e.alive = false;
+        if (sparks < 16) {
+          spawnExplosion((p.x + e.x) / 2, (p.y + e.y) / 2, 4, '#8ce8ff', '#f6e5aa');
+          sparks++;
+        }
+        break;
+      }
+    }
   }
 }
 
@@ -8251,7 +8464,23 @@ function resetRunState() {
   buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0, magnet:0, pierce:0, vampire:0, double_score:0, big_bullet:0, explosive:0, invisible:0, thorns:0, overdrive:0, timewarp:0, goldrush:0 };
   isBossWave = false;
   bossRef = null;
+  runXp = 0;
+  xpToNext = 100;
+  modifierChoiceMode = 'level';
+  runBossesSeen = new Set();
+  lastBossName = null;
+  difficultyCleared = false;
   resetModifiers();
+  updateRunXpHud();
+  const finalTitle = document.getElementById('final-title');
+  const endingStory = document.getElementById('ending-story');
+  const gameOverPanel = document.getElementById('game-over');
+  if (finalTitle) finalTitle.textContent = '游戏结束';
+  if (endingStory) {
+    endingStory.textContent = '';
+    endingStory.style.display = 'none';
+  }
+  if (gameOverPanel) gameOverPanel.classList.remove('victory');
 }
 
 function restartGame() {
@@ -8273,7 +8502,7 @@ function restartGame() {
   document.getElementById('wave-notify').classList.remove('show');
   document.getElementById('combo-display').classList.remove('active');
   document.getElementById('daily-target').style.display = 'none';
-  document.getElementById('game-over').classList.remove('visible');
+  document.getElementById('game-over').classList.remove('visible', 'victory');
   document.getElementById('pause-screen').style.display = 'none';
   const hint = document.querySelector('.quick-hint');
   if (hint) hint.remove();
@@ -8351,6 +8580,7 @@ function startGame(difficulty, tankType, options = {}) {
   document.getElementById('lives').textContent = lives;
   document.getElementById('score').textContent = score;
   document.getElementById('level').textContent = level;
+  updateRunXpHud();
 }
 
 init();
