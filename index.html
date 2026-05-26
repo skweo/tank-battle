@@ -77,6 +77,30 @@ canvas { display: block; background: #0a0f18; }
 }
 #game-over button.retry-btn { color: #f6e5aa; border-color: rgba(244,152,0,0.44); background: rgba(244,152,0,0.13); }
 #game-over button:hover { background: rgba(40,48,58,0.9); border-color: rgba(244,152,0,0.6); }
+#pause-screen {
+  position: absolute; inset: 0; z-index: 18; display: none;
+  flex-direction: column; justify-content: center; align-items: center; gap: 14px;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(244,152,0,0.12), transparent 34%),
+    linear-gradient(180deg, rgba(4,7,11,0.76), rgba(3,5,8,0.92));
+  backdrop-filter: blur(3px);
+}
+#pause-screen h1 {
+  color: #f6e5aa; font-size: 34px; font-weight: 300; letter-spacing: 9px;
+  text-shadow: 0 0 24px rgba(244,152,0,0.34);
+}
+#pause-screen p { color: #8fa0b5; font-size: 12px; letter-spacing: 3px; }
+#pause-screen .pause-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+#pause-screen button {
+  padding: 11px 28px; min-width: 128px;
+  border: 1px solid rgba(244,152,0,0.42);
+  color: #f6e5aa; background: rgba(12,16,22,0.86);
+  font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 3px; cursor: pointer;
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+  transition: all 0.2s;
+}
+#pause-screen button:hover { transform: translateY(-2px); background: rgba(244,152,0,0.16); box-shadow: 0 0 18px rgba(244,152,0,0.16); }
+#pause-screen .pause-home { color: #b8c4d2; border-color: rgba(140,232,255,0.28); }
 #start-screen {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -765,7 +789,7 @@ canvas { display: block; background: #0a0f18; }
 #leaderboard-screen .leader-detail { color: #6b7d95; font-size: 10px; }
 #leaderboard-screen .leader-empty { text-align: center; color: #4a5a70; padding: 18px; font-size: 13px; }
 
-/* v3.6.11 expanded battlefield and progression pass */
+/* v3.6.12 battle pause overlay */
 :root {
   --ui-void: #04070d;
   --ui-obsidian: #081019;
@@ -1550,6 +1574,15 @@ canvas { background: #070d13; }
       <button class="retry-btn" onclick="quickRestart()">再来一局</button>
     </div>
   </div>
+  <div id="pause-screen">
+    <h1>战术暂停</h1>
+    <p>PAUSED / 作战时间冻结</p>
+    <div class="pause-actions">
+      <button onclick="resumeGame()">继续游戏</button>
+      <button class="pause-home" onclick="returnHomeFromPause()">回到主页</button>
+    </div>
+    <p>按 Esc 或 P 可继续</p>
+  </div>
   <div id="achieve-toast">
     <span class="achieve-icon"></span>
     <span class="achieve-name"></span>
@@ -1653,7 +1686,7 @@ canvas { background: #070d13; }
     <div class="best-grid" id="bestiary-grid"></div>
     <button class="best-back-btn" onclick="hideBestiary()">返回</button>
   </div>
-  <div id="instructions">WASD 移动 | 鼠标瞄准 | 左键射击 | R 重新开始</div>
+  <div id="instructions">WASD 移动 | 鼠标瞄准 | 左键射击 | Esc / P 暂停</div>
   <div id="modifier-screen">
     <h2>选 择 改 造 器</h2>
     <div class="mod-choices" id="modifier-choices"></div>
@@ -1675,6 +1708,7 @@ let lives = 3;
 let level = 1;
 let gameRunning = true;
 let gameOverFlag = false;
+let isPaused = false;
 let currentDifficulty = 'normal';
 let wave = 1;
 let waveEnemiesRemaining = 0;
@@ -2086,6 +2120,7 @@ function pickModifier(id) {
   activeModifiers.push(def);
   document.getElementById('modifier-screen').style.display = 'none';
   gameRunning = true;
+  isPaused = false;
   startNextWave();
   const toast = document.getElementById('achieve-toast');
   toast.querySelector('.achieve-icon').textContent = def.icon;
@@ -3030,9 +3065,15 @@ let mouseDown = false;
 
 window.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
-  if (e.key.toLowerCase() === 'r') { if (gameOverFlag) quickRestart(); else if (gameRunning) restartGame(); }
+  if (e.key.toLowerCase() === 'r' && gameOverFlag) quickRestart();
+  if (e.key.toLowerCase() === 'p') {
+    if (isPaused) resumeGame();
+    else pauseGame();
+  }
   if (e.key === 'Escape') {
-    if (document.getElementById('lab-screen').style.display === 'flex') hideLabScreen();
+    if (isPaused) resumeGame();
+    else if (gameRunning && !gameOverFlag) pauseGame();
+    else if (document.getElementById('lab-screen').style.display === 'flex') hideLabScreen();
     else if (document.getElementById('leaderboard-screen').style.display === 'flex') hideLeaderboard();
     else if (document.getElementById('bestiary-screen').style.display === 'flex') hideBestiary();
     else if (document.getElementById('achievements-screen').style.display === 'flex') hideAchievements();
@@ -3047,6 +3088,29 @@ canvas.addEventListener('mousemove', e => {
 canvas.addEventListener('mousedown', e => { if (e.button === 0) mouseDown = true; });
 canvas.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+function pauseGame() {
+  if (!gameRunning || gameOverFlag || isPaused) return;
+  isPaused = true;
+  gameRunning = false;
+  mouseDown = false;
+  stopMusic();
+  document.getElementById('pause-screen').style.display = 'flex';
+}
+
+function resumeGame() {
+  if (!isPaused) return;
+  isPaused = false;
+  gameRunning = true;
+  document.getElementById('pause-screen').style.display = 'none';
+  startMusic();
+}
+
+function returnHomeFromPause() {
+  isPaused = false;
+  document.getElementById('pause-screen').style.display = 'none';
+  restartGame();
+}
 
 // --- Floating Damage Numbers ---
 const dmgNumbers = [];
@@ -6831,7 +6895,9 @@ function draw() {
 function endGame() {
   gameOverFlag = true;
   gameRunning = false;
+  isPaused = false;
   stopMusic();
+  document.getElementById('pause-screen').style.display = 'none';
   if (isDailyChallenge) {
     saveDailyBest(score);
     renderDailyTarget();
@@ -6854,6 +6920,8 @@ function endGame() {
 function quickRestart() {
   if (!gameOverFlag) return;
   document.getElementById('game-over').classList.remove('visible');
+  document.getElementById('pause-screen').style.display = 'none';
+  isPaused = false;
   const hint = document.querySelector('.quick-hint');
   if (hint) hint.remove();
   const savedDiff = currentDifficulty;
@@ -6872,6 +6940,7 @@ function quickRestart() {
 }
 
 function resetRunState() {
+  isPaused = false;
   wave = 0;
   waveEnemiesRemaining = 0;
   waveEnemiesTotal = 0;
@@ -6903,6 +6972,7 @@ function restartGame() {
   level = 1;
   gameRunning = false;
   gameOverFlag = false;
+  isPaused = false;
   stopMusic();
   resetRunState();
   isDailyChallenge = false;
@@ -6916,6 +6986,7 @@ function restartGame() {
   document.getElementById('combo-display').classList.remove('active');
   document.getElementById('daily-target').style.display = 'none';
   document.getElementById('game-over').classList.remove('visible');
+  document.getElementById('pause-screen').style.display = 'none';
   const hint = document.querySelector('.quick-hint');
   if (hint) hint.remove();
   document.getElementById('start-screen').style.display = 'flex';
@@ -6957,6 +7028,7 @@ function startGame(difficulty, tankType, options = {}) {
   level = 1;
   gameRunning = true;
   gameOverFlag = false;
+  isPaused = false;
   initAudio();
   startMusic();
   resetRunState();
@@ -6986,6 +7058,7 @@ function startGame(difficulty, tankType, options = {}) {
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('tank-select-screen').style.display = 'none';
   document.getElementById('game-over').classList.remove('visible');
+  document.getElementById('pause-screen').style.display = 'none';
   document.getElementById('lives').textContent = lives;
   document.getElementById('score').textContent = score;
   document.getElementById('level').textContent = level;
