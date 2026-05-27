@@ -2385,6 +2385,12 @@ canvas { background: #070d13; }
   font: 800 10px 'Courier New','Microsoft YaHei',monospace;
   letter-spacing: 1.6px;
 }
+#protocol-screen .protocol-zoom-readout {
+  color: #8ce8ff;
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(140,232,255,0.2);
+}
 #protocol-screen .protocol-viewport {
   position: relative;
   width: 100%;
@@ -2406,7 +2412,7 @@ canvas { background: #070d13; }
   cursor: grabbing;
 }
 #protocol-screen .protocol-viewport::before {
-  content: 'DRAG EMPTY SPACE TO PAN / SANCTUM MIND-MAP';
+  content: 'DRAG TO PAN / MOUSE WHEEL TO ZOOM / SANCTUM MIND-MAP';
   position: absolute;
   left: 14px;
   top: 12px;
@@ -2420,9 +2426,9 @@ canvas { background: #070d13; }
   position: absolute;
   left: 0;
   top: 0;
-  width: 2600px;
-  height: 1800px;
-  transform: translate(var(--pan-x, 0px), var(--pan-y, 0px));
+  width: 3800px;
+  height: 3000px;
+  transform: translate(var(--pan-x, 0px), var(--pan-y, 0px)) scale(var(--map-zoom, 1));
   transform-origin: 0 0;
 }
 #protocol-screen .protocol-map::before {
@@ -2464,8 +2470,8 @@ canvas { background: #070d13; }
 }
 #protocol-screen .protocol-core {
   position: absolute;
-  left: 1300px;
-  top: 900px;
+  left: 1900px;
+  top: 1500px;
   width: 178px;
   height: 178px;
   transform: translate(-50%, -50%);
@@ -2519,17 +2525,29 @@ canvas { background: #070d13; }
   left: calc(var(--node-x) * 1px);
   top: calc(var(--node-y) * 1px);
   z-index: 1;
-  width: 220px;
+  width: 232px;
   min-height: 82px;
   margin: 0;
   transform: translate(-50%, -50%);
-  grid-template-columns: 38px minmax(0, 1fr);
-  padding: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 10px 10px 9px 14px;
   backdrop-filter: blur(2px);
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
+#protocol-screen .protocol-node::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, transparent, rgba(var(--branch-rgb, 246,229,170),0.95), transparent);
+  box-shadow: 0 0 14px rgba(var(--branch-rgb, 246,229,170),0.22);
+}
 #protocol-screen .protocol-node.root {
-  width: 228px;
+  width: 240px;
   border-color: rgba(var(--branch-rgb, 246,229,170),0.44);
   box-shadow: 0 0 28px rgba(var(--branch-rgb, 246,229,170),0.12);
 }
@@ -2549,11 +2567,6 @@ canvas { background: #070d13; }
   font: 900 8px 'Courier New','Microsoft YaHei',monospace;
   letter-spacing: 1px;
   margin-bottom: 3px;
-}
-#protocol-screen .protocol-node .node-orb {
-  width: 32px;
-  height: 32px;
-  font-size: 10px;
 }
 #protocol-screen .protocol-node .node-name {
   font-size: 12px;
@@ -8860,8 +8873,9 @@ let tankUpgrades = {};   // { spread: {hp:0,dmg:0,spd:0,special:0}, ... }
 let globalResearch = {};
 let evolvedTanks = new Set();
 let labSelectedTank = 'spread';
-const PROTOCOL_MAP_SIZE = { width: 2600, height: 1800, centerX: 1300, centerY: 900 };
-let protocolMapPan = { x: 0, y: 0, initialized: false, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
+const PROTOCOL_MAP_SIZE = { width: 3800, height: 3000, centerX: 1900, centerY: 1500 };
+const PROTOCOL_ZOOM_LIMITS = { min: 0.58, max: 1.45, step: 0.12 };
+let protocolMapPan = { x: 0, y: 0, zoom: 1, initialized: false, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
 
 const GLOBAL_RESEARCH_BRANCHES = [
   { id:'body', code:'SAN', name:'圣骸机体', desc:'底盘、装甲、弹仓与装填仪式。它让每一台机体都像从同一座圣龛中醒来。', color:'#f6e5aa', rgb:'246,229,170' },
@@ -9133,18 +9147,63 @@ const GLOBAL_RESEARCH_DEFS = [
     next:l => '下一阶 经验 +' + ((l + 1) * 1.4).toFixed(1) + '% / 全域MS +' + ((l + 1) * 0.6).toFixed(1) + '%',
     lore:'索引列出所有没能返航的路线。后来的驾驶员沿着它们前进，像沿着墓碑之间的窄路。',
   },
+  {
+    id:'reliquary_spine', branch:'body', row:7, prereq:{ memorial_core:1, anchor_frame:1 }, code:'R-SPN', name:'圣匣脊柱', max:3, costBase:470,
+    desc:l => '最大HP +' + (l >= 3 ? 1 : 0) + ' / 开火稳定 +' + (l * 0.4).toFixed(1) + '%',
+    next:l => '下一阶 HP +' + ((l + 1) >= 3 ? 1 : 0) + ' / 开火稳定 +' + ((l + 1) * 0.4).toFixed(1) + '%',
+    lore:'圣匣脊柱不会让机体更勇敢，它只让每一次退缩都被装甲记住，然后慢慢纠正。',
+    apply(t, lvl){ t.hpBonus += lvl >= 3 ? 1 : 0; t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.004; },
+  },
+  {
+    id:'martyr_hydraulics', branch:'body', row:7, prereq:{ sanctum_network:1, chassis_vow:1 }, code:'M-HYD', name:'殉道液压', max:3, costBase:450,
+    desc:l => '移速 +' + (l * 0.35).toFixed(2) + '% / 装填 -' + (l * 0.35).toFixed(2) + '%',
+    next:l => '下一阶 移速 +' + ((l + 1) * 0.35).toFixed(2) + '% / 装填 -' + ((l + 1) * 0.35).toFixed(2) + '%',
+    lore:'液压管里流动的不是油，而是撤离名单上没被念完的名字。它们推着底盘继续向前。',
+    apply(t, lvl){ t.speed += lvl * 0.0035; t.reloadTime = Math.max(86, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.0035))); },
+  },
+  {
+    id:'eclipse_rangefinder', branch:'ordnance', row:7, prereq:{ terminal_firing_table:1, muzzle_choir:1 }, code:'E-RNG', name:'蚀月测距仪', max:3, costBase:485,
+    desc:l => '弹速 +' + (l * 0.012).toFixed(3) + ' / 特化弹道稳定 +' + (l * 0.5).toFixed(1) + '%',
+    next:l => '下一阶 弹速 +' + ((l + 1) * 0.012).toFixed(3) + ' / 特化弹道稳定 +' + ((l + 1) * 0.5).toFixed(1) + '%',
+    lore:'蚀月测距仪会在扣下扳机前闪烁一次。有人说那是距离，有人说那是命运被量出的误差。',
+    apply(t, lvl){
+      t.bulletSpeed += lvl * 0.012;
+      t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + lvl * 0.005;
+      t.riftSpeedBonus = (t.riftSpeedBonus || 0) + lvl * 0.003;
+      t.orbitSpeedBonus = (t.orbitSpeedBonus || 0) + lvl * 0.003;
+    },
+  },
+  {
+    id:'interdiction_choir', branch:'ordnance', row:7, prereq:{ counter_gospel:1, recoil_sanctum:2 }, code:'I-CHR', name:'拦截唱诗班', max:2, costBase:465,
+    desc:l => '子弹对撞强度 +' + (l >= 2 ? 1 : 0) + ' / 开火稳定 +' + (l * 0.6).toFixed(1) + '%',
+    next:l => '下一阶 对撞 +' + ((l + 1) >= 2 ? 1 : 0) + ' / 开火稳定 +' + ((l + 1) * 0.6).toFixed(1) + '%',
+    lore:'唱诗班的乐谱只写给飞来的敌弹。每一节休止符，都是一次被迫停止的杀意。',
+    apply(t, lvl){ t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.006; },
+  },
+  {
+    id:'ashen_caravan', branch:'logistics', row:7, prereq:{ saint_cache:1, pilgrimage_index:1 }, code:'A-CVN', name:'灰烬商队', max:3, costBase:455,
+    desc:l => '战场MS +' + (l * 0.5).toFixed(1) + '% / 道具投放 +' + (l * 0.35).toFixed(2) + '%',
+    next:l => '下一阶 MS +' + ((l + 1) * 0.5).toFixed(1) + '% / 投放 +' + ((l + 1) * 0.35).toFixed(2) + '%',
+    lore:'灰烬商队没有旗帜，只在履带印之间留下小小的补给封条。没人知道他们是否还算活人。',
+  },
+  {
+    id:'mercy_accountant', branch:'logistics', row:7, prereq:{ black_box_routes:1, repair_canticle:3 }, code:'M-ACC', name:'慈悲账房', max:2, costBase:475,
+    desc:l => '刷新折扣额外 -' + (l * 0.8).toFixed(1) + '% / 修复概率 +' + (l * 0.25).toFixed(2) + '%',
+    next:l => '下一阶 折扣 -' + ((l + 1) * 0.8).toFixed(1) + '% / 修复 +' + ((l + 1) * 0.25).toFixed(2) + '%',
+    lore:'账房把慈悲写进表格最末行。若余额足够，它会让奇迹看起来像一次普通报销。',
+  },
 ];
 
 const GLOBAL_RESEARCH_LAYOUT = {
-  armor_line:{ x:1300, y:665 }, mag_foundry:{ x:1080, y:505 }, servo_step:{ x:1520, y:505 }, reload_rite:{ x:930, y:330 },
-  chassis_vow:{ x:1670, y:330 }, sigil_bus:{ x:760, y:170 }, anchor_frame:{ x:1840, y:170 }, sanctum_network:{ x:1300, y:195 },
-  memorial_core:{ x:1300, y:70 },
-  ballistic_archive:{ x:1535, y:1015 }, parallax_sight:{ x:1765, y:930 }, coolant_chapel:{ x:1800, y:1110 }, recoil_sanctum:{ x:1625, y:1260 },
-  special_sync:{ x:2035, y:1010 }, clash_calculus:{ x:1985, y:1280 }, muzzle_choir:{ x:2220, y:1130 }, counter_gospel:{ x:2290, y:1450 },
-  ordnance_doctrine:{ x:2110, y:1580 }, terminal_firing_table:{ x:2390, y:1690 },
-  salvage_prayer:{ x:1065, y:1035 }, supply_liturgy:{ x:835, y:1110 }, vault_cartography:{ x:1045, y:1265 }, after_action_tithe:{ x:820, y:945 },
-  repair_canticle:{ x:610, y:1265 }, reroll_writ:{ x:895, y:1480 }, field_sanctuary:{ x:420, y:1470 }, black_box_routes:{ x:1140, y:1605 },
-  saint_cache:{ x:755, y:1685 }, moon_tithe:{ x:265, y:1625 }, pilgrimage_index:{ x:525, y:930 },
+  armor_line:{ x:1900, y:1220 }, mag_foundry:{ x:1550, y:980 }, servo_step:{ x:2250, y:980 }, reload_rite:{ x:1290, y:720 },
+  chassis_vow:{ x:2510, y:720 }, sigil_bus:{ x:1030, y:470 }, anchor_frame:{ x:2780, y:470 }, sanctum_network:{ x:1900, y:430 },
+  memorial_core:{ x:1900, y:210 }, reliquary_spine:{ x:1650, y:80 }, martyr_hydraulics:{ x:2320, y:120 },
+  ballistic_archive:{ x:2260, y:1730 }, parallax_sight:{ x:2620, y:1590 }, coolant_chapel:{ x:2680, y:1880 }, recoil_sanctum:{ x:2360, y:2110 },
+  special_sync:{ x:3060, y:1730 }, clash_calculus:{ x:3010, y:2160 }, muzzle_choir:{ x:3350, y:1910 }, counter_gospel:{ x:3460, y:2440 },
+  ordnance_doctrine:{ x:3180, y:2630 }, terminal_firing_table:{ x:3540, y:2820 }, eclipse_rangefinder:{ x:3360, y:2920 }, interdiction_choir:{ x:3680, y:2290 },
+  salvage_prayer:{ x:1540, y:1740 }, supply_liturgy:{ x:1170, y:1880 }, vault_cartography:{ x:1490, y:2110 }, after_action_tithe:{ x:1080, y:1600 },
+  repair_canticle:{ x:780, y:2150 }, reroll_writ:{ x:1240, y:2460 }, field_sanctuary:{ x:480, y:2520 }, black_box_routes:{ x:1640, y:2660 },
+  saint_cache:{ x:950, y:2840 }, moon_tithe:{ x:260, y:2780 }, pilgrimage_index:{ x:650, y:1490 }, ashen_caravan:{ x:500, y:1240 }, mercy_accountant:{ x:1470, y:2920 },
 };
 
 const TANK_EVOLUTION = {
@@ -9413,7 +9472,7 @@ function canPurchaseGlobalResearch(id) {
 }
 
 function getSalvageResearchMultiplier() {
-  return 1 + getGlobalResearchLevel('salvage_prayer') * 0.008 + getGlobalResearchLevel('moon_tithe') * 0.012 + getGlobalResearchLevel('pilgrimage_index') * 0.006;
+  return 1 + getGlobalResearchLevel('salvage_prayer') * 0.008 + getGlobalResearchLevel('moon_tithe') * 0.012 + getGlobalResearchLevel('pilgrimage_index') * 0.006 + getGlobalResearchLevel('ashen_caravan') * 0.005;
 }
 
 function getVaultResearchMultiplier() {
@@ -9421,19 +9480,19 @@ function getVaultResearchMultiplier() {
 }
 
 function getGlobalSupplyDropMultiplier() {
-  return 1 + getGlobalResearchLevel('supply_liturgy') * 0.008 + getGlobalResearchLevel('field_sanctuary') * 0.006 + getGlobalResearchLevel('saint_cache') * 0.007;
+  return 1 + getGlobalResearchLevel('supply_liturgy') * 0.008 + getGlobalResearchLevel('field_sanctuary') * 0.006 + getGlobalResearchLevel('saint_cache') * 0.007 + getGlobalResearchLevel('ashen_caravan') * 0.0035;
 }
 
 function getGlobalRepairChance() {
-  return getGlobalResearchLevel('repair_canticle') * 0.004 + getGlobalResearchLevel('field_sanctuary') * 0.003;
+  return getGlobalResearchLevel('repair_canticle') * 0.004 + getGlobalResearchLevel('field_sanctuary') * 0.003 + getGlobalResearchLevel('mercy_accountant') * 0.0025;
 }
 
 function getGlobalRerollDiscount() {
-  return Math.min(0.16, getGlobalResearchLevel('reroll_writ') * 0.022 + getGlobalResearchLevel('black_box_routes') * 0.012);
+  return Math.min(0.18, getGlobalResearchLevel('reroll_writ') * 0.022 + getGlobalResearchLevel('black_box_routes') * 0.012 + getGlobalResearchLevel('mercy_accountant') * 0.008);
 }
 
 function getGlobalClashPowerBonus() {
-  return Math.floor((getGlobalResearchLevel('clash_calculus') + getGlobalResearchLevel('counter_gospel')) / 3);
+  return Math.floor((getGlobalResearchLevel('clash_calculus') + getGlobalResearchLevel('counter_gospel') + getGlobalResearchLevel('interdiction_choir')) / 3);
 }
 
 function getGlobalRunXpMultiplier() {
@@ -9949,8 +10008,11 @@ function renderProtocolTreeSplitMap() {
 function clampProtocolPan() {
   const viewport = document.getElementById('protocol-viewport');
   if (!viewport) return;
-  const minX = Math.min(0, viewport.clientWidth - PROTOCOL_MAP_SIZE.width - 28);
-  const minY = Math.min(0, viewport.clientHeight - PROTOCOL_MAP_SIZE.height - 28);
+  protocolMapPan.zoom = Math.max(PROTOCOL_ZOOM_LIMITS.min, Math.min(PROTOCOL_ZOOM_LIMITS.max, protocolMapPan.zoom || 1));
+  const scaledW = PROTOCOL_MAP_SIZE.width * protocolMapPan.zoom;
+  const scaledH = PROTOCOL_MAP_SIZE.height * protocolMapPan.zoom;
+  const minX = Math.min(0, viewport.clientWidth - scaledW - 28);
+  const minY = Math.min(0, viewport.clientHeight - scaledH - 28);
   protocolMapPan.x = Math.max(minX, Math.min(28, protocolMapPan.x));
   protocolMapPan.y = Math.max(minY, Math.min(28, protocolMapPan.y));
 }
@@ -9961,7 +10023,30 @@ function updateProtocolMapPan() {
   if (map) {
     map.style.setProperty('--pan-x', Math.round(protocolMapPan.x) + 'px');
     map.style.setProperty('--pan-y', Math.round(protocolMapPan.y) + 'px');
+    map.style.setProperty('--map-zoom', Number(protocolMapPan.zoom || 1).toFixed(3));
   }
+  const readout = document.getElementById('protocol-zoom-readout');
+  if (readout) {
+    readout.textContent = 'ZOOM ' + Math.round((protocolMapPan.zoom || 1) * 100) + '%';
+  }
+}
+
+function zoomProtocolMap(delta, clientX, clientY) {
+  const viewport = document.getElementById('protocol-viewport');
+  if (!viewport) return;
+  const oldZoom = Math.max(PROTOCOL_ZOOM_LIMITS.min, Math.min(PROTOCOL_ZOOM_LIMITS.max, protocolMapPan.zoom || 1));
+  const direction = delta < 0 ? 1 : -1;
+  const nextZoom = Math.max(PROTOCOL_ZOOM_LIMITS.min, Math.min(PROTOCOL_ZOOM_LIMITS.max, oldZoom + direction * PROTOCOL_ZOOM_LIMITS.step));
+  if (Math.abs(nextZoom - oldZoom) < 0.001) return;
+  const rect = viewport.getBoundingClientRect();
+  const vx = Number.isFinite(clientX) ? clientX - rect.left : viewport.clientWidth / 2;
+  const vy = Number.isFinite(clientY) ? clientY - rect.top : viewport.clientHeight / 2;
+  const mapX = (vx - protocolMapPan.x) / oldZoom;
+  const mapY = (vy - protocolMapPan.y) / oldZoom;
+  protocolMapPan.zoom = nextZoom;
+  protocolMapPan.x = vx - mapX * nextZoom;
+  protocolMapPan.y = vy - mapY * nextZoom;
+  updateProtocolMapPan();
 }
 
 function setupProtocolMapDrag() {
@@ -9991,11 +10076,16 @@ function setupProtocolMapDrag() {
     viewport.classList.remove('dragging');
     try { viewport.releasePointerCapture?.(e.pointerId); } catch(err) {}
   };
+  const wheelZoom = e => {
+    zoomProtocolMap(e.deltaY, e.clientX, e.clientY);
+    e.preventDefault();
+  };
   viewport.addEventListener('pointerdown', beginDrag);
   viewport.addEventListener('pointermove', moveDrag);
   viewport.addEventListener('pointerup', endDrag);
   viewport.addEventListener('pointercancel', endDrag);
   viewport.addEventListener('pointerleave', endDrag);
+  viewport.addEventListener('wheel', wheelZoom, { passive: false });
   window.addEventListener('resize', updateProtocolMapPan);
 }
 
@@ -10006,8 +10096,9 @@ function centerProtocolMapOnCore(force = false) {
     updateProtocolMapPan();
     return;
   }
-  protocolMapPan.x = Math.round(viewport.clientWidth / 2 - PROTOCOL_MAP_SIZE.centerX);
-  protocolMapPan.y = Math.round(viewport.clientHeight / 2 - PROTOCOL_MAP_SIZE.centerY);
+  protocolMapPan.zoom = Math.max(PROTOCOL_ZOOM_LIMITS.min, Math.min(PROTOCOL_ZOOM_LIMITS.max, protocolMapPan.zoom || 1));
+  protocolMapPan.x = Math.round(viewport.clientWidth / 2 - PROTOCOL_MAP_SIZE.centerX * protocolMapPan.zoom);
+  protocolMapPan.y = Math.round(viewport.clientHeight / 2 - PROTOCOL_MAP_SIZE.centerY * protocolMapPan.zoom);
   protocolMapPan.initialized = true;
   updateProtocolMapPan();
 }
@@ -10058,7 +10149,6 @@ function renderProtocolTree() {
     const root = getGlobalResearchPrereqEntries(def).length === 0;
     const cls = `${capped ? 'capped' : (available ? 'available' : 'locked')} ${lvl > 0 ? 'lit' : ''} ${root ? 'root' : ''}`;
     return `<div class="protocol-node ${cls}" data-protocol-id="${escapeHtml(def.id)}" style="--branch-rgb:${escapeHtml(branch.rgb)};--node-x:${layout.x};--node-y:${layout.y}">
-      <div class="node-orb">${escapeHtml(def.code.split('-')[0].slice(0, 3))}</div>
       <div class="node-body">
         <div class="node-branch">${escapeHtml(branch.code)} / ${escapeHtml(branch.name)}</div>
         <div class="node-name-row">
@@ -10081,7 +10171,7 @@ function renderProtocolTree() {
       <span class="axis-progress">${lit}/${defs.length} 已点亮 · ${revealed} 显现</span>
     </div>`;
   }).join('');
-  const panStyle = `--pan-x:${Math.round(protocolMapPan.x)}px;--pan-y:${Math.round(protocolMapPan.y)}px;`;
+  const panStyle = `--pan-x:${Math.round(protocolMapPan.x)}px;--pan-y:${Math.round(protocolMapPan.y)}px;--map-zoom:${Number(protocolMapPan.zoom || 1).toFixed(3)};`;
   panel.innerHTML = `<div class="protocol-header">
     <div>
       <div class="protocol-title">GLOBAL PROTOCOL / 圣城心智树</div>
@@ -10093,7 +10183,7 @@ function renderProtocolTree() {
     <div class="protocol-status-title">ONE MAP / THREE TRUNKS / DRAG TO PAN</div>
     <div class="protocol-axis-list">${branchSummary}</div>
   </div>
-  <div class="protocol-drag-hint">在空白区域按住拖拽，像查看脑图一样探索整张协议树；每个节点第一次点亮后，才会显现它延伸出的下一段树枝。</div>
+  <div class="protocol-drag-hint">在空白区域按住拖拽，像查看脑图一样探索整张协议树；滚轮可缩放视角，节点第一次点亮后才显现下一段树枝。<span class="protocol-zoom-readout" id="protocol-zoom-readout">ZOOM ${Math.round((protocolMapPan.zoom || 1) * 100)}%</span></div>
   <div class="protocol-viewport" id="protocol-viewport">
     <div class="protocol-map" id="protocol-map" style="${panStyle}">
       <svg class="protocol-links" viewBox="0 0 ${PROTOCOL_MAP_SIZE.width} ${PROTOCOL_MAP_SIZE.height}" preserveAspectRatio="none">${links.join('')}</svg>
