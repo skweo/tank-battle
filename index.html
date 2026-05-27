@@ -2118,7 +2118,7 @@ canvas { background: #070d13; }
   margin: 2px 0;
 }
 #protocol-screen .protocol-panel {
-  width: min(92%, 920px);
+  width: min(96%, 1120px);
   padding: 14px 16px 16px;
   border: 1px solid rgba(246,229,170,0.18);
   background:
@@ -2327,19 +2327,39 @@ canvas { background: #070d13; }
   font-size: 13px;
   padding: 8px 24px;
 }
-#protocol-screen .protocol-orbit-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+#protocol-screen .protocol-status-rail {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
   margin: 12px 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(246,229,170,0.12);
+  background:
+    linear-gradient(90deg, rgba(246,229,170,0.08), rgba(140,232,255,0.035), rgba(244,152,0,0.065)),
+    rgba(3,7,11,0.58);
+  clip-path: var(--ui-cut-sm);
+}
+#protocol-screen .protocol-status-title {
+  color: rgba(246,229,170,0.82);
+  font: 900 10px 'Courier New','Microsoft YaHei',monospace;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+#protocol-screen .protocol-axis-list {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
 }
 #protocol-screen .protocol-axis-chip {
   border: 1px solid rgba(var(--branch-rgb, 246,229,170),0.18);
   background:
-    linear-gradient(90deg, rgba(var(--branch-rgb, 246,229,170),0.1), rgba(4,8,12,0.58));
+    linear-gradient(90deg, rgba(var(--branch-rgb, 246,229,170),0.14), rgba(4,8,12,0.38));
   color: rgba(232,237,242,0.72);
-  padding: 8px 10px;
-  clip-path: var(--ui-cut-sm);
+  padding: 5px 8px;
+  border-radius: 999px;
 }
 #protocol-screen .axis-code {
   color: rgba(var(--branch-rgb, 246,229,170),0.95);
@@ -2353,8 +2373,8 @@ canvas { background: #070d13; }
   font-weight: 800;
 }
 #protocol-screen .axis-progress {
-  display: block;
-  margin-top: 4px;
+  display: inline-block;
+  margin-left: 6px;
   color: #7f92aa;
   font: 800 9px 'Courier New','Microsoft YaHei',monospace;
   letter-spacing: 1.1px;
@@ -2368,8 +2388,8 @@ canvas { background: #070d13; }
 #protocol-screen .protocol-viewport {
   position: relative;
   width: 100%;
-  height: min(62vh, 620px);
-  min-height: 430px;
+  height: min(68vh, 700px);
+  min-height: 500px;
   border: 1px solid rgba(246,229,170,0.14);
   background:
     radial-gradient(circle at 50% 50%, rgba(246,229,170,0.1), transparent 26%),
@@ -2400,8 +2420,8 @@ canvas { background: #070d13; }
   position: absolute;
   left: 0;
   top: 0;
-  width: 2200px;
-  height: 1500px;
+  width: 2600px;
+  height: 1800px;
   transform: translate(var(--pan-x, 0px), var(--pan-y, 0px));
   transform-origin: 0 0;
 }
@@ -2444,10 +2464,10 @@ canvas { background: #070d13; }
 }
 #protocol-screen .protocol-core {
   position: absolute;
-  left: 1100px;
-  top: 750px;
-  width: 172px;
-  height: 172px;
+  left: 1300px;
+  top: 900px;
+  width: 178px;
+  height: 178px;
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
@@ -2456,10 +2476,32 @@ canvas { background: #070d13; }
   background:
     radial-gradient(circle at 50% 38%, rgba(255,255,255,0.88), rgba(246,229,170,0.9) 36%, rgba(244,152,0,0.72) 72%),
     rgba(246,229,170,0.86);
-  clip-path: polygon(50% 0, 91% 25%, 91% 75%, 50% 100%, 9% 75%, 9% 25%);
-  box-shadow: 0 0 60px rgba(246,229,170,0.24), inset 0 0 20px rgba(7,16,23,0.18);
+  border-radius: 50%;
+  box-shadow: 0 0 72px rgba(246,229,170,0.25), inset 0 0 22px rgba(7,16,23,0.2);
   z-index: 2;
   pointer-events: none;
+}
+#protocol-screen .protocol-core::before {
+  content: '';
+  position: absolute;
+  inset: 19px;
+  border: 1px solid rgba(7,16,23,0.38);
+  clip-path: polygon(50% 0, 100% 86%, 0 86%);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.2), transparent 62%),
+    rgba(7,16,23,0.04);
+}
+#protocol-screen .protocol-core::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border: 1px solid rgba(246,229,170,0.18);
+  border-radius: 50%;
+  box-shadow: 0 0 34px rgba(140,232,255,0.08);
+}
+#protocol-screen .protocol-core > div {
+  position: relative;
+  z-index: 1;
 }
 #protocol-screen .protocol-core strong {
   display: block;
@@ -2477,7 +2519,7 @@ canvas { background: #070d13; }
   left: calc(var(--node-x) * 1px);
   top: calc(var(--node-y) * 1px);
   z-index: 1;
-  width: 228px;
+  width: 220px;
   min-height: 82px;
   margin: 0;
   transform: translate(-50%, -50%);
@@ -2487,9 +2529,9 @@ canvas { background: #070d13; }
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 #protocol-screen .protocol-node.root {
-  width: 242px;
+  width: 228px;
   border-color: rgba(var(--branch-rgb, 246,229,170),0.44);
-  box-shadow: 0 0 24px rgba(var(--branch-rgb, 246,229,170),0.08);
+  box-shadow: 0 0 28px rgba(var(--branch-rgb, 246,229,170),0.12);
 }
 #protocol-screen .protocol-node.lit {
   border-color: rgba(var(--branch-rgb, 246,229,170),0.54);
@@ -2548,7 +2590,8 @@ canvas { background: #070d13; }
   #lab-screen .lab-stat-upgrade-row { flex-wrap: wrap; }
   #lab-screen .lab-stat-meter { min-width: 120px; }
   #lab-screen .lab-stat-desc { flex: 1; }
-  #protocol-screen .protocol-orbit-summary { grid-template-columns: 1fr; }
+  #protocol-screen .protocol-status-rail { align-items: flex-start; flex-direction: column; }
+  #protocol-screen .protocol-axis-list { justify-content: flex-start; }
   #protocol-screen .protocol-header { grid-template-columns: 1fr; }
   #protocol-screen .protocol-progress { text-align: left; }
   #protocol-screen .protocol-viewport { min-height: 500px; height: 58vh; }
@@ -8817,7 +8860,7 @@ let tankUpgrades = {};   // { spread: {hp:0,dmg:0,spd:0,special:0}, ... }
 let globalResearch = {};
 let evolvedTanks = new Set();
 let labSelectedTank = 'spread';
-const PROTOCOL_MAP_SIZE = { width: 2200, height: 1500, centerX: 1100, centerY: 750 };
+const PROTOCOL_MAP_SIZE = { width: 2600, height: 1800, centerX: 1300, centerY: 900 };
 let protocolMapPan = { x: 0, y: 0, initialized: false, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
 
 const GLOBAL_RESEARCH_BRANCHES = [
@@ -8884,45 +8927,45 @@ const LAB_PART_CODES = {
 const GLOBAL_RESEARCH_DEFS = [
   {
     id:'armor_line', branch:'body', row:1, code:'A-LINE', name:'圣龛基线', max:6, costBase:130,
-    desc:l => '全机体最大HP +' + Math.floor(l / 3),
-    next:l => '下一阶 HP +' + Math.floor((l + 1) / 3),
+    desc:l => '全机体最大HP +' + Math.floor(l / 4),
+    next:l => '下一阶 HP +' + Math.floor((l + 1) / 4),
     lore:'最早的圣龛不是祭坛，而是装甲内侧一条拒绝熄灭的备用电路。',
-    apply(t, lvl){ t.hpBonus += Math.floor(lvl / 3); },
+    apply(t, lvl){ t.hpBonus += Math.floor(lvl / 4); },
   },
   {
     id:'mag_foundry', branch:'body', row:2, prereq:{ armor_line:2 }, code:'M-FND', name:'弹仓铸造', max:4, costBase:150,
-    desc:l => '全机体弹夹 +' + Math.floor(l / 3),
-    next:l => '下一阶 弹夹 +' + Math.floor((l + 1) / 3),
+    desc:l => '全机体弹夹 +' + Math.floor(l / 4),
+    next:l => '下一阶 弹夹 +' + Math.floor((l + 1) / 4),
     lore:'弹仓工坊把空壳称作“未完成的祈祷”，每一枚都要登记去向。',
-    apply(t, lvl){ t.magSize = Math.max(1, (t.magSize || 6) + Math.floor(lvl / 3)); },
+    apply(t, lvl){ t.magSize = Math.max(1, (t.magSize || 6) + Math.floor(lvl / 4)); },
   },
   {
     id:'reload_rite', branch:'body', row:3, prereq:{ mag_foundry:1 }, code:'R-RIT', name:'装填礼仪', max:5, costBase:145,
-    desc:l => '装填时间 -' + l + '%',
-    next:l => '下一阶 装填 -' + (l + 1) + '%',
+    desc:l => '装填时间 -' + (l * 0.7).toFixed(1) + '%',
+    next:l => '下一阶 装填 -' + ((l + 1) * 0.7).toFixed(1) + '%',
     lore:'装填手册被写成赞美诗，是为了让士兵在恐惧时仍能按顺序呼吸。',
-    apply(t, lvl){ t.reloadTime = Math.max(82, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.01))); },
+    apply(t, lvl){ t.reloadTime = Math.max(86, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.007))); },
   },
   {
     id:'servo_step', branch:'body', row:2, prereq:{ armor_line:1 }, code:'S-DRV', name:'伺服步进', max:5, costBase:120,
-    desc:l => '移动速度 +' + (l * 0.7).toFixed(1) + '%',
-    next:l => '下一阶 移速 +' + ((l + 1) * 0.7).toFixed(1) + '%',
+    desc:l => '移动速度 +' + (l * 0.5).toFixed(1) + '%',
+    next:l => '下一阶 移速 +' + ((l + 1) * 0.5).toFixed(1) + '%',
     lore:'灰域里的道路会移动，所以底盘也必须学会像幸存者一样改变步幅。',
-    apply(t, lvl){ t.speed += lvl * 0.007; },
+    apply(t, lvl){ t.speed += lvl * 0.005; },
   },
   {
     id:'chassis_vow', branch:'body', row:4, prereq:{ armor_line:4, servo_step:2 }, code:'C-VOW', name:'底盘誓约', max:3, costBase:260,
-    desc:l => '全机体HP +' + Math.floor((l + 1) / 2) + ' / 移速 +' + (l * 0.4).toFixed(1) + '%',
-    next:l => '下一阶 HP +' + Math.floor((l + 2) / 2) + ' / 移速 +' + ((l + 1) * 0.4).toFixed(1) + '%',
+    desc:l => '移速 +' + (l * 0.35).toFixed(2) + '% / 开火稳定 +' + (l * 0.3).toFixed(1) + '%',
+    next:l => '下一阶 移速 +' + ((l + 1) * 0.35).toFixed(2) + '% / 开火稳定 +' + ((l + 1) * 0.3).toFixed(1) + '%',
     lore:'驾驶员签下誓约后，机体会记住他的恐惧，也记住他没有后退。',
-    apply(t, lvl){ t.hpBonus += Math.floor((lvl + 1) / 2); t.speed += lvl * 0.004; },
+    apply(t, lvl){ t.speed += lvl * 0.0035; t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.003; },
   },
   {
     id:'ballistic_archive', branch:'ordnance', row:1, code:'B-ARC', name:'弹道档案', max:5, costBase:135,
-    desc:l => '基础弹速 +' + (l * 0.03).toFixed(2),
-    next:l => '下一阶 弹速 +' + ((l + 1) * 0.03).toFixed(2),
+    desc:l => '基础弹速 +' + (l * 0.02).toFixed(2),
+    next:l => '下一阶 弹速 +' + ((l + 1) * 0.02).toFixed(2),
     lore:'档案员不记录命中，只记录偏离。所有胜利都从承认误差开始。',
-    apply(t, lvl){ t.bulletSpeed += lvl * 0.03; },
+    apply(t, lvl){ t.bulletSpeed += lvl * 0.02; },
   },
   {
     id:'special_sync', branch:'ordnance', row:3, prereq:{ ballistic_archive:2 }, code:'SIG-S', name:'特弹同步', max:4, costBase:175,
@@ -8931,25 +8974,25 @@ const GLOBAL_RESEARCH_DEFS = [
     lore:'不同机体的奇迹被接入同一拍点，像战场深处的钟声终于对齐。',
     apply(t, lvl){
       if (t.specialInterval) t.specialInterval = Math.max(2, t.specialInterval - Math.floor(lvl / 4));
-      t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + lvl * 0.018;
-      t.riftSpeedBonus = (t.riftSpeedBonus || 0) + lvl * 0.009;
-      t.orbitSpeedBonus = (t.orbitSpeedBonus || 0) + lvl * 0.009;
-      t.baseHomingStrength = (t.baseHomingStrength || 0) + lvl * 0.0008;
+      t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + lvl * 0.012;
+      t.riftSpeedBonus = (t.riftSpeedBonus || 0) + lvl * 0.006;
+      t.orbitSpeedBonus = (t.orbitSpeedBonus || 0) + lvl * 0.006;
+      t.baseHomingStrength = (t.baseHomingStrength || 0) + lvl * 0.0005;
     },
   },
   {
     id:'coolant_chapel', branch:'ordnance', row:2, prereq:{ ballistic_archive:1 }, code:'C-CHP', name:'冷却圣堂', max:5, costBase:170,
-    desc:l => '射击冷却 -' + Math.floor((l + 1) / 2) + '帧',
-    next:l => '下一阶 冷却 -' + Math.floor((l + 2) / 2) + '帧',
+    desc:l => '射击冷却 -' + Math.floor(l / 3) + '帧',
+    next:l => '下一阶 冷却 -' + Math.floor((l + 1) / 3) + '帧',
     lore:'圣堂不是为了降温而建。它只是让过热的炮膛学会忏悔。',
-    apply(t, lvl){ t.shootDelay = Math.max(12, t.shootDelay - Math.floor((lvl + 1) / 2)); },
+    apply(t, lvl){ t.shootDelay = Math.max(15, t.shootDelay - Math.floor(lvl / 3)); },
   },
   {
     id:'recoil_sanctum', branch:'ordnance', row:2, prereq:{ ballistic_archive:1 }, code:'R-SAN', name:'后坐圣所', max:4, costBase:155,
-    desc:l => '开火减速惩罚缓和 +' + (l * 2) + '%',
-    next:l => '下一阶 减速缓和 +' + ((l + 1) * 2) + '%',
+    desc:l => '开火减速惩罚缓和 +' + (l * 1.2).toFixed(1) + '%',
+    next:l => '下一阶 减速缓和 +' + ((l + 1) * 1.2).toFixed(1) + '%',
     lore:'后坐力是炮火索取的税。圣所只是把税单写得慢一点。',
-    apply(t, lvl){ t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.01; },
+    apply(t, lvl){ t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.006; },
   },
   {
     id:'clash_calculus', branch:'ordnance', row:4, prereq:{ special_sync:2, recoil_sanctum:2 }, code:'C-CLS', name:'对撞演算', max:3, costBase:255,
@@ -8959,94 +9002,99 @@ const GLOBAL_RESEARCH_DEFS = [
   },
   {
     id:'salvage_prayer', branch:'logistics', row:1, code:'MS-R', name:'月石回收', max:5, costBase:160,
-    desc:l => '战场MOONSTONE +' + (l * 1.2).toFixed(1) + '%',
-    next:l => '下一阶 战场MS +' + ((l + 1) * 1.2).toFixed(1) + '%',
+    desc:l => '战场MOONSTONE +' + (l * 0.8).toFixed(1) + '%',
+    next:l => '下一阶 战场MS +' + ((l + 1) * 0.8).toFixed(1) + '%',
     lore:'回收队从不问月光石来自哪里。问了的人，后来都被调去清点空弹壳。',
   },
   {
     id:'supply_liturgy', branch:'logistics', row:2, prereq:{ salvage_prayer:1 }, code:'S-LIT', name:'补给礼拜', max:5, costBase:150,
-    desc:l => '战场道具投放 +' + (l * 1.2).toFixed(1) + '%',
-    next:l => '下一阶 投放 +' + ((l + 1) * 1.2).toFixed(1) + '%',
+    desc:l => '战场道具投放 +' + (l * 0.8).toFixed(1) + '%',
+    next:l => '下一阶 投放 +' + ((l + 1) * 0.8).toFixed(1) + '%',
     lore:'补给舱降落前会广播三秒钟圣歌，好让仍活着的人知道自己还被记得。',
   },
   {
     id:'repair_canticle', branch:'logistics', row:3, prereq:{ supply_liturgy:2 }, code:'R-CAN', name:'自修圣歌', max:5, costBase:185,
-    desc:l => '击杀修复概率 +' + (l * 0.7).toFixed(1) + '%',
-    next:l => '下一阶 修复概率 +' + ((l + 1) * 0.7).toFixed(1) + '%',
+    desc:l => '击杀修复概率 +' + (l * 0.4).toFixed(1) + '%',
+    next:l => '下一阶 修复概率 +' + ((l + 1) * 0.4).toFixed(1) + '%',
     lore:'旧医官把维修臂叫作唱诗班。它们没有喉咙，却总在装甲闭合时发出回声。',
   },
   {
     id:'vault_cartography', branch:'logistics', row:2, prereq:{ salvage_prayer:2 }, code:'V-MAP', name:'宝库测绘', max:4, costBase:190,
-    desc:l => '宝箱MOONSTONE +' + (l * 1.2).toFixed(1) + '%',
-    next:l => '下一阶 宝箱MS +' + ((l + 1) * 1.2).toFixed(1) + '%',
+    desc:l => '宝箱MOONSTONE +' + (l * 0.8).toFixed(1) + '%',
+    next:l => '下一阶 宝箱MS +' + ((l + 1) * 0.8).toFixed(1) + '%',
     lore:'地图上标出的不是宝库，而是上一支远征队没能带走的遗言。',
   },
   {
     id:'reroll_writ', branch:'logistics', row:3, prereq:{ vault_cartography:1 }, code:'R-WRT', name:'重掷敕令', max:3, costBase:220,
-    desc:l => '局内刷新花费 -' + (l * 3) + '%',
-    next:l => '下一阶 刷新花费 -' + ((l + 1) * 3) + '%',
+    desc:l => '局内刷新花费 -' + (l * 2.2).toFixed(1) + '%',
+    next:l => '下一阶 刷新花费 -' + ((l + 1) * 2.2).toFixed(1) + '%',
     lore:'概率不是神明，只是收费很高的书记员。敕令能让它少写几笔。',
   },
   {
     id:'field_sanctuary', branch:'logistics', row:4, prereq:{ repair_canticle:3, supply_liturgy:3 }, code:'F-SAN', name:'战地小圣所', max:3, costBase:285,
-    desc:l => '击杀修复概率额外 +' + (l * 0.5).toFixed(1) + '% / 道具投放 +' + (l * 0.8).toFixed(1) + '%',
-    next:l => '下一阶 修复 +' + ((l + 1) * 0.5).toFixed(1) + '% / 投放 +' + ((l + 1) * 0.8).toFixed(1) + '%',
+    desc:l => '击杀修复概率额外 +' + (l * 0.3).toFixed(1) + '% / 道具投放 +' + (l * 0.6).toFixed(1) + '%',
+    next:l => '下一阶 修复 +' + ((l + 1) * 0.3).toFixed(1) + '% / 投放 +' + ((l + 1) * 0.6).toFixed(1) + '%',
     lore:'有些阵地没有名字，只有一盏灯。灯还亮着，就说明撤退命令尚未抵达。',
   },
   {
     id:'moon_tithe', branch:'logistics', row:5, prereq:{ field_sanctuary:2, vault_cartography:3 }, code:'M-TTH', name:'碎月什一税', max:2, costBase:360,
-    desc:l => '战场与宝箱MOONSTONE额外 +' + (l * 1.8).toFixed(1) + '%',
-    next:l => '下一阶 全域MS额外 +' + ((l + 1) * 1.8).toFixed(1) + '%',
+    desc:l => '战场与宝箱MOONSTONE额外 +' + (l * 1.2).toFixed(1) + '%',
+    next:l => '下一阶 全域MS额外 +' + ((l + 1) * 1.2).toFixed(1) + '%',
     lore:'圣城不征税，它只要求所有幸存者证明自己为何值得继续得到补给。',
   },
   {
     id:'ordnance_doctrine', branch:'ordnance', row:5, prereq:{ clash_calculus:2, coolant_chapel:3 }, code:'O-DOC', name:'弹幕教义', max:2, costBase:345,
-    desc:l => '基础伤害 +' + Math.floor((l + 1) / 2) + ' / 弹速 +' + (l * 0.02).toFixed(2),
-    next:l => '下一阶 伤害 +' + Math.floor((l + 2) / 2) + ' / 弹速 +' + ((l + 1) * 0.02).toFixed(2),
+    desc:l => '弹速 +' + (l * 0.018).toFixed(3) + ' / 特化弹道稳定 +' + (l * 0.6).toFixed(1) + '%',
+    next:l => '下一阶 弹速 +' + ((l + 1) * 0.018).toFixed(3) + ' / 特化弹道稳定 +' + ((l + 1) * 0.6).toFixed(1) + '%',
     lore:'教义最后一页写着：若必须开火，请让每一发都像不得不说出的真话。',
-    apply(t, lvl){ t.bulletDamage += Math.floor((lvl + 1) / 2); t.bulletSpeed += lvl * 0.02; },
+    apply(t, lvl){
+      t.bulletSpeed += lvl * 0.018;
+      t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + lvl * 0.006;
+      t.riftSpeedBonus = (t.riftSpeedBonus || 0) + lvl * 0.004;
+      t.orbitSpeedBonus = (t.orbitSpeedBonus || 0) + lvl * 0.004;
+    },
   },
   {
     id:'sanctum_network', branch:'body', row:5, prereq:{ chassis_vow:2, reload_rite:3 }, code:'S-NET', name:'圣龛网路', max:2, costBase:340,
-    desc:l => '弹夹 +' + Math.floor((l + 1) / 2) + ' / 装填额外 -' + l + '%',
-    next:l => '下一阶 弹夹 +' + Math.floor((l + 2) / 2) + ' / 装填额外 -' + (l + 1) + '%',
+    desc:l => '弹夹 +' + (l >= 2 ? 1 : 0) + ' / 装填额外 -' + (l * 0.7).toFixed(1) + '%',
+    next:l => '下一阶 弹夹 +' + ((l + 1) >= 2 ? 1 : 0) + ' / 装填额外 -' + ((l + 1) * 0.7).toFixed(1) + '%',
     lore:'当所有机体的圣龛互相听见，单台坦克的心跳就不再孤独。',
-    apply(t, lvl){ t.magSize = Math.max(1, (t.magSize || 6) + Math.floor((lvl + 1) / 2)); t.reloadTime = Math.max(82, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.01))); },
+    apply(t, lvl){ t.magSize = Math.max(1, (t.magSize || 6) + (lvl >= 2 ? 1 : 0)); t.reloadTime = Math.max(86, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.007))); },
   },
   {
     id:'sigil_bus', branch:'body', row:4, prereq:{ reload_rite:1 }, code:'S-BUS', name:'圣印总线', max:4, costBase:205,
-    desc:l => '射击冷却 -' + Math.floor((l + 1) / 2) + '帧 / 装填 -' + (l * 0.6).toFixed(1) + '%',
-    next:l => '下一阶 冷却 -' + Math.floor((l + 2) / 2) + '帧 / 装填 -' + ((l + 1) * 0.6).toFixed(1) + '%',
+    desc:l => '射击冷却 -' + Math.floor(l / 2) + '帧 / 装填 -' + (l * 0.4).toFixed(1) + '%',
+    next:l => '下一阶 冷却 -' + Math.floor((l + 1) / 2) + '帧 / 装填 -' + ((l + 1) * 0.4).toFixed(1) + '%',
     lore:'研究室把祈祷词刻进铜线，命令就沿着圣印奔跑，像一群沉默的传令兵。',
-    apply(t, lvl){ t.shootDelay = Math.max(14, t.shootDelay - Math.floor((lvl + 1) / 2)); t.reloadTime = Math.max(82, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.006))); },
+    apply(t, lvl){ t.shootDelay = Math.max(15, t.shootDelay - Math.floor(lvl / 2)); t.reloadTime = Math.max(86, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.004))); },
   },
   {
     id:'anchor_frame', branch:'body', row:4, prereq:{ servo_step:1, chassis_vow:1 }, code:'A-FRM', name:'锚定骨架', max:3, costBase:245,
-    desc:l => '全机体HP +' + Math.floor((l + 1) / 2) + ' / 开火减速缓和 +' + (l * 0.8).toFixed(1) + '%',
-    next:l => '下一阶 HP +' + Math.floor((l + 2) / 2) + ' / 减速缓和 +' + ((l + 1) * 0.8).toFixed(1) + '%',
+    desc:l => '全机体HP +' + (l >= 3 ? 1 : 0) + ' / 开火减速缓和 +' + (l * 0.5).toFixed(1) + '%',
+    next:l => '下一阶 HP +' + ((l + 1) >= 3 ? 1 : 0) + ' / 减速缓和 +' + ((l + 1) * 0.5).toFixed(1) + '%',
     lore:'锚不是为了停下，而是为了让机体在炮火中知道自己仍属于地面。',
-    apply(t, lvl){ t.hpBonus += Math.floor((lvl + 1) / 2); t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.008; },
+    apply(t, lvl){ t.hpBonus += lvl >= 3 ? 1 : 0; t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.005; },
   },
   {
     id:'memorial_core', branch:'body', row:6, prereq:{ sanctum_network:1, sigil_bus:1 }, code:'M-COR', name:'碑铭核心', max:2, costBase:405,
-    desc:l => '全机体HP +' + Math.floor((l + 1) / 2) + ' / 弹夹 +' + Math.floor((l + 1) / 2),
-    next:l => '下一阶 HP +' + Math.floor((l + 2) / 2) + ' / 弹夹 +' + Math.floor((l + 2) / 2),
+    desc:l => '全机体HP +' + (l >= 2 ? 1 : 0) + ' / 弹夹 +' + (l >= 2 ? 1 : 0),
+    next:l => '下一阶 HP +' + ((l + 1) >= 2 ? 1 : 0) + ' / 弹夹 +' + ((l + 1) >= 2 ? 1 : 0),
     lore:'每一块核心都封存着一段失败撤离的录音。它们不提供勇气，只提醒驾驶员别浪费下一次机会。',
-    apply(t, lvl){ t.hpBonus += Math.floor((lvl + 1) / 2); t.magSize = Math.max(1, (t.magSize || 6) + Math.floor((lvl + 1) / 2)); },
+    apply(t, lvl){ t.hpBonus += lvl >= 2 ? 1 : 0; t.magSize = Math.max(1, (t.magSize || 6) + (lvl >= 2 ? 1 : 0)); },
   },
   {
     id:'parallax_sight', branch:'ordnance', row:2, prereq:{ ballistic_archive:1 }, code:'P-SGT', name:'视差照准', max:4, costBase:180,
-    desc:l => '弹速 +' + (l * 0.025).toFixed(2) + ' / 开火减速缓和 +' + (l * 0.6).toFixed(1) + '%',
-    next:l => '下一阶 弹速 +' + ((l + 1) * 0.025).toFixed(2) + ' / 减速缓和 +' + ((l + 1) * 0.6).toFixed(1) + '%',
+    desc:l => '弹速 +' + (l * 0.016).toFixed(3) + ' / 开火减速缓和 +' + (l * 0.4).toFixed(1) + '%',
+    next:l => '下一阶 弹速 +' + ((l + 1) * 0.016).toFixed(3) + ' / 减速缓和 +' + ((l + 1) * 0.4).toFixed(1) + '%',
     lore:'照准镜会显示目标尚未抵达的位置。老兵说那不是预测，是战场短暂承认了自己的悔意。',
-    apply(t, lvl){ t.bulletSpeed += lvl * 0.025; t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.006; },
+    apply(t, lvl){ t.bulletSpeed += lvl * 0.016; t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.004; },
   },
   {
     id:'muzzle_choir', branch:'ordnance', row:4, prereq:{ coolant_chapel:1, parallax_sight:1 }, code:'M-CHR', name:'炮口圣咏', max:4, costBase:215,
-    desc:l => '基础伤害 +' + Math.floor(l / 3),
-    next:l => '下一阶 基础伤害 +' + Math.floor((l + 1) / 3),
+    desc:l => '基础伤害 +' + Math.floor(l / 4),
+    next:l => '下一阶 基础伤害 +' + Math.floor((l + 1) / 4),
     lore:'炮口焰被调成同一音阶后，整条战线都会听见短促的赞歌。',
-    apply(t, lvl){ t.bulletDamage += Math.floor(lvl / 3); },
+    apply(t, lvl){ t.bulletDamage += Math.floor(lvl / 4); },
   },
   {
     id:'counter_gospel', branch:'ordnance', row:5, prereq:{ clash_calculus:1 }, code:'C-GOS', name:'反制福音', max:2, costBase:330,
@@ -9056,47 +9104,47 @@ const GLOBAL_RESEARCH_DEFS = [
   },
   {
     id:'terminal_firing_table', branch:'ordnance', row:6, prereq:{ ordnance_doctrine:1, counter_gospel:1 }, code:'T-TBL', name:'终末射表', max:2, costBase:420,
-    desc:l => '基础伤害 +' + Math.floor((l + 1) / 2) + ' / 弹速 +' + (l * 0.015).toFixed(2),
-    next:l => '下一阶 伤害 +' + Math.floor((l + 2) / 2) + ' / 弹速 +' + ((l + 1) * 0.015).toFixed(2),
+    desc:l => '基础伤害 +' + (l >= 2 ? 1 : 0) + ' / 弹速 +' + (l * 0.01).toFixed(3),
+    next:l => '下一阶 伤害 +' + ((l + 1) >= 2 ? 1 : 0) + ' / 弹速 +' + ((l + 1) * 0.01).toFixed(3),
     lore:'射表末页没有坐标，只有一句手写批注：当世界足够黑，任何弹道都像一条归途。',
-    apply(t, lvl){ t.bulletDamage += Math.floor((lvl + 1) / 2); t.bulletSpeed += lvl * 0.015; },
+    apply(t, lvl){ t.bulletDamage += lvl >= 2 ? 1 : 0; t.bulletSpeed += lvl * 0.01; },
   },
   {
     id:'after_action_tithe', branch:'logistics', row:2, prereq:{ salvage_prayer:1 }, code:'A-TTH', name:'战后什一录', max:4, costBase:175,
-    desc:l => '局内经验 +' + (l * 1.5).toFixed(1) + '%',
-    next:l => '下一阶 经验 +' + ((l + 1) * 1.5).toFixed(1) + '%',
+    desc:l => '局内经验 +' + l + '%',
+    next:l => '下一阶 经验 +' + (l + 1) + '%',
     lore:'每次交火后的损失都会被登记。记录员相信，幸存本身也是一种可征收的知识。',
   },
   {
     id:'black_box_routes', branch:'logistics', row:4, prereq:{ reroll_writ:1 }, code:'B-BOX', name:'黑箱航路', max:3, costBase:250,
-    desc:l => '局内刷新费用额外 -' + (l * 1.8).toFixed(1) + '%',
-    next:l => '下一阶 刷新费用额外 -' + ((l + 1) * 1.8).toFixed(1) + '%',
+    desc:l => '局内刷新费用额外 -' + (l * 1.2).toFixed(1) + '%',
+    next:l => '下一阶 刷新费用额外 -' + ((l + 1) * 1.2).toFixed(1) + '%',
     lore:'补给机从不解释自己如何抵达。黑箱里只留下潮湿的灰、月石粉末和一串无法复述的坐标。',
   },
   {
     id:'saint_cache', branch:'logistics', row:5, prereq:{ field_sanctuary:1, black_box_routes:1 }, code:'S-CCH', name:'圣徒暗仓', max:3, costBase:310,
-    desc:l => '道具投放 +' + l + '% / 宝箱MS +' + (l * 0.8).toFixed(1) + '%',
-    next:l => '下一阶 投放 +' + (l + 1) + '% / 宝箱MS +' + ((l + 1) * 0.8).toFixed(1) + '%',
+    desc:l => '道具投放 +' + (l * 0.7).toFixed(1) + '% / 宝箱MS +' + (l * 0.6).toFixed(1) + '%',
+    next:l => '下一阶 投放 +' + ((l + 1) * 0.7).toFixed(1) + '% / 宝箱MS +' + ((l + 1) * 0.6).toFixed(1) + '%',
     lore:'暗仓不是仓库，是一批人选择把明天交给陌生驾驶员后的遗迹。',
   },
   {
     id:'pilgrimage_index', branch:'logistics', row:6, prereq:{ moon_tithe:1, after_action_tithe:1 }, code:'P-IDX', name:'远征索引', max:2, costBase:395,
-    desc:l => '局内经验 +' + (l * 2) + '% / 全域MS +' + l + '%',
-    next:l => '下一阶 经验 +' + ((l + 1) * 2) + '% / 全域MS +' + (l + 1) + '%',
+    desc:l => '局内经验 +' + (l * 1.4).toFixed(1) + '% / 全域MS +' + (l * 0.6).toFixed(1) + '%',
+    next:l => '下一阶 经验 +' + ((l + 1) * 1.4).toFixed(1) + '% / 全域MS +' + ((l + 1) * 0.6).toFixed(1) + '%',
     lore:'索引列出所有没能返航的路线。后来的驾驶员沿着它们前进，像沿着墓碑之间的窄路。',
   },
 ];
 
 const GLOBAL_RESEARCH_LAYOUT = {
-  armor_line:{ x:1100, y:520 }, mag_foundry:{ x:900, y:360 }, servo_step:{ x:1300, y:360 }, reload_rite:{ x:760, y:210 },
-  chassis_vow:{ x:1440, y:210 }, sigil_bus:{ x:650, y:90 }, anchor_frame:{ x:1550, y:90 }, sanctum_network:{ x:1100, y:120 },
-  memorial_core:{ x:1100, y:20 },
-  ballistic_archive:{ x:1370, y:850 }, parallax_sight:{ x:1580, y:760 }, coolant_chapel:{ x:1620, y:940 }, recoil_sanctum:{ x:1480, y:1100 },
-  special_sync:{ x:1820, y:860 }, clash_calculus:{ x:1760, y:1180 }, muzzle_choir:{ x:1950, y:1000 }, counter_gospel:{ x:2050, y:1280 },
-  ordnance_doctrine:{ x:1930, y:1370 }, terminal_firing_table:{ x:2140, y:1450 },
-  salvage_prayer:{ x:830, y:920 }, supply_liturgy:{ x:610, y:980 }, vault_cartography:{ x:760, y:1140 }, after_action_tithe:{ x:520, y:820 },
-  repair_canticle:{ x:390, y:1110 }, reroll_writ:{ x:620, y:1320 }, field_sanctuary:{ x:260, y:1280 }, black_box_routes:{ x:820, y:1400 },
-  saint_cache:{ x:520, y:1460 }, moon_tithe:{ x:150, y:1410 }, pilgrimage_index:{ x:260, y:760 },
+  armor_line:{ x:1300, y:665 }, mag_foundry:{ x:1080, y:505 }, servo_step:{ x:1520, y:505 }, reload_rite:{ x:930, y:330 },
+  chassis_vow:{ x:1670, y:330 }, sigil_bus:{ x:760, y:170 }, anchor_frame:{ x:1840, y:170 }, sanctum_network:{ x:1300, y:195 },
+  memorial_core:{ x:1300, y:70 },
+  ballistic_archive:{ x:1535, y:1015 }, parallax_sight:{ x:1765, y:930 }, coolant_chapel:{ x:1800, y:1110 }, recoil_sanctum:{ x:1625, y:1260 },
+  special_sync:{ x:2035, y:1010 }, clash_calculus:{ x:1985, y:1280 }, muzzle_choir:{ x:2220, y:1130 }, counter_gospel:{ x:2290, y:1450 },
+  ordnance_doctrine:{ x:2110, y:1580 }, terminal_firing_table:{ x:2390, y:1690 },
+  salvage_prayer:{ x:1065, y:1035 }, supply_liturgy:{ x:835, y:1110 }, vault_cartography:{ x:1045, y:1265 }, after_action_tithe:{ x:820, y:945 },
+  repair_canticle:{ x:610, y:1265 }, reroll_writ:{ x:895, y:1480 }, field_sanctuary:{ x:420, y:1470 }, black_box_routes:{ x:1140, y:1605 },
+  saint_cache:{ x:755, y:1685 }, moon_tithe:{ x:265, y:1625 }, pilgrimage_index:{ x:525, y:930 },
 };
 
 const TANK_EVOLUTION = {
@@ -9318,8 +9366,8 @@ function getGlobalResearchCost(id) {
   if (!def) return 9999;
   const lvl = getGlobalResearchLevel(id);
   if (lvl >= def.max) return 9999;
-  const rowPressure = Math.max(0, (def.row || 1) - 1) * 28;
-  return Math.floor(def.costBase * Math.pow(1.5, lvl) + lvl * 44 + rowPressure);
+  const rowPressure = Math.max(0, (def.row || 1) - 1) * 42;
+  return Math.floor(def.costBase * Math.pow(1.58, lvl) + lvl * 58 + rowPressure);
 }
 
 function getGlobalResearchTotalLevel() {
@@ -9365,31 +9413,31 @@ function canPurchaseGlobalResearch(id) {
 }
 
 function getSalvageResearchMultiplier() {
-  return 1 + getGlobalResearchLevel('salvage_prayer') * 0.012 + getGlobalResearchLevel('moon_tithe') * 0.018 + getGlobalResearchLevel('pilgrimage_index') * 0.01;
+  return 1 + getGlobalResearchLevel('salvage_prayer') * 0.008 + getGlobalResearchLevel('moon_tithe') * 0.012 + getGlobalResearchLevel('pilgrimage_index') * 0.006;
 }
 
 function getVaultResearchMultiplier() {
-  return 1 + getGlobalResearchLevel('vault_cartography') * 0.012 + getGlobalResearchLevel('moon_tithe') * 0.018 + getGlobalResearchLevel('saint_cache') * 0.008 + getGlobalResearchLevel('pilgrimage_index') * 0.01;
+  return 1 + getGlobalResearchLevel('vault_cartography') * 0.008 + getGlobalResearchLevel('moon_tithe') * 0.012 + getGlobalResearchLevel('saint_cache') * 0.006 + getGlobalResearchLevel('pilgrimage_index') * 0.006;
 }
 
 function getGlobalSupplyDropMultiplier() {
-  return 1 + getGlobalResearchLevel('supply_liturgy') * 0.012 + getGlobalResearchLevel('field_sanctuary') * 0.008 + getGlobalResearchLevel('saint_cache') * 0.01;
+  return 1 + getGlobalResearchLevel('supply_liturgy') * 0.008 + getGlobalResearchLevel('field_sanctuary') * 0.006 + getGlobalResearchLevel('saint_cache') * 0.007;
 }
 
 function getGlobalRepairChance() {
-  return getGlobalResearchLevel('repair_canticle') * 0.007 + getGlobalResearchLevel('field_sanctuary') * 0.005;
+  return getGlobalResearchLevel('repair_canticle') * 0.004 + getGlobalResearchLevel('field_sanctuary') * 0.003;
 }
 
 function getGlobalRerollDiscount() {
-  return Math.min(0.22, getGlobalResearchLevel('reroll_writ') * 0.03 + getGlobalResearchLevel('black_box_routes') * 0.018);
+  return Math.min(0.16, getGlobalResearchLevel('reroll_writ') * 0.022 + getGlobalResearchLevel('black_box_routes') * 0.012);
 }
 
 function getGlobalClashPowerBonus() {
-  return Math.floor((getGlobalResearchLevel('clash_calculus') + getGlobalResearchLevel('counter_gospel')) / 2);
+  return Math.floor((getGlobalResearchLevel('clash_calculus') + getGlobalResearchLevel('counter_gospel')) / 3);
 }
 
 function getGlobalRunXpMultiplier() {
-  return 1 + getGlobalResearchLevel('after_action_tithe') * 0.015 + getGlobalResearchLevel('pilgrimage_index') * 0.02;
+  return 1 + getGlobalResearchLevel('after_action_tithe') * 0.01 + getGlobalResearchLevel('pilgrimage_index') * 0.014;
 }
 
 function scaleBattleMoonstoneGain(amount, multiplier) {
@@ -9979,14 +10027,21 @@ function renderProtocolTree() {
     const prereqs = getGlobalResearchPrereqEntries(def);
     if (!prereqs.length) {
       const cls = getGlobalResearchLevel(def.id) > 0 ? 'lit' : 'ready';
-      links.push(`<line class="${cls}" style="--link-rgb:${escapeHtml(branch.rgb)}" x1="${PROTOCOL_MAP_SIZE.centerX}" y1="${PROTOCOL_MAP_SIZE.centerY}" x2="${child.x}" y2="${child.y}"></line>`);
+      const mx = (PROTOCOL_MAP_SIZE.centerX + child.x) / 2;
+      const my = (PROTOCOL_MAP_SIZE.centerY + child.y) / 2;
+      links.push(`<path class="${cls}" style="--link-rgb:${escapeHtml(branch.rgb)}" d="M ${PROTOCOL_MAP_SIZE.centerX} ${PROTOCOL_MAP_SIZE.centerY} Q ${mx} ${my} ${child.x} ${child.y}"></path>`);
       return;
     }
     prereqs.forEach(([parentId]) => {
       if (!visibleIds.has(parentId)) return;
       const parent = GLOBAL_RESEARCH_LAYOUT[parentId] || { x:PROTOCOL_MAP_SIZE.centerX, y:PROTOCOL_MAP_SIZE.centerY };
       const cls = getGlobalResearchLevel(def.id) > 0 ? 'lit' : 'ready';
-      links.push(`<line class="${cls}" style="--link-rgb:${escapeHtml(branch.rgb)}" x1="${parent.x}" y1="${parent.y}" x2="${child.x}" y2="${child.y}"></line>`);
+      const dx = child.x - parent.x;
+      const dy = child.y - parent.y;
+      const bend = Math.max(-90, Math.min(90, dx * 0.12));
+      const cx = parent.x + dx * 0.52 - dy * 0.04;
+      const cy = parent.y + dy * 0.48 + bend;
+      links.push(`<path class="${cls}" style="--link-rgb:${escapeHtml(branch.rgb)}" d="M ${parent.x} ${parent.y} Q ${Math.round(cx)} ${Math.round(cy)} ${child.x} ${child.y}"></path>`);
     });
   });
   const nodes = visibleDefs.map(def => {
@@ -10023,7 +10078,7 @@ function renderProtocolTree() {
     const lit = defs.filter(def => getGlobalResearchLevel(def.id) > 0).length;
     return `<div class="protocol-axis-chip" style="--branch-rgb:${escapeHtml(branch.rgb)}">
       <span class="axis-code">${escapeHtml(branch.code)}</span><span class="axis-name">${escapeHtml(branch.name)}</span>
-      <span class="axis-progress">LIT ${lit}/${defs.length} / REVEALED ${revealed}/${defs.length}</span>
+      <span class="axis-progress">${lit}/${defs.length} 已点亮 · ${revealed} 显现</span>
     </div>`;
   }).join('');
   const panStyle = `--pan-x:${Math.round(protocolMapPan.x)}px;--pan-y:${Math.round(protocolMapPan.y)}px;`;
@@ -10034,8 +10089,11 @@ function renderProtocolTree() {
     </div>
     <div class="protocol-progress">PROGRESS ${total}/${maxTotal}<br>${Math.round(total / Math.max(1, maxTotal) * 100)}%</div>
   </div>
-  <div class="protocol-orbit-summary">${branchSummary}</div>
-  <div class="protocol-drag-hint">在空白区域按住拖拽查看整张协议树；点击节点可投入 MOONSTONE，继续升级为长期微幅强化。</div>
+  <div class="protocol-status-rail">
+    <div class="protocol-status-title">ONE MAP / THREE TRUNKS / DRAG TO PAN</div>
+    <div class="protocol-axis-list">${branchSummary}</div>
+  </div>
+  <div class="protocol-drag-hint">在空白区域按住拖拽，像查看脑图一样探索整张协议树；每个节点第一次点亮后，才会显现它延伸出的下一段树枝。</div>
   <div class="protocol-viewport" id="protocol-viewport">
     <div class="protocol-map" id="protocol-map" style="${panStyle}">
       <svg class="protocol-links" viewBox="0 0 ${PROTOCOL_MAP_SIZE.width} ${PROTOCOL_MAP_SIZE.height}" preserveAspectRatio="none">${links.join('')}</svg>
