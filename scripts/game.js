@@ -1098,6 +1098,7 @@ function applyRunMagazineBonus(amount) {
 function applyModifierDef(def) {
   if (!def || typeof def.apply !== 'function') return;
   def.apply();
+  recordModifierPick(def, false);
   activeModifiers.push(def);
   sessionModifierChoices++;
   if ((def.rarityRank || 0) >= 4) {
@@ -1111,6 +1112,12 @@ function finishModifierSelection(defs, jackpot = false) {
   const picked = Array.isArray(defs) ? defs.filter(Boolean) : [defs].filter(Boolean);
   if (!picked.length) return;
   picked.forEach(applyModifierDef);
+  if (jackpot && runReport) {
+    const start = Math.max(0, runReport.modifierPicks.length - picked.length);
+    for (let i = start; i < runReport.modifierPicks.length; i++) {
+      runReport.modifierPicks[i].jackpot = true;
+    }
+  }
   currentModifierDraft = null;
   const screen = document.getElementById('modifier-screen');
   screen.style.display = 'none';
@@ -1157,6 +1164,7 @@ function rerollModifierChoice(event, index) {
     return;
   }
   coreFragments -= cost;
+  recordRerollCost(cost);
   currentModifierDraft.rerollCount++;
   currentModifierDraft.rerolled[index] = true;
   sessionModifierRerolls++;
@@ -1750,6 +1758,199 @@ let sessionModifierRerolls = 0;
 let sessionModifierMythics = 0;
 let sessionModifierTokenClaims = 0;
 let sessionModifierJackpots = 0;
+let runReport = null;
+let runFrameCount = 0;
+
+function createRunReport() {
+  return {
+    startTime: Date.now(),
+    endTime: 0,
+    difficulty: currentDifficulty,
+    tank: currentTankType,
+    victory: false,
+    deathCause: '',
+    shotsFired: 0,
+    bulletsCreated: 0,
+    playerHits: 0,
+    enemyHitsTaken: 0,
+    damageDealt: 0,
+    damageTaken: 0,
+    bulletClashes: 0,
+    bulletClashWins: 0,
+    bulletClashLosses: 0,
+    bulletClashDraws: 0,
+    bossEncounters: [],
+    bossKills: 0,
+    bossTimeFrames: 0,
+    powerUps: {},
+    fusions: [],
+    chestsOpened: 0,
+    moonstoneFromChests: 0,
+    modifierPicks: [],
+    rerollSpent: 0,
+    peakEnemies: 0,
+    peakBullets: 0,
+  };
+}
+
+function ensureRunReport() {
+  if (!runReport) runReport = createRunReport();
+  return runReport;
+}
+
+function formatFramesAsTime(frames) {
+  const seconds = Math.max(0, Math.floor((frames || 0) / 60));
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return mins + ':' + String(secs).padStart(2, '0');
+}
+
+function formatMsAsTime(ms) {
+  const seconds = Math.max(0, Math.floor((ms || 0) / 1000));
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return mins + ':' + String(secs).padStart(2, '0');
+}
+
+function recordShot(count) {
+  const report = ensureRunReport();
+  report.shotsFired++;
+  report.bulletsCreated += Math.max(1, count || 1);
+}
+
+function recordPlayerHit(bullet) {
+  const report = ensureRunReport();
+  const dmg = Math.max(1, Math.ceil((bullet && bullet.damage) || 1));
+  report.enemyHitsTaken++;
+  report.damageTaken += dmg;
+  report.deathCause = '敌方弹幕命中';
+}
+
+function recordEnemyHit(tank, bullet, damageDone) {
+  if (!bullet || !bullet.fromPlayer) return;
+  const dmg = Math.max(0, Math.ceil(damageDone != null ? damageDone : (bullet.damage || 1)));
+  if (dmg <= 0) return;
+  const report = ensureRunReport();
+  report.playerHits++;
+  report.damageDealt += dmg;
+}
+
+function recordPlayerDamageCause(cause) {
+  const report = ensureRunReport();
+  report.enemyHitsTaken++;
+  report.damageTaken++;
+  report.deathCause = cause || report.deathCause || '战场伤害';
+}
+
+function recordBossEncounter(bossDef) {
+  const report = ensureRunReport();
+  if (!bossDef) return;
+  report.bossEncounters.push({ name: bossDef.name, wave, startFrame: runFrameCount || 0, durationFrames: 0, killed: false });
+}
+
+function recordBossKill(name) {
+  const report = ensureRunReport();
+  report.bossKills++;
+  const active = [...report.bossEncounters].reverse().find(b => b.name === name && !b.killed);
+  if (active) {
+    active.killed = true;
+    active.durationFrames = Math.max(0, (runFrameCount || 0) - active.startFrame);
+    report.bossTimeFrames += active.durationFrames;
+  }
+}
+
+function recordPowerUpPickup(p, fusion) {
+  const report = ensureRunReport();
+  if (p && p.type) report.powerUps[p.type] = (report.powerUps[p.type] || 0) + 1;
+  if (fusion && fusion.name) report.fusions.push(fusion.name);
+}
+
+function recordChestOpened(isBoss, fragAmt) {
+  const report = ensureRunReport();
+  report.chestsOpened++;
+  report.moonstoneFromChests += Math.max(0, Math.floor(fragAmt || 0));
+}
+
+function recordModifierPick(def, jackpot) {
+  if (!def) return;
+  const report = ensureRunReport();
+  report.modifierPicks.push({
+    name: def.name,
+    rarity: def.rarity || 'standard',
+    axis: def.axis || 'unknown',
+    jackpot: !!jackpot,
+  });
+}
+
+function recordRerollCost(cost) {
+  const report = ensureRunReport();
+  report.rerollSpent += Math.max(0, Math.floor(cost || 0));
+}
+
+function recordBulletClash(result) {
+  const report = ensureRunReport();
+  report.bulletClashes++;
+  if (result > 0) report.bulletClashWins++;
+  else if (result < 0) report.bulletClashLosses++;
+  else report.bulletClashDraws++;
+}
+
+function updateRunReportPeaks() {
+  if (!runReport) return;
+  runReport.peakEnemies = Math.max(runReport.peakEnemies, enemies.length);
+  runReport.peakBullets = Math.max(runReport.peakBullets, playerBullets.length + enemyBullets.length);
+}
+
+function getRunReportAdvice(report) {
+  if (!report) return 'NO DATA';
+  if (report.victory) return '战线完成，建议复盘 Boss 耗时与升级路径。';
+  if (report.deathCause && report.deathCause.includes('弹幕')) return '死因为弹幕命中，后续可优先选择移速、弹速拦截或护盾类协议。';
+  if (report.deathCause && report.deathCause.includes('撞击')) return '死因为近距离压迫，建议提高安全距离并优先处理高速单位。';
+  if (report.deathCause && report.deathCause.includes('地雷')) return '死因为地雷，建议留意地面红色核心并降低追击贪刀。';
+  if (report.enemyHitsTaken >= 6) return '承伤偏高，下一局可优先补生存或装填节奏。';
+  if (report.shotsFired > 0 && report.playerHits / report.shotsFired < 0.38) return '命中效率偏低，建议选择弹速、追踪或更稳的射击窗口。';
+  return '战斗数据稳定，下一步可尝试更高难度或不同机体构筑。';
+}
+
+function renderRunReport(victory) {
+  const el = document.getElementById('run-report');
+  if (!el) return;
+  const report = ensureRunReport();
+  report.endTime = report.endTime || Date.now();
+  report.victory = !!victory;
+  const duration = formatMsAsTime(report.endTime - report.startTime);
+  const accuracy = report.shotsFired > 0 ? Math.round((report.playerHits / report.shotsFired) * 100) : 0;
+  const bossNames = report.bossEncounters.map(b => b.name + (b.killed ? ' 已击破' : ' 未击破')).slice(-4);
+  const topPowerUps = Object.entries(report.powerUps)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([name, count]) => name + ' x' + count);
+  const topMods = report.modifierPicks.slice(-5).map(m => (m.jackpot ? '四联:' : '') + m.name);
+  const advice = getRunReportAdvice(report);
+  el.innerHTML = `<div class="report-head">
+    <div>
+      <div class="report-kicker">TACTICAL BLACK BOX</div>
+      <div class="report-title">战术黑匣子 / 本局战报</div>
+    </div>
+    <div class="report-verdict">${victory ? 'CLEAR' : 'FAILED'} / ${escapeHtml(difficultySettings[report.difficulty]?.label || report.difficulty)}</div>
+  </div>
+  <div class="report-grid">
+    <div class="report-cell"><div class="report-label">作战时长</div><div class="report-value accent">${duration}</div></div>
+    <div class="report-cell"><div class="report-label">推进波次</div><div class="report-value">WAVE ${wave}</div></div>
+    <div class="report-cell"><div class="report-label">击杀记录</div><div class="report-value">${sessionKills} / E${sessionEliteKills}</div></div>
+    <div class="report-cell"><div class="report-label">最大连击</div><div class="report-value accent">${maxComboReached}</div></div>
+    <div class="report-cell"><div class="report-label">射击命中</div><div class="report-value">${accuracy}%</div></div>
+    <div class="report-cell"><div class="report-label">造成伤害</div><div class="report-value">${report.damageDealt}</div></div>
+    <div class="report-cell"><div class="report-label">承受伤害</div><div class="report-value">${report.damageTaken}</div></div>
+    <div class="report-cell"><div class="report-label">弹幕对撞</div><div class="report-value">${report.bulletClashes}</div></div>
+  </div>
+  <div class="report-columns">
+    <div class="report-panel"><strong>终局原因</strong><span>${escapeHtml(victory ? '难度通关' : (report.deathCause || '机体失去响应'))}</span><span>${escapeHtml(advice)}</span></div>
+    <div class="report-panel"><strong>Boss 档案</strong><span>${escapeHtml(bossNames.join(' / ') || '本局未遭遇 Boss')}</span><span>Boss耗时 ${formatFramesAsTime(report.bossTimeFrames)} / 击破 ${report.bossKills}</span></div>
+    <div class="report-panel"><strong>补给与资源</strong><span>${escapeHtml(topPowerUps.join(' / ') || '未记录补给')}</span><span>宝箱 ${report.chestsOpened} / 宝箱MS +${report.moonstoneFromChests} / 融合 ${report.fusions.length}</span></div>
+    <div class="report-panel"><strong>局内构筑</strong><span>${escapeHtml(topMods.join(' / ') || '未选择局内改造')}</span><span>刷新 ${sessionModifierRerolls} 次 / 消耗 ${report.rerollSpent} MS</span></div>
+  </div>`;
+}
 
 function getTotalTankUpgradeCount() {
   return Object.values(tankUpgrades || {}).reduce((total, group) => {
@@ -1870,6 +2071,8 @@ function resetAchievementTracking() {
   sessionModifierMythics = 0;
   sessionModifierTokenClaims = 0;
   sessionModifierJackpots = 0;
+  runFrameCount = 0;
+  runReport = createRunReport();
 }
 
 function onEnemyKilled(enemyOrElite) {
@@ -1877,6 +2080,7 @@ function onEnemyKilled(enemyOrElite) {
   const isElite = killedEnemy ? !!killedEnemy.isElite : !!enemyOrElite;
   const isBossKill = !!(killedEnemy && killedEnemy.bossDef);
   const nextBossKills = (tankUnlockProgress.bossKills || 0) + (isBossKill ? 1 : 0);
+  if (isBossKill) recordBossKill(killedEnemy.bossDef.name);
   sfxEnemyDestroyed(isElite, isBossKill);
   sessionKills++;
   if (isElite) sessionEliteKills++;
@@ -2041,6 +2245,7 @@ function startNextWave() {
     const bossDef = selectBossForWave(wave);
     lastBossName = bossDef.name;
     runBossesSeen.add(bossDef.name);
+    recordBossEncounter(bossDef);
     const bossSpawn = findSafeTankSpawn({
       w: 54,
       h: 54,
@@ -2215,6 +2420,7 @@ function applyPowerUp(p) {
   const tier = normalizeItemTier(p.tier || p.rarity);
   if (tier === 'relic') sfxPowerUpRare(); else sfxPowerUp();
   if (p.type === 'repair') {
+    recordPowerUpPickup(p, null);
     const healAmt = tier === 'relic' ? 3 : (tier === 'advanced' ? 2 : 1);
     player.hp = Math.min(player.hp + healAmt, player.maxHp);
     sfxPowerUpType(p.type, tier);
@@ -2226,6 +2432,7 @@ function applyPowerUp(p) {
   const def = powerUpDefs.find(d => d.type === p.type);
 
   if (fusion) {
+    recordPowerUpPickup(p, fusion);
     discoverBestiary('fusions', fusion.id);
     unlockAchievement('fusion_first');
     // Remove original buffs, apply fusion
@@ -2246,6 +2453,7 @@ function applyPowerUp(p) {
     return;
   }
 
+  recordPowerUpPickup(p, null);
   buffs[p.type] = p.displayDuration || p.duration;
   sfxPowerUpType(p.type, tier);
 
@@ -2293,6 +2501,7 @@ function openChest(chest) {
   const rawFragAmt = isBoss ? (30 + Math.floor(rng() * 20)) : (10 + Math.floor(rng() * 15));
   const fragAmt = scaleBattleMoonstoneGain(rawFragAmt, getVaultResearchMultiplier());
   coreFragments += fragAmt;
+  recordChestOpened(isBoss, fragAmt);
   saveProgression();
   const chestTierWeights = isBoss
     ? { basic: { weight: 35 }, advanced: { weight: 45 }, relic: { weight: 20 } }
@@ -3818,6 +4027,7 @@ class PlayerTank extends Tank {
     const count = buffs.multishot > 0 ? def.bulletCount + 2 : def.bulletCount;
     const spread = buffs.multishot > 0 ? Math.max(def.spreadAngle, 0.14) : def.spreadAngle;
     const halfSpread = spread * (count - 1) / 2;
+    recordShot(count);
     for (let i = 0; i < count; i++) {
       const angleOffset = count === 1 ? 0 : -halfSpread + i * spread;
       let dmg = Math.ceil(def.bulletDamage * playerBulletDmgMul) + (buffs.overdrive > 0 ? 1 : 0);
@@ -4255,13 +4465,14 @@ class PlayerTank extends Tank {
     drawTankEvolutionOverlay(ctx, evoLevel, tankType, turretC);
     ctx.restore();
   }
-  hit() {
+  hit(source) {
     if (this.invincible > 0) return false;
     if (buffs.shield > 0) {
       sfxShieldBlock('player');
       return false;
     }
     this.hp--;
+    if (typeof source === 'string') recordPlayerDamageCause(source);
     this.invincible = 60;
     gotHitThisLevel = true;
     sessionGotHit = true;
@@ -4402,7 +4613,7 @@ class EnemyTank extends Tank {
         this.alive = false;
         spawnExplosion(this.x, this.y, 20, '#f80', '#ff0');
         onEnemyKilled(this);
-        player.hit();
+        player.hit('敌方单位撞击');
       }
     }
   }
@@ -5460,7 +5671,7 @@ class BossEnemy extends EliteEnemy {
 
     if (dist < 40) {
       triggerShake(8, 10);
-      player.hit();
+      player.hit('Boss 近身撞击');
       const knock = 18;
       this.pushPlayer((dx / dist) * knock, (dy / dist) * knock);
     }
@@ -8084,8 +8295,11 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         hitRadius = Math.max(16, Math.min(24, (player.hitboxSize || 36) * 0.54));
       }
       if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+        const hpBeforeHit = tank.hp || 0;
+        if (!fromPlayer && tank === player) recordPlayerHit(bullet);
         if (!bullet.railgun && !bullet.pierce) bullet.alive = false;
         const destroyed = tank.hit(bullet);
+        if (fromPlayer) recordEnemyHit(tank, bullet, Math.max(0, hpBeforeHit - (tank.hp || 0)));
         if (bullet.drainOnHit > 0 && fromPlayer && player && player.alive && rng() < bullet.drainOnHit) {
           player.hp = Math.min(player.maxHp, player.hp + 1);
           spawnDamageNumber(player.x, player.y - 22, 1, false);
@@ -8220,6 +8434,8 @@ function drawGround(ctx) {
 // --- Game Loop ---
 function update() {
   if (!gameRunning) return;
+  runFrameCount++;
+  updateRunReportPeaks();
 
   // Update player
   player.update();
@@ -8353,7 +8569,7 @@ function update() {
         sessionMinesTriggered = true;
         spawnExplosion(mines[i].x, mines[i].y, 15, '#f80', '#ff0');
         sfxStatus('mine');
-        player.hit();
+        player.hit('地雷触发');
         mines.splice(i, 1);
       }
     }
@@ -8587,6 +8803,7 @@ function endGame(victory = false, runId = activeRunId) {
       : '雷达重新归零，灰域把这次失败收进尘埃。整备室仍保留着你的机体编号，等待下一次出击。';
     endingStory.style.display = victory ? 'block' : 'none';
   }
+  renderRunReport(victory);
   gameOverPanel.classList.toggle('victory', !!victory);
   gameOverPanel.classList.add('visible');
   // Show quick restart hint
@@ -8642,6 +8859,7 @@ function checkBulletBulletCollisions() {
           p.alive = false;
           e.alive = false;
         }
+        recordBulletClash(pPower - ePower);
         if (sparks < 16) {
           const strongColor = pPower === ePower ? '#f6e5aa' : (pPower > ePower ? p.color : e.color);
           spawnExplosion((p.x + e.x) / 2, (p.y + e.y) / 2, pPower === ePower ? 4 : 5, strongColor, '#f6e5aa');
@@ -8672,6 +8890,7 @@ function hideRunOverlays(showStart = false) {
     if (el) el.style.display = 'none';
   });
   const gameOverPanel = document.getElementById('game-over');
+  const reportEl = document.getElementById('run-report');
   if (gameOverPanel) gameOverPanel.classList.remove('visible', 'victory');
   const startScreen = document.getElementById('start-screen');
   if (startScreen) startScreen.style.display = showStart ? 'flex' : 'none';
@@ -8731,6 +8950,7 @@ function resetRunState() {
     endingStory.textContent = '';
     endingStory.style.display = 'none';
   }
+  if (reportEl) reportEl.innerHTML = '';
   if (gameOverPanel) gameOverPanel.classList.remove('victory');
 }
 

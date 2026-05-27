@@ -2709,6 +2709,94 @@ canvas { background: #070d13; }
   border-left: 2px solid rgba(246,229,170,0.46);
   background: rgba(246,229,170,0.055);
 }
+#game-over .run-report {
+  width: min(680px, 78vw);
+  max-height: 300px;
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  margin-top: 4px;
+  text-align: left;
+  border: 1px solid rgba(140,232,255,0.18);
+  background:
+    linear-gradient(135deg, rgba(140,232,255,0.08), rgba(5,8,12,0.82) 34%, rgba(244,152,0,0.08)),
+    rgba(4,7,11,0.72);
+  clip-path: var(--ui-cut-sm);
+  box-shadow: inset 0 0 28px rgba(140,232,255,0.045);
+}
+#game-over .run-report:empty { display: none; }
+#game-over .report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(246,229,170,0.14);
+}
+#game-over .report-kicker {
+  color: rgba(140,232,255,0.72);
+  font: 700 10px 'Courier New',monospace;
+  letter-spacing: 2px;
+}
+#game-over .report-title {
+  color: var(--ui-holy);
+  font-size: 14px;
+  letter-spacing: 3px;
+}
+#game-over .report-verdict {
+  color: var(--ui-amber-soft);
+  font: 700 11px 'Courier New',monospace;
+  letter-spacing: 2px;
+}
+#game-over .report-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+#game-over .report-cell {
+  min-height: 54px;
+  padding: 8px 9px;
+  border: 1px solid rgba(107,125,149,0.14);
+  background: rgba(8,12,18,0.54);
+}
+#game-over .report-label {
+  color: rgba(184,196,210,0.72);
+  font: 700 9px 'Courier New',monospace;
+  letter-spacing: 1.4px;
+}
+#game-over .report-value {
+  margin-top: 4px;
+  color: #e8edf5;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+#game-over .report-value.accent { color: var(--ui-amber-soft); }
+#game-over .report-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+#game-over .report-panel {
+  padding: 9px 10px;
+  border-left: 2px solid rgba(244,152,0,0.35);
+  background: rgba(246,229,170,0.045);
+}
+#game-over .report-panel strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ui-holy);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+#game-over .report-panel span {
+  display: block;
+  color: #91a4ba;
+  font-size: 11px;
+  line-height: 1.55;
+}
+#game-over .run-report::-webkit-scrollbar { width: 6px; }
+#game-over .run-report::-webkit-scrollbar-thumb { background: rgba(244,152,0,0.38); }
 #wave-notify {
   color: var(--ui-holy);
   font-weight: 300;
