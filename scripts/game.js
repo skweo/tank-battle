@@ -2214,8 +2214,8 @@ function getWaveEnemyBudget(waveNo) {
 }
 
 function getBossSupportCount(waveNo) {
-  if (waveNo < 16) return 0;
-  return Math.min(1, Math.floor(waveNo / 16));
+  if (waveNo < 20) return 0;
+  return Math.min(1, Math.floor(waveNo / 20));
 }
 
 function getWaveSpawnBurst(waveNo) {
@@ -5458,32 +5458,32 @@ const BOSS_TYPES = [
   { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.34, hp:70, icon:'BST', faction:'moon_arsenal',
     desc:'重型压制Boss，装甲轰杀+过载冲击',
     phases:[
-      { name:'装甲镇压', hpPct:1.0, attack:'spiral', shootDelay:36, burstShots:3, burstRest:120, bulletCount:12, bulletSpeed:1.65, pressure:0.9 },
-      { name:'过载破城', hpPct:0.58, attack:'enrage', shootDelay:32, burstShots:3, burstRest:148, bulletCount:13, bulletSpeed:2.05, pressure:1.18 },
+      { name:'装甲镇压', hpPct:1.0, attack:'spiral', shootDelay:40, burstShots:3, burstRest:126, telegraph:46, recover:112, bulletCount:11, bulletSpeed:1.58, pressure:0.9, cue:'BREACH ARC', hint:'环形压制后有装甲空窗' },
+      { name:'过载破城', hpPct:0.58, attack:'enrage', shootDelay:38, burstShots:3, burstRest:156, telegraph:56, recover:132, bulletCount:12, bulletSpeed:1.92, pressure:1.18, cue:'SIEGE BURN', hint:'正面破城弹后短暂过热' },
     ]},
   { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.68, hp:48, icon:'PHZ', faction:'void_cult',
     desc:'高速相位Boss，折跃猎杀+镜像围杀',
     phases:[
-      { name:'折跃猎杀', hpPct:1.0, attack:'teleport', shootDelay:44, burstShots:3, burstRest:135, bulletCount:7, bulletSpeed:1.92, pressure:0.86 },
-      { name:'镜像歼灭', hpPct:0.6, attack:'clone_barrage', shootDelay:40, burstShots:3, burstRest:170, bulletCount:7, bulletSpeed:2.05, pressure:1.08 },
+      { name:'折跃猎杀', hpPct:1.0, attack:'teleport', shootDelay:46, burstShots:3, burstRest:140, telegraph:42, recover:116, bulletCount:7, bulletSpeed:1.82, pressure:0.86, cue:'PHASE LOCK', hint:'折跃前会锁定安全距离' },
+      { name:'镜像歼灭', hpPct:0.6, attack:'clone_barrage', shootDelay:44, burstShots:3, burstRest:176, telegraph:52, recover:142, bulletCount:7, bulletSpeed:1.95, pressure:1.08, cue:'MIRROR LOCK', hint:'镜像结阵后本体短暂停顿' },
     ]},
   { name:'要塞坦克', color:'#664', turret:'#ca4', speed:0.08, hp:84, icon:'FRT', faction:'ash_church',
     desc:'堡垒压场Boss，多炮塔火网+雷区封锁',
     phases:[
-      { name:'重炮幕墙', hpPct:1.0, attack:'turret_salvo', shootDelay:46, burstShots:3, burstRest:130, bulletCount:9, bulletSpeed:1.92, pressure:1.0 },
-      { name:'湮灭雷暴', hpPct:0.57, attack:'mine_storm', shootDelay:40, burstShots:3, burstRest:154, bulletCount:9, bulletSpeed:2.14, pressure:1.24 },
+      { name:'重炮幕墙', hpPct:1.0, attack:'turret_salvo', shootDelay:50, burstShots:3, burstRest:138, telegraph:56, recover:126, bulletCount:9, bulletSpeed:1.82, pressure:1.0, cue:'CITADEL LINE', hint:'炮线展开后侧翼可反击' },
+      { name:'湮灭雷暴', hpPct:0.57, attack:'mine_storm', shootDelay:46, burstShots:3, burstRest:166, telegraph:64, recover:150, bulletCount:9, bulletSpeed:2.0, pressure:1.24, cue:'MINE LITURGY', hint:'雷区封锁结束后炮塔冷却' },
     ]},
   { name:'虚空坦克', color:'#424', turret:'#a4f', speed:0.44, hp:60, icon:'VOID', faction:'void_cult',
     desc:'奇点操控Boss，引力洪流+黑洞撕裂',
     phases:[
-      { name:'引力洪流', hpPct:1.0, attack:'gravity_wave', shootDelay:42, burstShots:3, burstRest:124, bulletCount:9, bulletSpeed:1.78, pressure:0.98 },
-      { name:'黑洞撕裂', hpPct:0.6, attack:'black_hole', shootDelay:38, burstShots:3, burstRest:150, bulletCount:9, bulletSpeed:2.0, pressure:1.24 },
+      { name:'引力洪流', hpPct:1.0, attack:'gravity_wave', shootDelay:46, burstShots:3, burstRest:132, telegraph:50, recover:120, bulletCount:9, bulletSpeed:1.7, pressure:0.98, cue:'GRAVITY TIDE', hint:'引力波后奇点短暂失稳' },
+      { name:'黑洞撕裂', hpPct:0.6, attack:'black_hole', shootDelay:44, burstShots:3, burstRest:162, telegraph:60, recover:148, bulletCount:9, bulletSpeed:1.9, pressure:1.24, cue:'BLACK WELL', hint:'吸引结束后核心暴露' },
     ]},
   { name:'风暴坦克', color:'#446', turret:'#4ff', speed:0.56, hp:56, icon:'STM', faction:'storm_cloister',
     desc:'天候支配Boss，电弧锁链+雷暴空袭',
     phases:[
-      { name:'电弧狩猎', hpPct:1.0, attack:'lightning_chain', shootDelay:38, burstShots:3, burstRest:118, bulletCount:7, bulletSpeed:2.45, pressure:0.98 },
-      { name:'雷霆天幕', hpPct:0.58, attack:'thunder_storm', shootDelay:36, burstShots:3, burstRest:150, bulletCount:9, bulletSpeed:2.54, pressure:1.25 },
+      { name:'电弧狩猎', hpPct:1.0, attack:'lightning_chain', shootDelay:42, burstShots:3, burstRest:124, telegraph:42, recover:110, bulletCount:7, bulletSpeed:2.32, pressure:0.98, cue:'ARC JUDGMENT', hint:'电弧直线清晰，横移可避' },
+      { name:'雷霆天幕', hpPct:0.58, attack:'thunder_storm', shootDelay:40, burstShots:3, burstRest:160, telegraph:54, recover:138, bulletCount:9, bulletSpeed:2.38, pressure:1.25, cue:'STORM CANOPY', hint:'落雷前会标记区域' },
     ]},
 ];
 
@@ -5566,16 +5566,126 @@ class BossEnemy extends EliteEnemy {
     this.uiPulse = 0;
     this.transitionLock = 0;
     this.phaseBurstCooldown = 90;
-    this.summonCooldown = 240;
-    this.attackRestTimer = 45;
+    this.summonCooldown = 300;
+    this.attackState = 'recover';
+    this.attackStateTimer = 72;
+    this.attackStateDuration = 72;
+    this.attackRestTimer = 72;
     this.attackBurstShots = 0;
     this.attackCycleLength = bossDef.phases[0].burstRest || 90;
     this.zoneTimer = 0;
     this.auraRadius = 88;
     this.ramTimer = 0;
     this.telegraphTimer = 0;
+    this.telegraphX = x;
+    this.telegraphY = y;
+    this.telegraphAngle = 0;
+    this.pendingTeleport = null;
+    this.attackCue = bossDef.phases[0].cue || 'BOSS ART';
+    this.recoverVulnerable = false;
     this.threatRating = 6.8;
     this.hitFlash = 0;
+  }
+  getPhaseDef() {
+    return this.bossDef.phases[Math.max(0, this.currentPhase)] || this.bossDef.phases[0];
+  }
+  getBossTelegraphDuration(phase) {
+    const base = phase.telegraph || 48;
+    return Math.max(30, Math.floor(base * (this.currentPhase > 0 ? 0.92 : 1)));
+  }
+  getBossRecoverDuration(phase) {
+    const base = phase.recover || phase.burstRest || 120;
+    return Math.max(58, Math.floor(base * (this.currentPhase > 0 ? 0.9 : 1)));
+  }
+  setAttackState(state, duration) {
+    this.attackState = state;
+    this.attackStateDuration = Math.max(1, Math.floor(duration || 1));
+    this.attackStateTimer = this.attackStateDuration;
+    this.attackRestTimer = state === 'recover' ? this.attackStateTimer : 0;
+    this.recoverVulnerable = state === 'recover';
+    if (state === 'telegraph') {
+      this.attackBurstShots = 0;
+      this.prepareTelegraph();
+    } else if (state === 'firing') {
+      this.shootCooldown = 0;
+      this.turretAngle = this.telegraphAngle;
+    }
+  }
+  prepareTelegraph() {
+    const phase = this.getPhaseDef();
+    this.pendingTeleport = null;
+    const dx = player ? player.x - this.x : Math.cos(this.turretAngle);
+    const dy = player ? player.y - this.y : Math.sin(this.turretAngle);
+    this.telegraphAngle = Math.atan2(dy, dx);
+    this.turretAngle = this.telegraphAngle;
+    if (phase.attack === 'clone_barrage' || phase.attack === 'thunder_storm') {
+      this.telegraphX = player ? player.x : this.x;
+      this.telegraphY = player ? player.y : this.y;
+      if (phase.attack === 'clone_barrage') {
+        this.pendingTeleport = this.findTeleportPoint(235);
+      }
+    } else if (phase.attack === 'mine_storm') {
+      this.telegraphX = this.x;
+      this.telegraphY = this.y;
+    } else if (phase.attack === 'teleport') {
+      this.pendingTeleport = this.findTeleportPoint(this.currentPhase > 0 ? 235 : 195);
+      this.telegraphX = this.pendingTeleport.x;
+      this.telegraphY = this.pendingTeleport.y;
+      if (player) this.telegraphAngle = Math.atan2(player.y - this.telegraphY, player.x - this.telegraphX);
+    } else {
+      this.telegraphX = this.x;
+      this.telegraphY = this.y;
+    }
+    this.attackCue = phase.cue || 'BOSS ART';
+    this.telegraphTimer = this.getBossTelegraphDuration(phase);
+    if (this.telegraphTimer % 2 === 0) sfxBossAttack('telegraph', this.currentPhase);
+  }
+  advanceAttackState(phase) {
+    if (this.transitionLock > 0) return;
+    if (this.attackStateTimer > 0) this.attackStateTimer--;
+    if (this.attackState === 'recover') {
+      this.attackRestTimer = this.attackStateTimer;
+      if (this.attackStateTimer <= 0) this.setAttackState('telegraph', this.getBossTelegraphDuration(phase));
+      return;
+    }
+    if (this.attackState === 'telegraph') {
+      this.telegraphTimer = Math.max(0, this.attackStateTimer);
+      if (this.attackStateTimer <= 0) {
+        this.setAttackState('firing', Math.max(1, phase.burstShots || 3));
+      }
+      return;
+    }
+    if (this.attackState === 'firing' && this.shootCooldown <= 0) {
+      this.shoot();
+      this.attackBurstShots++;
+      const burstLimit = phase.burstShots || (this.currentPhase > 0 ? 4 : 3);
+      if (this.attackBurstShots >= burstLimit) {
+        this.attackBurstShots = 0;
+        this.attackCycleLength = this.getBossRecoverDuration(phase);
+        this.setAttackState('recover', this.attackCycleLength);
+        this.shootCooldown = Math.max(18, Math.floor((phase.shootDelay || this.shootDelay) * 0.55));
+      } else {
+        this.shootCooldown = Math.max(18, phase.shootDelay || this.shootDelay);
+      }
+    }
+  }
+  findTeleportPoint(minPlayerDist) {
+    return findSafeTankSpawn({
+      w: 54,
+      h: 54,
+      minEnemyDist: 90,
+      minPlayerDist: minPlayerDist || 180,
+      preferred: [
+        { x: player.x + 180, y: player.y - 90 },
+        { x: player.x - 180, y: player.y - 90 },
+        { x: player.x + 180, y: player.y + 90 },
+        { x: player.x - 180, y: player.y + 90 },
+        { x: W / 2, y: H * 0.25 },
+      ].map(p => ({
+        x: Math.max(48, Math.min(W - 48, p.x)),
+        y: Math.max(48, Math.min(H - 48, p.y)),
+      })),
+    });
   }
   pushPlayer(amountX, amountY) {
     if (!player || !player.alive) return;
@@ -5601,7 +5711,6 @@ class BossEnemy extends EliteEnemy {
     if (this.phaseFlash > 0) this.phaseFlash--;
     if (this.transitionLock > 0) this.transitionLock--;
     if (this.phaseBurstCooldown > 0) this.phaseBurstCooldown--;
-    if (this.attackRestTimer > 0) this.attackRestTimer--;
     if (this.hitFlash > 0) this.hitFlash--;
     this.uiPulse = (this.uiPulse + 1) % 9999;
     this.zoneTimer++;
@@ -5610,7 +5719,9 @@ class BossEnemy extends EliteEnemy {
     const dx = player.x - this.x;
     const dy = player.y - this.y;
     const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-    this.turretAngle = Math.atan2(dy, dx);
+    if (this.attackState !== 'firing') {
+      this.turretAngle = Math.atan2(dy, dx);
+    }
 
     let phase = this.bossDef.phases[Math.max(0, this.currentPhase)] || this.bossDef.phases[0];
     const hpRatio = this.hp / this.maxHp;
@@ -5624,10 +5735,9 @@ class BossEnemy extends EliteEnemy {
         this.shootDelay = phases[i].shootDelay;
         this.pressure = phases[i].pressure || this.pressure;
         this.phaseFlash = 180;
-        this.transitionLock = 40;
-        this.phaseBurstCooldown = 45;
-        this.shootCooldown = Math.min(this.shootCooldown, 14);
-        this.attackRestTimer = 52;
+        this.transitionLock = 54;
+        this.phaseBurstCooldown = 120;
+        this.shootCooldown = Math.max(this.shootCooldown, 34);
         this.attackBurstShots = 0;
         this.attackCycleLength = phases[i].burstRest || 86;
         this.baseSpeed *= 1.08;
@@ -5635,7 +5745,7 @@ class BossEnemy extends EliteEnemy {
         spawnExplosion(this.x, this.y, 60, '#fff', this.bossDef.turret || '#ff0');
         sfxBossPhase();
         showWaveNotification('PHASE ' + (i + 1), this.bossDef.name + ' 进入第二阶段压制');
-        this.emitPhaseBurst(true);
+        this.setAttackState('telegraph', this.getBossTelegraphDuration(phases[i]) + 18);
       }
     }
     phase = this.bossDef.phases[Math.max(0, this.currentPhase)] || this.bossDef.phases[0];
@@ -5674,7 +5784,7 @@ class BossEnemy extends EliteEnemy {
         moveX -= dx / dist * 0.35;
         moveY -= dy / dist * 0.35;
       }
-      if (this.currentPhase > 0 && this.zoneTimer % 120 === 0) {
+      if (this.currentPhase > 0 && this.attackState === 'recover' && this.zoneTimer % 150 === 0) {
         this.deployMines(3, 160);
       }
     } else if (this.bossDef.name === '虚空坦克') {
@@ -5684,7 +5794,7 @@ class BossEnemy extends EliteEnemy {
         moveX += dx / dist * 0.42;
         moveY += dy / dist * 0.42;
       }
-      if (this.zoneTimer % (this.currentPhase > 0 ? 18 : 28) === 0 && dist < 320) {
+      if (this.attackState === 'firing' && this.zoneTimer % (this.currentPhase > 0 ? 24 : 32) === 0 && dist < 320) {
         const pull = this.currentPhase > 0 ? 2.2 : 1.15;
         this.pushPlayer(-(dx / dist) * pull, -(dy / dist) * pull);
       }
@@ -5695,38 +5805,26 @@ class BossEnemy extends EliteEnemy {
         moveX += dx / dist * 0.36;
         moveY += dy / dist * 0.36;
       }
-      if (this.currentPhase > 0 && this.zoneTimer % 92 === 0) {
-        this.spawnStormLances(3);
+      if (this.currentPhase > 0 && this.attackState === 'firing' && this.zoneTimer % 110 === 0) {
+        this.spawnStormLances(2);
       }
     }
 
     const slowMul = this.currentPhase > 0 ? 1.18 : 1;
+    const stateMoveMul = this.attackState === 'telegraph' ? 0.42 : (this.attackState === 'firing' ? 0.58 : 0.86);
     const fireSlow = this.getFireSlowMultiplier();
-    const newX = this.x + moveX * this.speed * slowMul * fireSlow;
-    const newY = this.y + moveY * this.speed * slowMul * fireSlow;
+    const newX = this.x + moveX * this.speed * slowMul * fireSlow * stateMoveMul;
+    const newY = this.y + moveY * this.speed * slowMul * fireSlow * stateMoveMul;
     if (newX > 34 && newX < W - 34 && !tankCollidesObstacle(newX, this.y, 54, 54)) this.x = newX;
     if (newY > 34 && newY < H - 34 && !tankCollidesObstacle(this.x, newY, 54, 54)) this.y = newY;
 
-    if (this.currentPhase > 0 && this.summonCooldown > 0) this.summonCooldown--;
-    if (this.currentPhase > 0 && this.summonCooldown <= 0) {
+    if (this.currentPhase > 0 && this.attackState === 'recover' && this.summonCooldown > 0) this.summonCooldown--;
+    if (this.currentPhase > 0 && this.attackState === 'recover' && this.summonCooldown <= 0) {
       this.spawnBossEscort();
-      this.summonCooldown = this.bossDef.name === '幻影坦克' ? 260 : 240;
+      this.summonCooldown = this.bossDef.name === '幻影坦克' ? 360 : 330;
     }
 
-    const effectiveShootDelay = Math.max(14, this.shootDelay - Math.floor(this.currentPhase > 0 ? 1 : 0));
-    if (this.shootCooldown <= 0 && this.transitionLock <= 0 && this.attackRestTimer <= 0) {
-      this.shoot();
-      this.attackBurstShots++;
-      const burstLimit = phase.burstShots || (this.currentPhase > 0 ? 5 : 4);
-      if (this.attackBurstShots >= burstLimit) {
-        this.attackBurstShots = 0;
-        this.attackCycleLength = Math.max(48, phase.burstRest || (this.currentPhase > 0 ? 80 : 96));
-        this.attackRestTimer = this.attackCycleLength;
-        this.shootCooldown = Math.max(20, Math.floor(effectiveShootDelay * 0.65));
-      } else {
-        this.shootCooldown = effectiveShootDelay;
-      }
-    }
+    this.advanceAttackState(phase);
 
     if (dist < 40) {
       triggerShake(8, 10);
@@ -5794,10 +5892,12 @@ class BossEnemy extends EliteEnemy {
       }
     } else if (phase.attack === 'clone_barrage') {
       const clusters = 2;
+      const baseX = this.telegraphX || (player ? player.x : this.x);
+      const baseY = this.telegraphY || (player ? player.y : this.y);
       for (let j = 0; j < clusters; j++) {
         const angle = (j / clusters) * Math.PI * 2 + this.phaseTimer * 0.05;
-        const cx = player.x + Math.cos(angle) * (this.currentPhase > 0 ? 112 : 90);
-        const cy = player.y + Math.sin(angle) * (this.currentPhase > 0 ? 92 : 70);
+        const cx = baseX + Math.cos(angle) * (this.currentPhase > 0 ? 112 : 90);
+        const cy = baseY + Math.sin(angle) * (this.currentPhase > 0 ? 92 : 70);
         for (let i = 0; i < 4; i++) {
           const a = (i / 4) * Math.PI * 2 + angle * 0.4;
           const b = new Bullet(cx, cy, a, phase.bulletSpeed + 0.15, '#aaf', false, 1);
@@ -5811,7 +5911,7 @@ class BossEnemy extends EliteEnemy {
       for (const offset of offsets) {
         const tx = this.x + offset;
         for (let i = 0; i < Math.max(3, Math.floor((phase.bulletCount + bonusBullets) / 3)); i++) {
-          const a = Math.atan2(player.y - this.y, player.x - tx) + (i - 1) * 0.12;
+          const a = this.telegraphAngle + (i - 1) * 0.12 + offset * 0.0025;
           const b = new Bullet(tx, this.y, a, phase.bulletSpeed + rageSpeed, '#ca4', false, this.currentPhase > 0 ? 2 : 1);
           b.radius = offset === 0 ? 4 : 3.2;
           enemyBullets.push(b);
@@ -5862,10 +5962,12 @@ class BossEnemy extends EliteEnemy {
       if (this.currentPhase > 0) this.spawnStormLances(2);
     } else if (phase.attack === 'thunder_storm') {
       const strikes = this.currentPhase > 0 ? 4 : 3;
+      const baseX = this.telegraphX || (player ? player.x : this.x);
+      const baseY = this.telegraphY || (player ? player.y : this.y);
       for (let j = 0; j < strikes; j++) {
         const angle = (j / strikes) * Math.PI * 2 + this.phaseTimer * 0.03;
-        const sx = player.x + Math.cos(angle) * (120 + rng() * 80);
-        const sy = player.y + Math.sin(angle) * (80 + rng() * 60);
+        const sx = baseX + Math.cos(angle) * (120 + rng() * 80);
+        const sy = baseY + Math.sin(angle) * (80 + rng() * 60);
         for (let i = 0; i < 4; i++) {
           const a = (i / 4) * Math.PI * 2;
           const b = new Bullet(sx, sy, a, phase.bulletSpeed + 0.1, '#4ff', false, this.currentPhase > 0 ? 2 : 1);
@@ -5893,26 +5995,87 @@ class BossEnemy extends EliteEnemy {
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
     sfxBossAttack(isTransition ? 'phase_burst' : 'boss_burst', this.currentPhase);
   }
+  drawTelegraph(ctx, phase, accent) {
+    if (!phase || this.attackState !== 'telegraph') return;
+    const duration = Math.max(1, this.attackStateDuration || 1);
+    const progress = 1 - Math.max(0, Math.min(1, this.attackStateTimer / duration));
+    const pulse = 0.45 + Math.sin(Date.now() / 65) * 0.18 + progress * 0.4;
+    const alpha = Math.min(0.42, 0.12 + progress * 0.32);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineWidth = 2 + progress * 2.6;
+    ctx.strokeStyle = 'rgba(255,196,112,' + alpha + ')';
+    ctx.fillStyle = 'rgba(255,80,56,' + (alpha * 0.22) + ')';
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = 16 + progress * 18;
+
+    const drawLineLane = (width, len) => {
+      const a = this.telegraphAngle;
+      const sx = this.x + Math.cos(a) * 18;
+      const sy = this.y + Math.sin(a) * 18;
+      const ex = sx + Math.cos(a) * len;
+      const ey = sy + Math.sin(a) * len;
+      const nx = -Math.sin(a) * width;
+      const ny = Math.cos(a) * width;
+      ctx.beginPath();
+      ctx.moveTo(sx + nx, sy + ny);
+      ctx.lineTo(ex + nx, ey + ny);
+      ctx.lineTo(ex - nx, ey - ny);
+      ctx.lineTo(sx - nx, sy - ny);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    };
+
+    if (phase.attack === 'turret_salvo' || phase.attack === 'lightning_chain' || phase.attack === 'enrage' || phase.attack === 'gravity_wave') {
+      drawLineLane(18 + progress * 8, Math.max(W, H) * 0.8);
+    } else if (phase.attack === 'clone_barrage' || phase.attack === 'thunder_storm') {
+      const radius = phase.attack === 'thunder_storm' ? 110 + progress * 36 : 88 + progress * 28;
+      ctx.beginPath();
+      ctx.arc(this.telegraphX, this.telegraphY, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2 + progress * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(this.telegraphX + Math.cos(a) * 24, this.telegraphY + Math.sin(a) * 24);
+        ctx.lineTo(this.telegraphX + Math.cos(a) * radius, this.telegraphY + Math.sin(a) * radius);
+        ctx.stroke();
+      }
+    } else if (phase.attack === 'mine_storm' || phase.attack === 'black_hole' || phase.attack === 'spiral') {
+      const radius = phase.attack === 'black_hole' ? 132 + progress * 54 : 92 + progress * 44;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, radius * 0.62, -Math.PI * pulse, Math.PI * (0.35 + pulse));
+      ctx.stroke();
+    } else if (phase.attack === 'teleport') {
+      const radius = 72 + progress * 32;
+      ctx.beginPath();
+      ctx.arc(this.telegraphX, this.telegraphY, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      drawLineLane(12 + progress * 6, 260);
+    }
+
+    ctx.fillStyle = 'rgba(246,229,170,' + Math.min(0.85, 0.35 + progress * 0.5) + ')';
+    ctx.font = 'bold 11px "Courier New",monospace';
+    ctx.textAlign = 'center';
+    ctx.shadowBlur = 10;
+    ctx.fillText(this.attackCue || 'BOSS ART', this.telegraphX || this.x, Math.max(28, (this.telegraphY || this.y) - 38));
+    ctx.restore();
+  }
   teleportToSafePoint(minPlayerDist) {
-    const safe = findSafeTankSpawn({
-      w: 54,
-      h: 54,
-      minEnemyDist: 90,
-      minPlayerDist: minPlayerDist || 180,
-      preferred: [
-        { x: player.x + 180, y: player.y - 90 },
-        { x: player.x - 180, y: player.y - 90 },
-        { x: player.x + 180, y: player.y + 90 },
-        { x: player.x - 180, y: player.y + 90 },
-        { x: W / 2, y: H * 0.25 },
-      ].map(p => ({
-        x: Math.max(48, Math.min(W - 48, p.x)),
-        y: Math.max(48, Math.min(H - 48, p.y)),
-      })),
-    });
+    const safe = this.pendingTeleport || this.findTeleportPoint(minPlayerDist);
     spawnExplosion(this.x, this.y, 18, '#88f', '#fff');
     this.x = safe.x;
     this.y = safe.y;
+    if (player) {
+      this.telegraphAngle = Math.atan2(player.y - this.y, player.x - this.x);
+      this.turretAngle = this.telegraphAngle;
+    }
+    this.pendingTeleport = null;
     spawnExplosion(this.x, this.y, 22, '#dfe8ff', this.bossDef.turret || '#88f');
     triggerShake(6, 8);
     sfxBossAttack('teleport', this.currentPhase);
@@ -5945,7 +6108,7 @@ class BossEnemy extends EliteEnemy {
   }
   spawnBossEscort() {
     if (enemies.length >= getWaveConcurrentEnemyCap()) return;
-    const activeEscorts = enemies.filter(e => e.alive && e !== this && e.isElite).length;
+    const activeEscorts = enemies.filter(e => e.alive && e !== this && e.isElite && e.bossEscort).length;
     if (activeEscorts >= 1) return;
     let escortDef = eliteTypes[0];
     if (this.bossDef.name === '巨兽坦克') escortDef = eliteTypes[0];
@@ -5968,7 +6131,11 @@ class BossEnemy extends EliteEnemy {
         y: Math.max(36, Math.min(H - 36, p.y)),
       })),
     });
-    enemies.push(new EliteEnemy(spawn.x, spawn.y, escortDef));
+    const escort = new EliteEnemy(spawn.x, spawn.y, escortDef);
+    escort.bossEscort = true;
+    escort.maxHp = Math.max(2, Math.ceil(escort.maxHp * 0.72));
+    escort.hp = Math.min(escort.hp, escort.maxHp);
+    enemies.push(escort);
     waveEnemiesRemaining++;
     waveEnemiesTotal++;
     spawnExplosion(spawn.x, spawn.y, 12, escortDef.turret, '#fff');
@@ -5980,6 +6147,8 @@ class BossEnemy extends EliteEnemy {
     const hpRatio = this.hp / this.maxHp;
     const phaseRatio = this.currentPhase > 0 ? 1 : 0;
     const accent = this.bossDef.turret || '#ffd36f';
+    const p = this.bossDef.phases[Math.max(0,this.currentPhase)];
+    this.drawTelegraph(ctx, p, accent);
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.shadowColor = accent;
@@ -6104,7 +6273,6 @@ class BossEnemy extends EliteEnemy {
       ctx.fill();
     }
     // Phase indicator
-    const p = this.bossDef.phases[Math.max(0,this.currentPhase)];
     if (p) {
       drawArmorPanel(ctx, -62, -50, 124, 16, 'rgba(8,12,18,0.82)', 'rgba(255,255,255,0.14)', 4);
       ctx.fillStyle = this.currentPhase > 0 ? '#ffd27a' : '#ffffff';
@@ -6199,27 +6367,38 @@ class BossEnemy extends EliteEnemy {
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      const cycle = Math.max(1, this.attackCycleLength || 90);
-      const restRatio = Math.max(0, Math.min(1, this.attackRestTimer / cycle));
+      const stateDuration = Math.max(1, this.attackStateDuration || 1);
+      const stateProgress = 1 - Math.max(0, Math.min(1, this.attackStateTimer / stateDuration));
       const chargeX = barX;
       const chargeY = barY + barH + 5;
+      const stateLabel = this.attackState === 'telegraph'
+        ? 'CHARGING / ' + (this.attackCue || 'BOSS ART')
+        : (this.attackState === 'recover' ? 'ARMOR BREAK / RECOVER' : 'FIRING / EVADE');
+      const stateColor = this.attackState === 'telegraph'
+        ? 'rgba(255,196,112,0.9)'
+        : (this.attackState === 'recover' ? 'rgba(140,232,255,0.86)' : 'rgba(255,103,103,0.86)');
       ctx.fillStyle = 'rgba(255,255,255,0.08)';
       ctx.fillRect(chargeX, chargeY, barW, 5);
-      ctx.fillStyle = this.attackRestTimer > 0 ? 'rgba(140,232,255,0.82)' : 'rgba(255,103,103,0.82)';
-      ctx.fillRect(chargeX, chargeY, barW * (this.attackRestTimer > 0 ? (1 - restRatio) : 1), 5);
+      ctx.fillStyle = stateColor;
+      ctx.fillRect(chargeX, chargeY, barW * stateProgress, 5);
       ctx.strokeStyle = 'rgba(255,255,255,0.12)';
       ctx.strokeRect(chargeX, chargeY, barW, 5);
-      ctx.fillStyle = this.attackRestTimer > 0 ? '#8ce8ff' : '#ff9f70';
+      ctx.fillStyle = this.attackState === 'recover' ? '#8ce8ff' : (this.attackState === 'telegraph' ? '#f6e5aa' : '#ff9f70');
       ctx.font = 'bold 9px "Courier New",monospace';
       ctx.textAlign = 'right';
-      ctx.fillText(this.attackRestTimer > 0 ? 'COOLING' : 'FIRING', chargeX + barW, chargeY - 2);
+      ctx.fillText(stateLabel, chargeX + barW, chargeY - 2);
+      if (p && p.hint) {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(246,229,170,0.74)';
+        ctx.fillText(p.hint, panelX + 34, panelY + panelH + 14);
+      }
     }
   }
   hit(bullet) {
     if (this.transitionLock > 0) return false;
     const dead = super.hit(bullet);
     this.hitFlash = 6;
-    if (!dead && this.currentPhase > 0 && this.phaseBurstCooldown <= 0 && rng() < 0.09) {
+    if (!dead && this.attackState === 'firing' && this.currentPhase > 0 && this.phaseBurstCooldown <= 0 && rng() < 0.04) {
       this.phaseBurstCooldown = 110;
       this.emitPhaseBurst(false);
     }
@@ -8361,8 +8540,11 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         if (fromPlayer && tank.bossDef && playerBossDamageMul > 1) {
           bullet.damage = Math.max(1, Math.ceil((bullet.damage || 1) * playerBossDamageMul));
         }
+        if (fromPlayer && tank.bossDef && tank.recoverVulnerable) {
+          bullet.damage = Math.max(1, Math.ceil((bullet.damage || 1) * 1.18));
+        }
         const destroyed = tank.hit(bullet);
-        if (fromPlayer && tank.bossDef && playerBossDamageMul > 1) {
+        if (fromPlayer && tank.bossDef && (playerBossDamageMul > 1 || tank.recoverVulnerable)) {
           bullet.damage = originalDamage;
         }
         if (fromPlayer) recordEnemyHit(tank, bullet, Math.max(0, hpBeforeHit - (tank.hp || 0)));
