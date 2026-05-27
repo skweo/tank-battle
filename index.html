@@ -2531,6 +2531,16 @@ canvas { background: #070d13; }
   transform: translate(-50%, -50%);
   grid-template-columns: minmax(0, 1fr);
   padding: 10px 10px 9px 14px;
+  border-color: rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)), var(--node-border-alpha, 0.18));
+  background:
+    radial-gradient(circle at 8% 24%, rgba(var(--node-rgb-2, var(--node-rgb, var(--branch-rgb, 246,229,170))), calc(var(--node-glow, 0.08) * 1.15)), transparent 42%),
+    linear-gradient(135deg,
+      rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)), var(--node-alpha, 0.08)),
+      rgba(var(--node-rgb-2, var(--node-rgb, var(--branch-rgb, 246,229,170))), calc(var(--node-alpha, 0.08) * 0.72)) 38%,
+      rgba(4,8,12,var(--node-bg-alpha, 0.72)) 82%);
+  box-shadow:
+    inset 0 0 20px rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)), calc(var(--node-glow, 0.08) * 0.35)),
+    0 0 calc(12px + var(--node-depth, 1) * 2px) rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)), calc(var(--node-glow, 0.08) * 0.35));
   backdrop-filter: blur(2px);
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
@@ -2543,27 +2553,52 @@ canvas { background: #070d13; }
   width: 3px;
   border-radius: 999px;
   background:
-    linear-gradient(180deg, transparent, rgba(var(--branch-rgb, 246,229,170),0.95), transparent);
-  box-shadow: 0 0 14px rgba(var(--branch-rgb, 246,229,170),0.22);
+    linear-gradient(180deg, transparent, rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.95), rgba(var(--node-rgb-2, var(--node-rgb, var(--branch-rgb, 246,229,170))),0.72), transparent);
+  box-shadow: 0 0 14px rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.22);
 }
 #protocol-screen .protocol-node.root {
   width: 240px;
-  border-color: rgba(var(--branch-rgb, 246,229,170),0.44);
-  box-shadow: 0 0 28px rgba(var(--branch-rgb, 246,229,170),0.12);
+  border-color: rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.44);
+  box-shadow: 0 0 28px rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.12);
 }
 #protocol-screen .protocol-node.lit {
-  border-color: rgba(var(--branch-rgb, 246,229,170),0.54);
+  border-color: rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.58);
   background:
-    linear-gradient(90deg, rgba(var(--branch-rgb, 246,229,170),0.12), rgba(8,13,18,0.78));
+    radial-gradient(circle at 82% 18%, rgba(var(--node-rgb-2, var(--node-rgb, var(--branch-rgb, 246,229,170))), calc(var(--node-glow, 0.08) * 1.45)), transparent 36%),
+    linear-gradient(135deg,
+      rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)), calc(var(--node-alpha, 0.08) + 0.055)),
+      rgba(var(--node-rgb-2, var(--node-rgb, var(--branch-rgb, 246,229,170))), calc(var(--node-alpha, 0.08) + 0.02)) 42%,
+      rgba(3,7,11,var(--node-bg-alpha, 0.78)) 84%);
 }
 #protocol-screen .protocol-node:hover {
   z-index: 5;
   transform: translate(-50%, -50%) scale(1.035);
-  border-color: rgba(var(--branch-rgb, 246,229,170),0.72);
-  box-shadow: 0 18px 42px rgba(0,0,0,0.44), 0 0 24px rgba(var(--branch-rgb, 246,229,170),0.16);
+  border-color: rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.76);
+  box-shadow:
+    0 18px 42px rgba(0,0,0,0.44),
+    0 0 28px rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)), calc(var(--node-glow, 0.08) * 1.2));
+}
+#protocol-screen .protocol-node.conflux {
+  border-color: rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.52);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 5px);
+}
+#protocol-screen .protocol-node.conflux::after {
+  content: '';
+  position: absolute;
+  right: 9px;
+  top: 9px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,0.92), transparent 24%),
+    radial-gradient(circle, rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.96), rgba(var(--node-rgb-2, var(--node-rgb, var(--branch-rgb, 246,229,170))),0.74) 62%, rgba(2,6,10,0.4));
+  box-shadow:
+    0 0 12px rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.46),
+    0 0 18px rgba(var(--node-rgb-2, var(--node-rgb, var(--branch-rgb, 246,229,170))),0.28);
 }
 #protocol-screen .protocol-node .node-branch {
-  color: rgba(var(--branch-rgb, 246,229,170),0.8);
+  color: rgba(var(--node-rgb, var(--branch-rgb, 246,229,170)),0.82);
   font: 900 8px 'Courier New','Microsoft YaHei',monospace;
   letter-spacing: 1px;
   margin-bottom: 3px;
@@ -8881,6 +8916,7 @@ const GLOBAL_RESEARCH_BRANCHES = [
   { id:'body', code:'SAN', name:'圣骸机体', desc:'底盘、装甲、弹仓与装填仪式。它让每一台机体都像从同一座圣龛中醒来。', color:'#f6e5aa', rgb:'246,229,170' },
   { id:'ordnance', code:'ORD', name:'弹道礼仪', desc:'弹速、冷却、后坐与弹幕对撞。研究室把火力写成律法，再交给驾驶员执行。', color:'#8ce8ff', rgb:'140,232,255' },
   { id:'logistics', code:'LOG', name:'后勤残响', desc:'月光石、补给、维修与概率敕令。所谓奇迹，多半来自仍未断线的补给网络。', color:'#f49800', rgb:'244,152,0' },
+  { id:'conflux', code:'CNF', name:'触点果实', desc:'两片协议区域的树枝互相贴近后，偶尔会结出不属于任何单一区域的果实。', color:'#d7c48a', rgb:'215,196,138' },
 ];
 
 const TANK_UNLOCK_CONDITIONS = {
@@ -9192,6 +9228,33 @@ const GLOBAL_RESEARCH_DEFS = [
     next:l => '下一阶 折扣 -' + ((l + 1) * 0.8).toFixed(1) + '% / 修复 +' + ((l + 1) * 0.25).toFixed(2) + '%',
     lore:'账房把慈悲写进表格最末行。若余额足够，它会让奇迹看起来像一次普通报销。',
   },
+  {
+    id:'iron_procession_fruit', branch:'conflux', blend:['body','ordnance'], row:5, prereq:{ anchor_frame:1, recoil_sanctum:1 }, code:'C-FRT', name:'铁列果实', max:3, costBase:390,
+    desc:l => '开火稳定 +' + (l * 0.6).toFixed(1) + '% / 弹速 +' + (l * 0.006).toFixed(3),
+    next:l => '下一阶 稳定 +' + ((l + 1) * 0.6).toFixed(1) + '% / 弹速 +' + ((l + 1) * 0.006).toFixed(3),
+    lore:'两条树枝在这里碰撞，结出的果实有铁锈味。驾驶员说它像一枚还没发射就先学会祈祷的炮弹。',
+    apply(t, lvl){ t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.006; t.bulletSpeed += lvl * 0.006; },
+  },
+  {
+    id:'munition_tithe_fruit', branch:'conflux', blend:['ordnance','logistics'], row:6, prereq:{ ordnance_doctrine:1, saint_cache:1 }, code:'M-FRT', name:'弹税果实', max:2, costBase:455,
+    desc:l => '局内经验 +' + (l * 0.8).toFixed(1) + '% / 对撞强度 +' + (l >= 2 ? 1 : 0),
+    next:l => '下一阶 经验 +' + ((l + 1) * 0.8).toFixed(1) + '% / 对撞 +' + ((l + 1) >= 2 ? 1 : 0),
+    lore:'后勤把弹壳算作税票，炮口把税票读成圣歌。果实成熟时，整条补给线都会闻到硝烟。',
+  },
+  {
+    id:'pilgrim_chassis_fruit', branch:'conflux', blend:['logistics','body'], row:6, prereq:{ pilgrimage_index:1, sanctum_network:1 }, code:'P-FRT', name:'巡礼底盘果实', max:3, costBase:430,
+    desc:l => '全域MS +' + (l * 0.4).toFixed(1) + '% / 移速 +' + (l * 0.25).toFixed(2) + '%',
+    next:l => '下一阶 MS +' + ((l + 1) * 0.4).toFixed(1) + '% / 移速 +' + ((l + 1) * 0.25).toFixed(2) + '%',
+    lore:'远征索引与圣龛网路在此交握。果实并不甜，却能让机体记住更远处的归路。',
+    apply(t, lvl){ t.speed += lvl * 0.0025; },
+  },
+  {
+    id:'triune_sanctum_fruit', branch:'conflux', blend:['body','ordnance','logistics'], row:8, prereq:{ reliquary_spine:1, eclipse_rangefinder:1, ashen_caravan:1 }, code:'T-FRT', name:'三相圣果', max:2, costBase:620,
+    desc:l => 'HP +' + (l >= 2 ? 1 : 0) + ' / 弹速 +' + (l * 0.008).toFixed(3) + ' / 全域MS +' + (l * 0.4).toFixed(1) + '%',
+    next:l => '下一阶 HP +' + ((l + 1) >= 2 ? 1 : 0) + ' / 弹速 +' + ((l + 1) * 0.008).toFixed(3) + ' / MS +' + ((l + 1) * 0.4).toFixed(1) + '%',
+    lore:'三条主干都把影子伸到这里时，圣城会短暂沉默。三相圣果不是奖赏，而是系统承认你已经越过原本的设计边界。',
+    apply(t, lvl){ t.hpBonus += lvl >= 2 ? 1 : 0; t.bulletSpeed += lvl * 0.008; },
+  },
 ];
 
 const GLOBAL_RESEARCH_LAYOUT = {
@@ -9204,6 +9267,7 @@ const GLOBAL_RESEARCH_LAYOUT = {
   salvage_prayer:{ x:1540, y:1740 }, supply_liturgy:{ x:1170, y:1880 }, vault_cartography:{ x:1490, y:2110 }, after_action_tithe:{ x:1080, y:1600 },
   repair_canticle:{ x:780, y:2150 }, reroll_writ:{ x:1240, y:2460 }, field_sanctuary:{ x:480, y:2520 }, black_box_routes:{ x:1640, y:2660 },
   saint_cache:{ x:950, y:2840 }, moon_tithe:{ x:260, y:2780 }, pilgrimage_index:{ x:650, y:1490 }, ashen_caravan:{ x:500, y:1240 }, mercy_accountant:{ x:1470, y:2920 },
+  iron_procession_fruit:{ x:2570, y:1320 }, munition_tithe_fruit:{ x:2300, y:2570 }, pilgrim_chassis_fruit:{ x:1260, y:1260 }, triune_sanctum_fruit:{ x:1900, y:2920 },
 };
 
 const TANK_EVOLUTION = {
@@ -9445,6 +9509,56 @@ function getGlobalResearchBranchByDef(def) {
   return getGlobalResearchBranch((def && def.branch) || 'body');
 }
 
+function parseRgbTriple(rgb, fallback = [246, 229, 170]) {
+  if (Array.isArray(rgb)) return rgb;
+  const parts = String(rgb || '').split(',').map(v => parseInt(v.trim(), 10));
+  return parts.length === 3 && parts.every(Number.isFinite) ? parts : fallback;
+}
+
+function mixRgbTriples(a, b, weight = 0.5) {
+  const left = parseRgbTriple(a);
+  const right = parseRgbTriple(b);
+  const w = Math.max(0, Math.min(1, weight));
+  return left.map((v, i) => Math.round(v * (1 - w) + right[i] * w));
+}
+
+function rgbTripleToString(rgb) {
+  return parseRgbTriple(rgb).join(',');
+}
+
+function getGlobalResearchBlendBranches(def) {
+  const ids = def && Array.isArray(def.blend) && def.blend.length ? def.blend : [((def && def.branch) || 'body')];
+  return ids.map(id => getGlobalResearchBranch(id)).filter(Boolean);
+}
+
+function getGlobalResearchVisual(def) {
+  const branches = getGlobalResearchBlendBranches(def);
+  const primary = branches[0] || getGlobalResearchBranchByDef(def);
+  const secondary = branches[1] || primary;
+  const row = Math.max(1, Math.min(8, (def && def.row) || 1));
+  const depth = (row - 1) / 7;
+  const baseA = parseRgbTriple(primary.rgb);
+  const baseB = parseRgbTriple(secondary.rgb);
+  const branchOrder = { body: 0, ordnance: 1, logistics: 2, conflux: 3 };
+  const wheelShift = ((branchOrder[(def && def.branch) || primary.id] || 0) * 0.16) + depth * 0.18;
+  const wheelMix = mixRgbTriples(baseA, baseB, Math.min(0.72, 0.28 + wheelShift));
+  const deepTone = mixRgbTriples(wheelMix, [3, 7, 12], Math.min(0.52, depth * 0.42));
+  const secondaryTone = branches.length > 1
+    ? mixRgbTriples(baseB, wheelMix, 0.34)
+    : mixRgbTriples(wheelMix, [246, 229, 170], Math.max(0.08, 0.2 - depth * 0.08));
+  return {
+    primary: rgbTripleToString(deepTone),
+    secondary: rgbTripleToString(secondaryTone),
+    link: rgbTripleToString(mixRgbTriples(deepTone, secondaryTone, 0.4)),
+    alpha: (0.075 + depth * 0.09).toFixed(3),
+    bgAlpha: (0.64 + depth * 0.2).toFixed(3),
+    borderAlpha: (0.18 + depth * 0.28).toFixed(3),
+    glow: (0.08 + depth * 0.1).toFixed(3),
+    depth: row,
+    isConflux: branches.length > 1 || (def && def.branch === 'conflux'),
+  };
+}
+
 function getGlobalResearchPrereqEntries(def) {
   return def && def.prereq ? Object.keys(def.prereq).map(id => [id, 1]) : [];
 }
@@ -9472,7 +9586,7 @@ function canPurchaseGlobalResearch(id) {
 }
 
 function getSalvageResearchMultiplier() {
-  return 1 + getGlobalResearchLevel('salvage_prayer') * 0.008 + getGlobalResearchLevel('moon_tithe') * 0.012 + getGlobalResearchLevel('pilgrimage_index') * 0.006 + getGlobalResearchLevel('ashen_caravan') * 0.005;
+  return 1 + getGlobalResearchLevel('salvage_prayer') * 0.008 + getGlobalResearchLevel('moon_tithe') * 0.012 + getGlobalResearchLevel('pilgrimage_index') * 0.006 + getGlobalResearchLevel('ashen_caravan') * 0.005 + getGlobalResearchLevel('pilgrim_chassis_fruit') * 0.004 + getGlobalResearchLevel('triune_sanctum_fruit') * 0.004;
 }
 
 function getVaultResearchMultiplier() {
@@ -9492,11 +9606,11 @@ function getGlobalRerollDiscount() {
 }
 
 function getGlobalClashPowerBonus() {
-  return Math.floor((getGlobalResearchLevel('clash_calculus') + getGlobalResearchLevel('counter_gospel') + getGlobalResearchLevel('interdiction_choir')) / 3);
+  return Math.min(2, Math.floor((getGlobalResearchLevel('clash_calculus') + getGlobalResearchLevel('counter_gospel') + getGlobalResearchLevel('interdiction_choir') + getGlobalResearchLevel('munition_tithe_fruit')) / 3));
 }
 
 function getGlobalRunXpMultiplier() {
-  return 1 + getGlobalResearchLevel('after_action_tithe') * 0.01 + getGlobalResearchLevel('pilgrimage_index') * 0.014;
+  return 1 + getGlobalResearchLevel('after_action_tithe') * 0.01 + getGlobalResearchLevel('pilgrimage_index') * 0.014 + getGlobalResearchLevel('munition_tithe_fruit') * 0.008;
 }
 
 function scaleBattleMoonstoneGain(amount, multiplier) {
@@ -10114,13 +10228,14 @@ function renderProtocolTree() {
   const links = [];
   visibleDefs.forEach(def => {
     const branch = getGlobalResearchBranchByDef(def);
+    const visual = getGlobalResearchVisual(def);
     const child = GLOBAL_RESEARCH_LAYOUT[def.id] || { x:PROTOCOL_MAP_SIZE.centerX, y:PROTOCOL_MAP_SIZE.centerY };
     const prereqs = getGlobalResearchPrereqEntries(def);
     if (!prereqs.length) {
       const cls = getGlobalResearchLevel(def.id) > 0 ? 'lit' : 'ready';
       const mx = (PROTOCOL_MAP_SIZE.centerX + child.x) / 2;
       const my = (PROTOCOL_MAP_SIZE.centerY + child.y) / 2;
-      links.push(`<path class="${cls}" style="--link-rgb:${escapeHtml(branch.rgb)}" d="M ${PROTOCOL_MAP_SIZE.centerX} ${PROTOCOL_MAP_SIZE.centerY} Q ${mx} ${my} ${child.x} ${child.y}"></path>`);
+      links.push(`<path class="${cls}" style="--link-rgb:${escapeHtml(visual.link || branch.rgb)}" d="M ${PROTOCOL_MAP_SIZE.centerX} ${PROTOCOL_MAP_SIZE.centerY} Q ${mx} ${my} ${child.x} ${child.y}"></path>`);
       return;
     }
     prereqs.forEach(([parentId]) => {
@@ -10132,11 +10247,12 @@ function renderProtocolTree() {
       const bend = Math.max(-90, Math.min(90, dx * 0.12));
       const cx = parent.x + dx * 0.52 - dy * 0.04;
       const cy = parent.y + dy * 0.48 + bend;
-      links.push(`<path class="${cls}" style="--link-rgb:${escapeHtml(branch.rgb)}" d="M ${parent.x} ${parent.y} Q ${Math.round(cx)} ${Math.round(cy)} ${child.x} ${child.y}"></path>`);
+      links.push(`<path class="${cls}" style="--link-rgb:${escapeHtml(visual.link || branch.rgb)}" d="M ${parent.x} ${parent.y} Q ${Math.round(cx)} ${Math.round(cy)} ${child.x} ${child.y}"></path>`);
     });
   });
   const nodes = visibleDefs.map(def => {
     const branch = getGlobalResearchBranchByDef(def);
+    const visual = getGlobalResearchVisual(def);
     const lvl = getGlobalResearchLevel(def.id);
     const capped = lvl >= def.max;
     const lock = getGlobalResearchLockReason(def);
@@ -10147,10 +10263,22 @@ function renderProtocolTree() {
     const buttonText = capped ? 'MAX' : (lock ? 'LOCKED' : cost + ' MS');
     const layout = GLOBAL_RESEARCH_LAYOUT[def.id] || { x:PROTOCOL_MAP_SIZE.centerX, y:PROTOCOL_MAP_SIZE.centerY };
     const root = getGlobalResearchPrereqEntries(def).length === 0;
-    const cls = `${capped ? 'capped' : (available ? 'available' : 'locked')} ${lvl > 0 ? 'lit' : ''} ${root ? 'root' : ''}`;
-    return `<div class="protocol-node ${cls}" data-protocol-id="${escapeHtml(def.id)}" style="--branch-rgb:${escapeHtml(branch.rgb)};--node-x:${layout.x};--node-y:${layout.y}">
+    const cls = `${capped ? 'capped' : (available ? 'available' : 'locked')} ${lvl > 0 ? 'lit' : ''} ${root ? 'root' : ''} ${visual.isConflux ? 'conflux' : ''}`;
+    const nodeStyle = [
+      `--branch-rgb:${escapeHtml(branch.rgb)}`,
+      `--node-rgb:${escapeHtml(visual.primary)}`,
+      `--node-rgb-2:${escapeHtml(visual.secondary)}`,
+      `--node-alpha:${visual.alpha}`,
+      `--node-bg-alpha:${visual.bgAlpha}`,
+      `--node-border-alpha:${visual.borderAlpha}`,
+      `--node-glow:${visual.glow}`,
+      `--node-depth:${visual.depth}`,
+      `--node-x:${layout.x}`,
+      `--node-y:${layout.y}`
+    ].join(';');
+    return `<div class="protocol-node ${cls}" data-protocol-id="${escapeHtml(def.id)}" style="${nodeStyle}">
       <div class="node-body">
-        <div class="node-branch">${escapeHtml(branch.code)} / ${escapeHtml(branch.name)}</div>
+        <div class="node-branch">${escapeHtml(visual.isConflux ? 'CNF / 触点果实' : branch.code + ' / ' + branch.name)}</div>
         <div class="node-name-row">
           <span class="node-name">${escapeHtml(def.name)}</span>
           <span class="node-level">LV ${lvl}/${def.max}</span>
@@ -10180,7 +10308,7 @@ function renderProtocolTree() {
     <div class="protocol-progress">PROGRESS ${total}/${maxTotal}<br>${Math.round(total / Math.max(1, maxTotal) * 100)}%</div>
   </div>
   <div class="protocol-status-rail">
-    <div class="protocol-status-title">ONE MAP / THREE TRUNKS / DRAG TO PAN</div>
+    <div class="protocol-status-title">ONE MAP / THREE TRUNKS / CONFLUX FRUITS / DRAG TO PAN</div>
     <div class="protocol-axis-list">${branchSummary}</div>
   </div>
   <div class="protocol-drag-hint">在空白区域按住拖拽，像查看脑图一样探索整张协议树；滚轮可缩放视角，节点第一次点亮后才显现下一段树枝。<span class="protocol-zoom-readout" id="protocol-zoom-readout">ZOOM ${Math.round((protocolMapPan.zoom || 1) * 100)}%</span></div>
