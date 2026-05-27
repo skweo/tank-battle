@@ -219,6 +219,16 @@ canvas { display: block; background: #0a0f18; }
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 #start-screen .achieve-link:hover { color: #f49800; background: rgba(24,32,44,0.8); border-color: rgba(244,152,0,0.3); }
+#start-screen .protocol-link {
+  border-color: rgba(246,229,170,0.18);
+  background:
+    linear-gradient(90deg, rgba(246,229,170,0.08), rgba(16,22,32,0.72), rgba(140,232,255,0.05));
+}
+#start-screen .protocol-link:hover {
+  color: #f6e5aa;
+  border-color: rgba(246,229,170,0.44);
+  box-shadow: 0 0 20px rgba(246,229,170,0.13);
+}
 .currency-display {
   color: #f49800; font-size: 11px; letter-spacing: 2px; text-align: center;
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif; margin: 0;
@@ -1007,6 +1017,7 @@ canvas { background: #070d13; }
 #achievements-screen,
 #bestiary-screen,
 #lab-screen,
+#protocol-screen,
 #leaderboard-screen,
 #upgrade-screen,
 #modifier-screen {
@@ -1016,7 +1027,8 @@ canvas { background: #070d13; }
 }
 #achievements-screen,
 #bestiary-screen,
-#lab-screen {
+#lab-screen,
+#protocol-screen {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -1025,13 +1037,16 @@ canvas { background: #070d13; }
 }
 #achievements-screen::-webkit-scrollbar,
 #bestiary-screen::-webkit-scrollbar,
-#lab-screen::-webkit-scrollbar { width: 8px; }
+#lab-screen::-webkit-scrollbar,
+#protocol-screen::-webkit-scrollbar { width: 8px; }
 #achievements-screen::-webkit-scrollbar-track,
 #bestiary-screen::-webkit-scrollbar-track,
-#lab-screen::-webkit-scrollbar-track { background: rgba(7,10,16,0.72); }
+#lab-screen::-webkit-scrollbar-track,
+#protocol-screen::-webkit-scrollbar-track { background: rgba(7,10,16,0.72); }
 #achievements-screen::-webkit-scrollbar-thumb,
 #bestiary-screen::-webkit-scrollbar-thumb,
-#lab-screen::-webkit-scrollbar-thumb {
+#lab-screen::-webkit-scrollbar-thumb,
+#protocol-screen::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, rgba(244,152,0,0.75), rgba(140,232,255,0.32));
   border: 2px solid rgba(7,10,16,0.72);
 }
@@ -1050,7 +1065,13 @@ canvas { background: #070d13; }
 #lab-screen .lab-tank-grid,
 #lab-screen .lab-ornament,
 #lab-screen .lab-detail-panel,
-#lab-screen .lab-actions {
+#lab-screen .lab-actions,
+#protocol-screen h1,
+#protocol-screen .protocol-fragment-line,
+#protocol-screen .protocol-route-line,
+#protocol-screen .protocol-ornament,
+#protocol-screen .protocol-panel,
+#protocol-screen .protocol-return-btn {
   flex-shrink: 0;
 }
 #start-screen > *,
@@ -1058,6 +1079,7 @@ canvas { background: #070d13; }
 #achievements-screen > *,
 #bestiary-screen > *,
 #lab-screen > *,
+#protocol-screen > *,
 #leaderboard-screen > *,
 #upgrade-screen > *,
 #modifier-screen > * {
@@ -1069,6 +1091,7 @@ canvas { background: #070d13; }
 #achievements-screen::before,
 #bestiary-screen::before,
 #lab-screen::before,
+#protocol-screen::before,
 #leaderboard-screen::before,
 #upgrade-screen::before,
 #modifier-screen::before {
@@ -1083,6 +1106,7 @@ canvas { background: #070d13; }
 #achievements-screen::after,
 #bestiary-screen::after,
 #lab-screen::after,
+#protocol-screen::after,
 #leaderboard-screen::after,
 #upgrade-screen::after,
 #modifier-screen::after {
@@ -1099,6 +1123,7 @@ canvas { background: #070d13; }
 #achievements-screen h1,
 #bestiary-screen h1,
 #lab-screen h1,
+#protocol-screen h1,
 #leaderboard-screen h1,
 #upgrade-screen h1,
 #modifier-screen h2 {
@@ -1931,114 +1956,6 @@ canvas { background: #070d13; }
   color: #4a5a70;
   cursor: not-allowed;
 }
-#lab-screen .lab-global-research {
-  position: relative;
-  margin: 10px 0 12px;
-  padding: 10px;
-  border: 1px solid rgba(246,229,170,0.14);
-  background:
-    linear-gradient(135deg, rgba(246,229,170,0.08), transparent 38%),
-    linear-gradient(180deg, rgba(10,15,22,0.92), rgba(5,8,12,0.86));
-  box-shadow: inset 0 0 26px rgba(246,229,170,0.04);
-  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-}
-#lab-screen .lab-global-research::before {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  pointer-events: none;
-  border-top: 1px solid rgba(140,232,255,0.12);
-  border-bottom: 1px solid rgba(246,229,170,0.08);
-}
-#lab-screen .lab-global-header {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-#lab-screen .lab-global-title {
-  color: var(--ui-holy);
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 2px;
-}
-#lab-screen .lab-global-sub {
-  color: #7f92aa;
-  font-size: 11px;
-  line-height: 1.45;
-  text-align: right;
-}
-#lab-screen .lab-global-grid {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-}
-#lab-screen .lab-global-row {
-  display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) 74px;
-  gap: 7px;
-  align-items: center;
-  padding: 8px;
-  border: 1px solid rgba(140,232,255,0.12);
-  background: linear-gradient(90deg, rgba(140,232,255,0.045), rgba(246,229,170,0.035));
-  clip-path: var(--ui-cut-sm);
-}
-#lab-screen .lab-global-row.capped {
-  border-color: rgba(246,229,170,0.22);
-  background: linear-gradient(90deg, rgba(246,229,170,0.07), rgba(255,255,255,0.02));
-}
-#lab-screen .lab-global-code {
-  color: #0b1016;
-  font-size: 11px;
-  font-weight: 900;
-  text-align: center;
-  letter-spacing: 0.8px;
-  background: linear-gradient(90deg, rgba(140,232,255,0.82), rgba(246,229,170,0.9));
-  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
-}
-#lab-screen .lab-global-name {
-  color: #d5dbe4;
-  font-size: 12px;
-  font-weight: 700;
-}
-#lab-screen .lab-global-effect {
-  margin-top: 2px;
-  color: #7f92aa;
-  font-size: 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-#lab-screen .lab-global-lvl {
-  color: #f49800;
-  font-size: 10px;
-  text-align: right;
-  letter-spacing: 1px;
-}
-#lab-screen .lab-global-buy {
-  width: 100%;
-  margin-top: 4px;
-  padding: 4px 6px;
-  border: 1px solid rgba(244,152,0,0.65);
-  color: var(--ui-amber);
-  background: rgba(244,152,0,0.12);
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-  clip-path: var(--ui-cut-sm);
-}
-#lab-screen .lab-global-buy.no-funds { color: #ff6767; }
-#lab-screen .lab-global-buy:disabled {
-  border-color: rgba(255,255,255,0.08);
-  color: #5a6878;
-  background: rgba(255,255,255,0.03);
-  cursor: not-allowed;
-}
 #lab-screen .lab-detail-title {
   color: var(--ui-holy);
   font-size: 18px;
@@ -2153,14 +2070,268 @@ canvas { background: #070d13; }
   clip-path: var(--ui-cut);
   box-shadow: 0 24px 54px rgba(0,0,0,0.36);
 }
+
+#protocol-screen {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 23%, rgba(246,229,170,0.11), transparent 27%),
+    radial-gradient(ellipse at 22% 78%, rgba(140,232,255,0.08), transparent 35%),
+    radial-gradient(ellipse at 82% 74%, rgba(180,91,60,0.14), transparent 38%),
+    linear-gradient(180deg, rgba(7,10,15,0.99), rgba(5,7,10,0.99));
+  gap: 7px;
+}
+#protocol-screen::before {
+  background:
+    radial-gradient(circle at 50% 42%, transparent 0 76px, rgba(246,229,170,0.16) 77px 78px, transparent 79px 172px, rgba(140,232,255,0.12) 173px 174px, transparent 176px),
+    linear-gradient(90deg, transparent 0 12%, rgba(246,229,170,0.055) 12.1% 12.3%, transparent 12.5% 87.5%, rgba(140,232,255,0.05) 87.7% 87.9%, transparent 88%),
+    repeating-linear-gradient(90deg, transparent 0 44px, rgba(255,255,255,0.022) 44px 45px),
+    repeating-linear-gradient(0deg, transparent 0 22px, rgba(255,255,255,0.016) 22px 23px);
+}
+#protocol-screen h1 {
+  margin-top: 16px;
+  color: var(--ui-holy);
+}
+#protocol-screen .protocol-fragment-line {
+  margin-top: -5px;
+  color: var(--ui-holy) !important;
+  font-size: 11px;
+  letter-spacing: 4px;
+  display: flex;
+  justify-content: center;
+}
+#protocol-screen .protocol-route-line {
+  margin: -4px 0 0;
+  color: #8a94a4;
+  font-size: 12px;
+  letter-spacing: 2.6px;
+}
+#protocol-screen .protocol-ornament {
+  width: 240px;
+  margin: 2px 0;
+}
+#protocol-screen .protocol-panel {
+  width: min(92%, 920px);
+  padding: 14px 16px 16px;
+  border: 1px solid rgba(246,229,170,0.18);
+  background:
+    linear-gradient(150deg, rgba(246,229,170,0.09), transparent 28%),
+    linear-gradient(20deg, rgba(140,232,255,0.055), transparent 36%),
+    rgba(6,10,15,0.9);
+  clip-path: var(--ui-cut);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.42), inset 0 0 38px rgba(246,229,170,0.035);
+}
+#protocol-screen .protocol-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  padding: 8px 8px 12px;
+  border-bottom: 1px solid rgba(246,229,170,0.12);
+}
+#protocol-screen .protocol-title {
+  color: var(--ui-holy);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+}
+#protocol-screen .protocol-lore {
+  margin-top: 6px;
+  max-width: 620px;
+  color: #8fa0b5;
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 1px;
+}
+#protocol-screen .protocol-progress {
+  text-align: right;
+  color: #8ce8ff;
+  font: 800 12px 'Courier New','Microsoft YaHei',monospace;
+  letter-spacing: 1.5px;
+}
+#protocol-screen .protocol-tree {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+#protocol-screen .protocol-branch {
+  position: relative;
+  padding: 10px;
+  min-height: 520px;
+  border: 1px solid rgba(140,232,255,0.12);
+  background:
+    linear-gradient(180deg, rgba(var(--branch-rgb, 246,229,170),0.08), transparent 30%),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 12px),
+    rgba(4,8,12,0.58);
+  clip-path: var(--ui-cut);
+  overflow: hidden;
+}
+#protocol-screen .protocol-branch::before {
+  content: '';
+  position: absolute;
+  top: 72px;
+  bottom: 26px;
+  left: 34px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(var(--branch-rgb, 246,229,170),0.42), transparent);
+  box-shadow: 0 0 16px rgba(var(--branch-rgb, 246,229,170),0.22);
+  pointer-events: none;
+}
+#protocol-screen .branch-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+#protocol-screen .branch-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #071017;
+  font: 900 13px 'Courier New',monospace;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, rgba(var(--branch-rgb, 246,229,170),0.95), rgba(246,229,170,0.72));
+  clip-path: polygon(50% 0, 94% 24%, 94% 76%, 50% 100%, 6% 76%, 6% 24%);
+}
+#protocol-screen .branch-name {
+  color: var(--ui-ivory);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+}
+#protocol-screen .branch-desc {
+  margin-top: 3px;
+  color: #7f92aa;
+  font-size: 10px;
+  line-height: 1.4;
+}
+#protocol-screen .protocol-node {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  margin: 8px 0 0;
+  padding: 9px;
+  border: 1px solid rgba(188,207,226,0.1);
+  background:
+    linear-gradient(90deg, rgba(var(--branch-rgb, 246,229,170),0.055), rgba(8,13,18,0.72));
+  clip-path: var(--ui-cut-sm);
+}
+#protocol-screen .protocol-node.locked {
+  filter: saturate(0.5);
+  opacity: 0.68;
+}
+#protocol-screen .protocol-node.available {
+  border-color: rgba(var(--branch-rgb, 246,229,170),0.34);
+  box-shadow: inset 0 0 16px rgba(var(--branch-rgb, 246,229,170),0.035);
+}
+#protocol-screen .protocol-node.capped {
+  border-color: rgba(246,229,170,0.28);
+  background:
+    linear-gradient(90deg, rgba(246,229,170,0.08), rgba(8,13,18,0.76));
+}
+#protocol-screen .node-orb {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: rgba(var(--branch-rgb, 246,229,170),0.92);
+  border: 1px solid rgba(var(--branch-rgb, 246,229,170),0.35);
+  background:
+    radial-gradient(circle, rgba(var(--branch-rgb, 246,229,170),0.22), transparent 58%),
+    rgba(4,8,12,0.84);
+  clip-path: polygon(50% 0, 94% 24%, 94% 76%, 50% 100%, 6% 76%, 6% 24%);
+  font: 900 11px 'Courier New',monospace;
+}
+#protocol-screen .protocol-node.capped .node-orb {
+  color: #081018;
+  background: linear-gradient(135deg, rgba(246,229,170,0.95), rgba(var(--branch-rgb, 246,229,170),0.74));
+}
+#protocol-screen .node-name-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+#protocol-screen .node-name {
+  color: #d9e1eb;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+#protocol-screen .node-level {
+  color: var(--ui-amber);
+  font: 800 10px 'Courier New',monospace;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+#protocol-screen .node-effect {
+  margin-top: 4px;
+  color: #8fa0b5;
+  font-size: 11px;
+  line-height: 1.35;
+}
+#protocol-screen .node-lore {
+  margin-top: 5px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(var(--branch-rgb, 246,229,170),0.22);
+  color: rgba(246,229,170,0.62);
+  font-size: 10px;
+  line-height: 1.45;
+}
+#protocol-screen .node-lock {
+  margin-top: 5px;
+  color: #617289;
+  font-size: 10px;
+}
+#protocol-screen .node-buy {
+  margin-top: 7px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid rgba(var(--branch-rgb, 246,229,170),0.56);
+  color: var(--ui-holy);
+  background: rgba(var(--branch-rgb, 246,229,170),0.11);
+  clip-path: var(--ui-cut-sm);
+  cursor: pointer;
+  font: 900 11px 'Courier New','Microsoft YaHei',monospace;
+  letter-spacing: 1px;
+}
+#protocol-screen .node-buy:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(var(--branch-rgb, 246,229,170),0.22);
+}
+#protocol-screen .node-buy.no-funds {
+  color: #ff7777;
+  border-color: rgba(255,103,103,0.38);
+}
+#protocol-screen .node-buy:disabled {
+  color: #56677b;
+  border-color: rgba(188,207,226,0.1);
+  background: rgba(255,255,255,0.025);
+  cursor: not-allowed;
+}
+#protocol-screen .protocol-return-btn {
+  margin-top: 8px;
+  font-size: 13px;
+  padding: 8px 24px;
+}
 @media (max-width: 760px) {
   #lab-screen .lab-detail-grid { grid-template-columns: 1fr; }
   #lab-screen .lab-preview-panel { min-height: 210px; }
-  #lab-screen .lab-global-grid { grid-template-columns: 1fr; }
   #lab-screen .lab-preview-canvas { width: 100%; max-width: 210px; }
   #lab-screen .lab-stat-upgrade-row { flex-wrap: wrap; }
   #lab-screen .lab-stat-meter { min-width: 120px; }
   #lab-screen .lab-stat-desc { flex: 1; }
+  #protocol-screen .protocol-tree { grid-template-columns: 1fr; }
+  #protocol-screen .protocol-header { grid-template-columns: 1fr; }
+  #protocol-screen .protocol-progress { text-align: left; }
+  #protocol-screen .protocol-branch { min-height: auto; }
 }
 
 #leaderboard-screen {
@@ -2341,6 +2512,7 @@ canvas { background: #070d13; }
     <p class="achieve-link" onclick="showLeaderboard()"><span class="menu-code">RANK</span> 排 行 榜</p>
     <p class="achieve-link daily-challenge-btn" onclick="startDailyChallenge()"><span class="menu-code">DAILY</span> 每 日 挑 战</p>
     <p class="achieve-link" onclick="showLabScreen()">LAB / 机 装 研 究 室</p>
+    <p class="achieve-link protocol-link" onclick="showProtocolScreen()"><span class="menu-code">PRT</span> 全 域 协 议 树</p>
   </div>
   <div id="leaderboard-screen">
     <h1>排 行 榜</h1>
@@ -2359,6 +2531,14 @@ canvas { background: #070d13; }
       <button class="lab-btn sortie-btn" id="lab-confirm-btn" onclick="confirmActiveTank(labSelectedTank)">SORTIE CONFIRM</button>
       <button class="best-back-btn lab-return-btn" onclick="hideLabScreen()">返 回</button>
     </div>
+  </div>
+  <div id="protocol-screen">
+    <h1>全 域 协 议 树</h1>
+    <p class="subtitle protocol-fragment-line" id="protocol-fragments">MOONSTONE: 0</p>
+    <p class="protocol-route-line">GLOBAL PROTOCOL / SANCTUM NETWORK / SHARED CHASSIS TREE</p>
+    <div class="ornament protocol-ornament"></div>
+    <div class="protocol-panel" id="protocol-panel"></div>
+    <button class="best-back-btn protocol-return-btn" onclick="hideProtocolScreen()">返 回</button>
   </div>
   <div id="tank-select-screen">
     <h2>选 择 机 体</h2>
@@ -3406,7 +3586,8 @@ function getModifierStackCount(mod) {
 function getModifierRerollCost() {
   const rerolls = currentModifierDraft ? currentModifierDraft.rerollCount : 0;
   const base = 48 + level * 8;
-  return Math.max(40, Math.floor(base + rerolls * (38 + level * 4)));
+  const raw = base + rerolls * (38 + level * 4);
+  return Math.max(32, Math.floor(raw * (1 - getGlobalRerollDiscount())));
 }
 
 function pickWeightedModifier(pool) {
@@ -5162,6 +5343,7 @@ window.addEventListener('keydown', e => {
     if (isPaused) resumeGame();
     else if (gameRunning && !gameOverFlag) pauseGame();
     else if (document.getElementById('lab-screen').style.display === 'flex') hideLabScreen();
+    else if (document.getElementById('protocol-screen').style.display === 'flex') hideProtocolScreen();
     else if (document.getElementById('leaderboard-screen').style.display === 'flex') hideLeaderboard();
     else if (document.getElementById('bestiary-screen').style.display === 'flex') hideBestiary();
     else if (document.getElementById('achievements-screen').style.display === 'flex') hideAchievements();
@@ -8414,6 +8596,12 @@ let globalResearch = {};
 let evolvedTanks = new Set();
 let labSelectedTank = 'spread';
 
+const GLOBAL_RESEARCH_BRANCHES = [
+  { id:'body', code:'SAN', name:'圣骸机体', desc:'底盘、装甲、弹仓与装填仪式。它让每一台机体都像从同一座圣龛中醒来。', color:'#f6e5aa', rgb:'246,229,170' },
+  { id:'ordnance', code:'ORD', name:'弹道礼仪', desc:'弹速、冷却、后坐与弹幕对撞。研究室把火力写成律法，再交给驾驶员执行。', color:'#8ce8ff', rgb:'140,232,255' },
+  { id:'logistics', code:'LOG', name:'后勤残响', desc:'月光石、补给、维修与概率敕令。所谓奇迹，多半来自仍未断线的补给网络。', color:'#f49800', rgb:'244,152,0' },
+];
+
 const TANK_UNLOCK_CONDITIONS = {
   spread: { cost:0, desc:'初始机体' },
   focus:  { cost:100, desc:'到达第5波 或 100月光石' },
@@ -8471,39 +8659,52 @@ const LAB_PART_CODES = {
 
 const GLOBAL_RESEARCH_DEFS = [
   {
-    id:'armor_line', code:'A-LINE', name:'圣龛基线', max:6, costBase:130,
+    id:'armor_line', branch:'body', row:1, code:'A-LINE', name:'圣龛基线', max:6, costBase:130,
     desc:l => '全机体最大HP +' + Math.ceil(l / 2),
     next:l => '下一阶 HP +' + Math.ceil((l + 1) / 2),
+    lore:'最早的圣龛不是祭坛，而是装甲内侧一条拒绝熄灭的备用电路。',
     apply(t, lvl){ t.hpBonus += Math.ceil(lvl / 2); },
   },
   {
-    id:'mag_foundry', code:'M-FND', name:'弹仓铸造', max:4, costBase:150,
+    id:'mag_foundry', branch:'body', row:2, prereq:{ armor_line:2 }, code:'M-FND', name:'弹仓铸造', max:4, costBase:150,
     desc:l => '全机体弹夹 +' + Math.ceil(l / 2),
     next:l => '下一阶 弹夹 +' + Math.ceil((l + 1) / 2),
+    lore:'弹仓工坊把空壳称作“未完成的祈祷”，每一枚都要登记去向。',
     apply(t, lvl){ t.magSize = Math.max(1, (t.magSize || 6) + Math.ceil(lvl / 2)); },
   },
   {
-    id:'reload_rite', code:'R-RIT', name:'装填礼仪', max:5, costBase:145,
+    id:'reload_rite', branch:'body', row:3, prereq:{ mag_foundry:1 }, code:'R-RIT', name:'装填礼仪', max:5, costBase:145,
     desc:l => '装填时间 -' + (l * 2) + '%',
     next:l => '下一阶 装填 -' + ((l + 1) * 2) + '%',
+    lore:'装填手册被写成赞美诗，是为了让士兵在恐惧时仍能按顺序呼吸。',
     apply(t, lvl){ t.reloadTime = Math.max(72, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.02))); },
   },
   {
-    id:'servo_step', code:'S-DRV', name:'伺服步进', max:5, costBase:120,
+    id:'servo_step', branch:'body', row:2, prereq:{ armor_line:1 }, code:'S-DRV', name:'伺服步进', max:5, costBase:120,
     desc:l => '移动速度 +' + (l * 1.5).toFixed(1) + '%',
     next:l => '下一阶 移速 +' + ((l + 1) * 1.5).toFixed(1) + '%',
+    lore:'灰域里的道路会移动，所以底盘也必须学会像幸存者一样改变步幅。',
     apply(t, lvl){ t.speed += lvl * 0.015; },
   },
   {
-    id:'ballistic_archive', code:'B-ARC', name:'弹道档案', max:5, costBase:135,
+    id:'chassis_vow', branch:'body', row:4, prereq:{ armor_line:4, servo_step:2 }, code:'C-VOW', name:'底盘誓约', max:3, costBase:260,
+    desc:l => '全机体HP +' + l + ' / 移速 +' + (l * 0.8).toFixed(1) + '%',
+    next:l => '下一阶 HP +' + (l + 1) + ' / 移速 +' + ((l + 1) * 0.8).toFixed(1) + '%',
+    lore:'驾驶员签下誓约后，机体会记住他的恐惧，也记住他没有后退。',
+    apply(t, lvl){ t.hpBonus += lvl; t.speed += lvl * 0.008; },
+  },
+  {
+    id:'ballistic_archive', branch:'ordnance', row:1, code:'B-ARC', name:'弹道档案', max:5, costBase:135,
     desc:l => '基础弹速 +' + (l * 0.06).toFixed(2),
     next:l => '下一阶 弹速 +' + ((l + 1) * 0.06).toFixed(2),
+    lore:'档案员不记录命中，只记录偏离。所有胜利都从承认误差开始。',
     apply(t, lvl){ t.bulletSpeed += lvl * 0.06; },
   },
   {
-    id:'special_sync', code:'SIG-S', name:'特弹同步', max:4, costBase:175,
+    id:'special_sync', branch:'ordnance', row:3, prereq:{ ballistic_archive:2 }, code:'SIG-S', name:'特弹同步', max:4, costBase:175,
     desc:l => l >= 4 ? '特弹周期 -1 / 特化弹道稳定' : '特化弹道稳定 +' + l,
     next:l => (l + 1) >= 4 ? '下一阶 特弹周期 -1' : '下一阶 特化弹道稳定 +' + (l + 1),
+    lore:'不同机体的奇迹被接入同一拍点，像战场深处的钟声终于对齐。',
     apply(t, lvl){
       if (t.specialInterval) t.specialInterval = Math.max(2, t.specialInterval - Math.floor(lvl / 4));
       t.railgunSpeedBonus = (t.railgunSpeedBonus || 0) + lvl * 0.035;
@@ -8513,36 +8714,80 @@ const GLOBAL_RESEARCH_DEFS = [
     },
   },
   {
-    id:'salvage_prayer', code:'MS-R', name:'月石回收', max:5, costBase:160,
-    desc:l => '战场MOONSTONE +' + (l * 2) + '%',
-    next:l => '下一阶 战场MS +' + ((l + 1) * 2) + '%',
-  },
-  {
-    id:'coolant_chapel', code:'C-CHP', name:'冷却圣堂', max:5, costBase:170,
+    id:'coolant_chapel', branch:'ordnance', row:2, prereq:{ ballistic_archive:1 }, code:'C-CHP', name:'冷却圣堂', max:5, costBase:170,
     desc:l => '射击冷却 -' + Math.floor((l + 1) / 2) + '帧',
     next:l => '下一阶 冷却 -' + Math.floor((l + 2) / 2) + '帧',
+    lore:'圣堂不是为了降温而建。它只是让过热的炮膛学会忏悔。',
     apply(t, lvl){ t.shootDelay = Math.max(12, t.shootDelay - Math.floor((lvl + 1) / 2)); },
   },
   {
-    id:'recoil_sanctum', code:'R-SAN', name:'后坐圣所', max:4, costBase:155,
+    id:'recoil_sanctum', branch:'ordnance', row:2, prereq:{ ballistic_archive:1 }, code:'R-SAN', name:'后坐圣所', max:4, costBase:155,
     desc:l => '开火减速惩罚缓和 +' + (l * 2) + '%',
     next:l => '下一阶 减速缓和 +' + ((l + 1) * 2) + '%',
+    lore:'后坐力是炮火索取的税。圣所只是把税单写得慢一点。',
     apply(t, lvl){ t.fireSlowResist = (t.fireSlowResist || 0) + lvl * 0.02; },
   },
   {
-    id:'supply_liturgy', code:'S-LIT', name:'补给礼拜', max:5, costBase:150,
+    id:'clash_calculus', branch:'ordnance', row:4, prereq:{ special_sync:2, recoil_sanctum:2 }, code:'C-CLS', name:'对撞演算', max:3, costBase:255,
+    desc:l => '我方子弹对撞强度 +' + l,
+    next:l => '下一阶 对撞强度 +' + (l + 1),
+    lore:'月面修会相信弹幕相撞时会产生预言。研究室只相信剩下的那一枚。',
+  },
+  {
+    id:'salvage_prayer', branch:'logistics', row:1, code:'MS-R', name:'月石回收', max:5, costBase:160,
+    desc:l => '战场MOONSTONE +' + (l * 2) + '%',
+    next:l => '下一阶 战场MS +' + ((l + 1) * 2) + '%',
+    lore:'回收队从不问月光石来自哪里。问了的人，后来都被调去清点空弹壳。',
+  },
+  {
+    id:'supply_liturgy', branch:'logistics', row:2, prereq:{ salvage_prayer:1 }, code:'S-LIT', name:'补给礼拜', max:5, costBase:150,
     desc:l => '战场道具投放 +' + (l * 2) + '%',
     next:l => '下一阶 投放 +' + ((l + 1) * 2) + '%',
+    lore:'补给舱降落前会广播三秒钟圣歌，好让仍活着的人知道自己还被记得。',
   },
   {
-    id:'repair_canticle', code:'R-CAN', name:'自修圣歌', max:5, costBase:185,
+    id:'repair_canticle', branch:'logistics', row:3, prereq:{ supply_liturgy:2 }, code:'R-CAN', name:'自修圣歌', max:5, costBase:185,
     desc:l => '击杀修复概率 +' + (l * 1.2).toFixed(1) + '%',
     next:l => '下一阶 修复概率 +' + ((l + 1) * 1.2).toFixed(1) + '%',
+    lore:'旧医官把维修臂叫作唱诗班。它们没有喉咙，却总在装甲闭合时发出回声。',
   },
   {
-    id:'vault_cartography', code:'V-MAP', name:'宝库测绘', max:4, costBase:190,
+    id:'vault_cartography', branch:'logistics', row:2, prereq:{ salvage_prayer:2 }, code:'V-MAP', name:'宝库测绘', max:4, costBase:190,
     desc:l => '宝箱MOONSTONE +' + (l * 2) + '%',
     next:l => '下一阶 宝箱MS +' + ((l + 1) * 2) + '%',
+    lore:'地图上标出的不是宝库，而是上一支远征队没能带走的遗言。',
+  },
+  {
+    id:'reroll_writ', branch:'logistics', row:3, prereq:{ vault_cartography:1 }, code:'R-WRT', name:'重掷敕令', max:3, costBase:220,
+    desc:l => '局内刷新花费 -' + (l * 5) + '%',
+    next:l => '下一阶 刷新花费 -' + ((l + 1) * 5) + '%',
+    lore:'概率不是神明，只是收费很高的书记员。敕令能让它少写几笔。',
+  },
+  {
+    id:'field_sanctuary', branch:'logistics', row:4, prereq:{ repair_canticle:3, supply_liturgy:3 }, code:'F-SAN', name:'战地小圣所', max:3, costBase:285,
+    desc:l => '击杀修复概率额外 +' + (l * 0.8).toFixed(1) + '% / 道具投放 +' + l + '%',
+    next:l => '下一阶 修复 +' + ((l + 1) * 0.8).toFixed(1) + '% / 投放 +' + (l + 1) + '%',
+    lore:'有些阵地没有名字，只有一盏灯。灯还亮着，就说明撤退命令尚未抵达。',
+  },
+  {
+    id:'moon_tithe', branch:'logistics', row:5, prereq:{ field_sanctuary:2, vault_cartography:3 }, code:'M-TTH', name:'碎月什一税', max:2, costBase:360,
+    desc:l => '战场与宝箱MOONSTONE额外 +' + (l * 3) + '%',
+    next:l => '下一阶 全域MS额外 +' + ((l + 1) * 3) + '%',
+    lore:'圣城不征税，它只要求所有幸存者证明自己为何值得继续得到补给。',
+  },
+  {
+    id:'ordnance_doctrine', branch:'ordnance', row:5, prereq:{ clash_calculus:2, coolant_chapel:3 }, code:'O-DOC', name:'弹幕教义', max:2, costBase:345,
+    desc:l => '基础伤害 +' + l + ' / 弹速 +' + (l * 0.04).toFixed(2),
+    next:l => '下一阶 伤害 +' + (l + 1) + ' / 弹速 +' + ((l + 1) * 0.04).toFixed(2),
+    lore:'教义最后一页写着：若必须开火，请让每一发都像不得不说出的真话。',
+    apply(t, lvl){ t.bulletDamage += lvl; t.bulletSpeed += lvl * 0.04; },
+  },
+  {
+    id:'sanctum_network', branch:'body', row:5, prereq:{ chassis_vow:2, reload_rite:3 }, code:'S-NET', name:'圣龛网路', max:2, costBase:340,
+    desc:l => '弹夹 +' + l + ' / 装填额外 -' + (l * 2) + '%',
+    next:l => '下一阶 弹夹 +' + (l + 1) + ' / 装填额外 -' + ((l + 1) * 2) + '%',
+    lore:'当所有机体的圣龛互相听见，单台坦克的心跳就不再孤独。',
+    apply(t, lvl){ t.magSize = Math.max(1, (t.magSize || 6) + lvl); t.reloadTime = Math.max(72, Math.floor((t.reloadTime || 110) * (1 - lvl * 0.02))); },
   },
 ];
 
@@ -8765,27 +9010,61 @@ function getGlobalResearchCost(id) {
   if (!def) return 9999;
   const lvl = getGlobalResearchLevel(id);
   if (lvl >= def.max) return 9999;
-  return Math.floor(def.costBase * Math.pow(1.42, lvl) + lvl * 35);
+  const rowPressure = Math.max(0, (def.row || 1) - 1) * 18;
+  return Math.floor(def.costBase * Math.pow(1.38, lvl) + lvl * 32 + rowPressure);
 }
 
 function getGlobalResearchTotalLevel() {
   return GLOBAL_RESEARCH_DEFS.reduce((sum, def) => sum + getGlobalResearchLevel(def.id), 0);
 }
 
+function getGlobalResearchMaxLevel() {
+  return GLOBAL_RESEARCH_DEFS.reduce((sum, def) => sum + def.max, 0);
+}
+
+function getGlobalResearchBranch(id) {
+  return GLOBAL_RESEARCH_BRANCHES.find(b => b.id === id) || GLOBAL_RESEARCH_BRANCHES[0];
+}
+
+function getGlobalResearchLockReason(def) {
+  if (!def || !def.prereq) return '';
+  const missing = Object.entries(def.prereq)
+    .filter(([id, required]) => getGlobalResearchLevel(id) < required)
+    .map(([id, required]) => {
+      const pre = getGlobalResearchDef(id);
+      return (pre ? pre.name : id) + ' LV ' + required;
+    });
+  return missing.length ? '需要先点亮：' + missing.join(' / ') : '';
+}
+
+function canPurchaseGlobalResearch(id) {
+  const def = getGlobalResearchDef(id);
+  if (!def) return false;
+  return getGlobalResearchLevel(id) < def.max && !getGlobalResearchLockReason(def);
+}
+
 function getSalvageResearchMultiplier() {
-  return 1 + getGlobalResearchLevel('salvage_prayer') * 0.02;
+  return 1 + getGlobalResearchLevel('salvage_prayer') * 0.02 + getGlobalResearchLevel('moon_tithe') * 0.03;
 }
 
 function getVaultResearchMultiplier() {
-  return 1 + getGlobalResearchLevel('vault_cartography') * 0.02;
+  return 1 + getGlobalResearchLevel('vault_cartography') * 0.02 + getGlobalResearchLevel('moon_tithe') * 0.03;
 }
 
 function getGlobalSupplyDropMultiplier() {
-  return 1 + getGlobalResearchLevel('supply_liturgy') * 0.02;
+  return 1 + getGlobalResearchLevel('supply_liturgy') * 0.02 + getGlobalResearchLevel('field_sanctuary') * 0.01;
 }
 
 function getGlobalRepairChance() {
-  return getGlobalResearchLevel('repair_canticle') * 0.012;
+  return getGlobalResearchLevel('repair_canticle') * 0.012 + getGlobalResearchLevel('field_sanctuary') * 0.008;
+}
+
+function getGlobalRerollDiscount() {
+  return Math.min(0.22, getGlobalResearchLevel('reroll_writ') * 0.05);
+}
+
+function getGlobalClashPowerBonus() {
+  return getGlobalResearchLevel('clash_calculus');
 }
 
 function scaleBattleMoonstoneGain(amount, multiplier) {
@@ -8808,6 +9087,11 @@ function purchaseGlobalResearch(id) {
   globalResearch = normalizeGlobalResearch(globalResearch);
   const def = getGlobalResearchDef(id);
   if (!def) return false;
+  const lock = getGlobalResearchLockReason(def);
+  if (lock) {
+    showAchievementToast('LOCK', '协议尚未接通', lock, '#8ce8ff');
+    return false;
+  }
   const lvl = getGlobalResearchLevel(id);
   if (lvl >= def.max) return false;
   const cost = getGlobalResearchCost(id);
@@ -8820,8 +9104,9 @@ function purchaseGlobalResearch(id) {
   saveProgression();
   checkAchievements();
   sfxPowerUp();
-  showAchievementToast(def.code, '全局研究完成', def.name + ' Lv.' + globalResearch[id], '#f6e5aa');
+  showAchievementToast(def.code, '全域协议点亮', def.name + ' Lv.' + globalResearch[id], '#f6e5aa');
   renderLabUI();
+  renderProtocolTree();
   return true;
 }
 
@@ -9158,37 +9443,61 @@ function buildLabProgressCells(status) {
   }).join('');
 }
 
-function renderGlobalResearchPanel() {
+function renderProtocolTree() {
+  const panel = document.getElementById('protocol-panel');
+  if (!panel) return;
   globalResearch = normalizeGlobalResearch(globalResearch);
   const total = getGlobalResearchTotalLevel();
-  const maxTotal = GLOBAL_RESEARCH_DEFS.reduce((sum, def) => sum + def.max, 0);
-  const rows = GLOBAL_RESEARCH_DEFS.map(def => {
-    const lvl = getGlobalResearchLevel(def.id);
-    const capped = lvl >= def.max;
-    const cost = capped ? 9999 : getGlobalResearchCost(def.id);
-    const canAfford = coreFragments >= cost;
-    const effect = lvl > 0 ? def.desc(lvl) : '未启动 · ' + def.next(0);
-    const next = capped ? 'MAX' : def.next(lvl);
-    const costText = capped ? 'MAX' : cost + ' MS';
-    return `<div class="lab-global-row ${capped ? 'capped' : ''}">
-      <div class="lab-global-code">${escapeHtml(def.code)}</div>
-      <div>
-        <div class="lab-global-name">${escapeHtml(def.name)}</div>
-        <div class="lab-global-effect" title="${escapeHtml(next)}">${escapeHtml(effect)}</div>
+  const maxTotal = getGlobalResearchMaxLevel();
+  const branchHtml = GLOBAL_RESEARCH_BRANCHES.map(branch => {
+    const defs = GLOBAL_RESEARCH_DEFS
+      .filter(def => (def.branch || 'body') === branch.id)
+      .sort((a, b) => (a.row || 0) - (b.row || 0) || a.name.localeCompare(b.name));
+    const nodes = defs.map(def => {
+      const lvl = getGlobalResearchLevel(def.id);
+      const capped = lvl >= def.max;
+      const lock = getGlobalResearchLockReason(def);
+      const cost = capped ? 9999 : getGlobalResearchCost(def.id);
+      const canAfford = coreFragments >= cost;
+      const available = !capped && !lock;
+      const effect = lvl > 0 ? def.desc(lvl) : def.next(0);
+      const buttonText = capped ? 'MAX' : (lock ? 'LOCKED' : cost + ' MS');
+      const cls = capped ? 'capped' : (available ? 'available' : 'locked');
+      return `<div class="protocol-node ${cls}" style="--branch-rgb:${escapeHtml(branch.rgb)}">
+        <div class="node-orb">${escapeHtml(def.code.split('-')[0].slice(0, 3))}</div>
+        <div class="node-body">
+          <div class="node-name-row">
+            <span class="node-name">${escapeHtml(def.name)}</span>
+            <span class="node-level">LV ${lvl}/${def.max}</span>
+          </div>
+          <div class="node-effect">${escapeHtml(effect)}</div>
+          <div class="node-lore">${escapeHtml(def.lore || '该协议仍在整理档案。')}</div>
+          ${lock ? `<div class="node-lock">${escapeHtml(lock)}</div>` : ''}
+          <button class="node-buy ${canAfford ? '' : 'no-funds'}" onclick="purchaseGlobalResearch('${def.id}')" ${(!available || capped) ? 'disabled' : ''}>${escapeHtml(buttonText)}</button>
+        </div>
+      </div>`;
+    }).join('');
+    return `<section class="protocol-branch" style="--branch-rgb:${escapeHtml(branch.rgb)}">
+      <div class="branch-head">
+        <div class="branch-mark">${escapeHtml(branch.code)}</div>
+        <div>
+          <div class="branch-name">${escapeHtml(branch.name)}</div>
+          <div class="branch-desc">${escapeHtml(branch.desc)}</div>
+        </div>
       </div>
-      <div>
-        <div class="lab-global-lvl">LV ${lvl}/${def.max}</div>
-        <button class="lab-global-buy ${canAfford ? '' : 'no-funds'}" onclick="purchaseGlobalResearch('${def.id}')" ${capped ? 'disabled' : ''}>${escapeHtml(costText)}</button>
-      </div>
-    </div>`;
+      ${nodes}
+    </section>`;
   }).join('');
-  return `<div class="lab-global-research">
-    <div class="lab-global-header">
-      <div class="lab-global-title">GLOBAL PROTOCOL / 全域研究</div>
-      <div class="lab-global-sub">全机体共享 · 战场后勤与底盘协议<br>PROGRESS ${total}/${maxTotal}</div>
+  panel.innerHTML = `<div class="protocol-header">
+    <div>
+      <div class="protocol-title">GLOBAL PROTOCOL / 圣城总纲</div>
+      <div class="protocol-lore">全域协议不属于任何一台机体。它是研究室、补给线与前线墓碑共同写下的底层律法，点亮越深，所有机体越像同一支远征军。</div>
     </div>
-    <div class="lab-global-grid">${rows}</div>
-  </div>`;
+    <div class="protocol-progress">PROGRESS ${total}/${maxTotal}<br>${Math.round(total / Math.max(1, maxTotal) * 100)}%</div>
+  </div>
+  <div class="protocol-tree">${branchHtml}</div>`;
+  const fragDisplay = document.getElementById('protocol-fragments');
+  if (fragDisplay) fragDisplay.innerHTML = renderMoonstoneChip(coreFragments, 'PROTOCOL RESERVE');
 }
 
 function renderLabPreviewCanvas() {
@@ -9374,7 +9683,6 @@ function renderLabUI() {
           <div class="lab-stage-row">${stageHTML}</div>
           <div class="lab-gate-note">阶段校准 ${status.readyParts}/${status.totalParts} · ${nextEvo ? (stageReady ? '进化许可已解锁，消耗月光石进行改装仪式。' : '每个部件都必须达到本阶段门槛，不能再用单项堆叠跳过改装。') : '所有进化完成，剩余升级仅作为终式维护记录。'}</div>
           ${evoHTML}
-          ${renderGlobalResearchPanel()}
           <div class="lab-stats-wrap">${statsHTML}</div>
           <div class="lab-progress-note">MS ${coreFragments} · ${defs.length} PARTS · TOTAL ${totalCurrent}/${totalMax}</div>
         </div>
@@ -9420,6 +9728,16 @@ function showLabScreen() {
 }
 function hideLabScreen() {
   document.getElementById('lab-screen').style.display = 'none';
+  document.getElementById('start-screen').style.display = 'flex';
+  renderDifficultyButtons();
+}
+function showProtocolScreen() {
+  renderProtocolTree();
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('protocol-screen').style.display = 'flex';
+}
+function hideProtocolScreen() {
+  document.getElementById('protocol-screen').style.display = 'none';
   document.getElementById('start-screen').style.display = 'flex';
   renderDifficultyButtons();
 }
@@ -10414,7 +10732,7 @@ function checkBulletBulletCollisions() {
       const dy = p.y - e.y;
       const r = (p.radius || 3) + (e.radius || 3) + 2;
       if (dx * dx + dy * dy <= r * r) {
-        const pPower = Math.max(1, Math.ceil(p.damage || 1));
+        const pPower = Math.max(1, Math.ceil(p.damage || 1) + getGlobalClashPowerBonus());
         const ePower = Math.max(1, Math.ceil(e.damage || 1));
         if (pPower > ePower) {
           p.damage = pPower - ePower;
@@ -10451,7 +10769,7 @@ function clearInputState() {
 }
 
 function hideRunOverlays(showStart = false) {
-  ['pause-screen','modifier-screen','tank-select-screen','achievements-screen','bestiary-screen','lab-screen','leaderboard-screen'].forEach(id => {
+  ['pause-screen','modifier-screen','tank-select-screen','achievements-screen','bestiary-screen','lab-screen','protocol-screen','leaderboard-screen'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
