@@ -2072,9 +2072,15 @@ canvas { background: #070d13; }
 }
 
 #protocol-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
   display: none;
   flex-direction: column;
   align-items: center;
+  padding: 12px 18px 18px;
+  overflow-y: auto;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 50% 23%, rgba(246,229,170,0.11), transparent 27%),
     radial-gradient(ellipse at 22% 78%, rgba(140,232,255,0.08), transparent 35%),
@@ -9733,8 +9739,13 @@ function hideLabScreen() {
 }
 function showProtocolScreen() {
   renderProtocolTree();
-  document.getElementById('start-screen').style.display = 'none';
-  document.getElementById('protocol-screen').style.display = 'flex';
+  ['start-screen','tank-select-screen','lab-screen','achievements-screen','bestiary-screen','leaderboard-screen'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const protocolScreen = document.getElementById('protocol-screen');
+  protocolScreen.scrollTop = 0;
+  protocolScreen.style.display = 'flex';
 }
 function hideProtocolScreen() {
   document.getElementById('protocol-screen').style.display = 'none';
