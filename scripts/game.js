@@ -809,46 +809,60 @@ const MODIFIER_RARITIES = {
   mythic:   { label:'MYTHIC',   code:'IV', className:'mythic',   rank:4, weight:1.6,color:'#f6e5aa', rgb:'246,229,170' },
 };
 const MODIFIER_RARITY_ORDER = ['standard','rare','elite','mythic'];
+const MODIFIER_REROLLS_PER_SLOT = 2;
 const MODIFIER_AXIS_LABELS = {
   damage:'弹头', cadence:'射击', survival:'生存', mobility:'机动',
   support:'补给', scoring:'清算', blast:'爆轰', economy:'月光石', miracle:'奇迹',
+  intercept:'反制', boss:'猎手',
+};
+const MODIFIER_ARCHETYPES = {
+  barrage: { label:'弹幕压制流', code:'BARRAGE', desc:'用弹匣、冷却与装填维持火线' },
+  pierce: { label:'精准穿甲流', code:'PIERCE', desc:'让每一发子弹都更像宣判' },
+  survival: { label:'生存圣盾流', code:'SANCTUM', desc:'以装甲和修复换取容错窗口' },
+  mobility: { label:'机动游击流', code:'DRIFT', desc:'靠速度、拉扯与节奏重置战线' },
+  supply: { label:'补给远征流', code:'LOGIS', desc:'把战场残骸转化为长期优势' },
+  blast: { label:'爆轰清场流', code:'BLAST', desc:'用范围伤害切开拥挤战线' },
+  intercept: { label:'反制拦截流', code:'AEGIS', desc:'强化弹幕对撞与防线博弈' },
+  boss: { label:'Boss猎手流', code:'HUNTER', desc:'专门针对首领装甲与二阶段压力' },
+  economy: { label:'月光石远征流', code:'VAULT', desc:'牺牲当下火力换取局外资源' },
+  miracle: { label:'奇迹保全流', code:'MIRACLE', desc:'极低概率出现的生还协议' },
 };
 const MODIFIER_STACK_LIMITS = {
   damage: 8, speed: 7, firerate: 6, reload: 6, hp: 5, repair: 5,
   bullet_spd: 7, mag: 5, more_pups: 5, combo_bonus: 5, loot_double: 4,
-  big_explosion: 5, extra_life: 2, full_repair: 2,
+  big_explosion: 5, intercept_matrix: 5, boss_hunter: 5, extra_life: 2, full_repair: 2,
 };
 const MODIFIER_BLUEPRINTS = [
   {
-    family:'damage', axis:'damage', name:'月核弹头', icon:'WAR', baseWeight:27, color:'#ff9b4a', rgb:'255,155,74',
+    family:'damage', axis:'damage', archetype:'pierce', name:'月核弹头', icon:'WAR', baseWeight:27, color:'#ff9b4a', rgb:'255,155,74',
     values:{ standard:0.10, rare:0.16, elite:0.24, mythic:0.34 },
     desc:v => '子弹攻击力 +' + Math.round(v * 100) + '%',
     tradeoff:'稳定火力增幅，不改变射击节奏',
     apply:v => { playerBulletDmgMul += v; },
   },
   {
-    family:'firerate', axis:'cadence', name:'冷却短路', icon:'CLK', baseWeight:20, color:'#f6e5aa', rgb:'246,229,170',
+    family:'firerate', axis:'cadence', archetype:'barrage', name:'冷却短路', icon:'CLK', baseWeight:20, color:'#f6e5aa', rgb:'246,229,170',
     values:{ standard:0.07, rare:0.11, elite:0.16, mythic:0.22 },
     desc:v => '射击冷却 -' + Math.round(v * 100) + '%',
     tradeoff:'火力更密，装填结构会承受轻微压力',
     apply:v => { playerShootDelayMul *= (1 - v); playerReloadMul *= (1 + v * 0.25); },
   },
   {
-    family:'reload', axis:'cadence', name:'弹仓圣锁', icon:'RLD', baseWeight:18, color:'#c6f6ff', rgb:'198,246,255',
+    family:'reload', axis:'cadence', archetype:'barrage', name:'弹仓圣锁', icon:'RLD', baseWeight:18, color:'#c6f6ff', rgb:'198,246,255',
     values:{ standard:0.08, rare:0.12, elite:0.18, mythic:0.25 },
     desc:v => '装填时间 -' + Math.round(v * 100) + '%',
     tradeoff:'提升持续作战手感，瞬间爆发较弱',
     apply:v => { playerReloadMul *= (1 - v); },
   },
   {
-    family:'mag', axis:'cadence', name:'扩容弹匣', icon:'MAG', baseWeight:17, color:'#d4b36a', rgb:'212,179,106',
+    family:'mag', axis:'cadence', archetype:'barrage', name:'扩容弹匣', icon:'MAG', baseWeight:17, color:'#d4b36a', rgb:'212,179,106',
     values:{ standard:1, rare:1, elite:2, mythic:3 },
     desc:v => '弹夹容量 +' + v,
     tradeoff:'更长压制窗口，但仍需完整换弹',
     apply:v => applyRunMagazineBonus(v),
   },
   {
-    family:'hp', axis:'survival', name:'圣龛装甲', icon:'PLT', baseWeight:23, color:'#79f48d', rgb:'121,244,141',
+    family:'hp', axis:'survival', archetype:'survival', name:'圣龛装甲', icon:'PLT', baseWeight:23, color:'#79f48d', rgb:'121,244,141',
     values:{ standard:{max:1, heal:1}, rare:{max:1, heal:2}, elite:{max:2, heal:2}, mythic:{max:2, heal:4} },
     desc:v => '最大HP +' + v.max + '，回复 ' + v.heal,
     tradeoff:'容错提升可靠，但不会直接提高杀伤',
@@ -861,53 +875,67 @@ const MODIFIER_BLUEPRINTS = [
     },
   },
   {
-    family:'repair', axis:'survival', name:'自修圣油', icon:'REP', baseWeight:14, color:'#9ff0bf', rgb:'159,240,191',
+    family:'repair', axis:'survival', archetype:'survival', name:'自修圣油', icon:'REP', baseWeight:14, color:'#9ff0bf', rgb:'159,240,191',
     values:{ standard:0.035, rare:0.06, elite:0.09, mythic:0.13 },
     desc:v => '击杀后 ' + Math.round(v * 100) + '% 概率修复1HP',
     tradeoff:'偏向持久战，低血量时价值更高',
     apply:v => { playerRepairChance = Math.min(0.35, playerRepairChance + v); },
   },
   {
-    family:'speed', axis:'mobility', name:'灰域推进', icon:'DRV', baseWeight:24, color:'#8ce8ff', rgb:'140,232,255',
+    family:'speed', axis:'mobility', archetype:'mobility', name:'灰域推进', icon:'DRV', baseWeight:24, color:'#8ce8ff', rgb:'140,232,255',
     values:{ standard:0.08, rare:0.12, elite:0.18, mythic:0.25 },
     desc:v => '移动速度 +' + Math.round(v * 100) + '%',
     tradeoff:'更适合走位、拉扯与主动换弹',
     apply:v => { playerSpeedMul += v; },
   },
   {
-    family:'bullet_spd', axis:'damage', name:'弹道加速环', icon:'VEL', baseWeight:20, color:'#9ca8ff', rgb:'156,168,255',
+    family:'bullet_spd', axis:'damage', archetype:'pierce', name:'弹道加速环', icon:'VEL', baseWeight:20, color:'#9ca8ff', rgb:'156,168,255',
     values:{ standard:0.07, rare:0.11, elite:0.16, mythic:0.23 },
     desc:v => '子弹飞行速度 +' + Math.round(v * 100) + '%',
     tradeoff:'提高命中率，对高机动敌人更明显',
     apply:v => { bulletSpeedMul += v; },
   },
   {
-    family:'more_pups', axis:'support', name:'补给坐标', icon:'SUP', baseWeight:16, color:'#f49800', rgb:'244,152,0',
+    family:'more_pups', axis:'support', archetype:'supply', name:'补给坐标', icon:'SUP', baseWeight:16, color:'#f49800', rgb:'244,152,0',
     values:{ standard:0.12, rare:0.18, elite:0.27, mythic:0.38 },
     desc:v => '道具掉落 +' + Math.round(v * 100) + '%',
     tradeoff:'提高战场补给密度，成长较慢热',
     apply:v => { powerUpDropMul += v; },
   },
   {
-    family:'combo_bonus', axis:'scoring', name:'清算链路', icon:'SCO', baseWeight:13, color:'#f3a8ff', rgb:'243,168,255',
+    family:'combo_bonus', axis:'scoring', archetype:'mobility', name:'清算链路', icon:'SCO', baseWeight:13, color:'#f3a8ff', rgb:'243,168,255',
     values:{ standard:1.18, rare:1.35, elite:1.62, mythic:2.0 },
     desc:v => '连击奖励分 ×' + v.toFixed(2),
     tradeoff:'奖励高风险连续击杀，不直接提高生存',
     apply:v => { comboBonusMul *= v; },
   },
   {
-    family:'loot_double', axis:'support', name:'残骸解码', icon:'REC', baseWeight:12, color:'#d59a54', rgb:'213,154,84',
+    family:'loot_double', axis:'support', archetype:'supply', name:'残骸解码', icon:'REC', baseWeight:12, color:'#d59a54', rgb:'213,154,84',
     values:{ standard:0.08, rare:0.12, elite:0.18, mythic:0.26 },
     desc:v => '精英额外掉落概率 +' + Math.round(v * 100) + '%',
     tradeoff:'精英战收益更高，但需要先活下来',
     apply:v => { eliteDropMul += v; },
   },
   {
-    family:'big_explosion', axis:'blast', name:'爆轰礼装', icon:'BLZ', baseWeight:11, color:'#ff6767', rgb:'255,103,103',
+    family:'big_explosion', axis:'blast', archetype:'blast', name:'爆轰礼装', icon:'BLZ', baseWeight:11, color:'#ff6767', rgb:'255,103,103',
     values:{ standard:0.12, rare:0.18, elite:0.27, mythic:0.40 },
     desc:v => '爆炸范围 +' + Math.round(v * 100) + '%',
     tradeoff:'清群能力增强，但不覆盖全屏',
     apply:v => { explosionRadiusMul += v; },
+  },
+  {
+    family:'intercept_matrix', axis:'intercept', archetype:'intercept', name:'拦截矩阵', icon:'AIG', baseWeight:14, color:'#7df5ff', rgb:'125,245,255',
+    values:{ standard:0.35, rare:0.55, elite:0.82, mythic:1.15 },
+    desc:v => '子弹对撞判定强度 +' + v.toFixed(2),
+    tradeoff:'偏向防线博弈，能让强弹更容易穿过敌方火幕',
+    apply:v => { runClashPowerBonus += v; },
+  },
+  {
+    family:'boss_hunter', axis:'boss', archetype:'boss', name:'弑月猎契', icon:'BOS', baseWeight:10, color:'#ffcf6e', rgb:'255,207,110',
+    values:{ standard:0.08, rare:0.13, elite:0.19, mythic:0.27 },
+    desc:v => '对Boss伤害 +' + Math.round(v * 100) + '%',
+    tradeoff:'专精首领战，普通波次收益较低',
+    apply:v => { playerBossDamageMul += v; },
   },
 ];
 
@@ -916,9 +944,14 @@ let currentModifierDraft = null;
 let playerBulletDmgMul = 1, playerSpeedMul = 1, playerShootDelayMul = 1;
 let playerReloadMul = 1, powerUpDropMul = 1, bulletSpeedMul = 1, comboBonusMul = 1;
 let eliteDropMul = 0, explosionRadiusMul = 1, playerMagBonus = 0, playerMaxHpBonus = 0, playerRepairChance = 0;
+let runClashPowerBonus = 0, playerBossDamageMul = 1;
 
 function getModifierRarityConfig(rarity) {
   return MODIFIER_RARITIES[rarity] || MODIFIER_RARITIES.standard;
+}
+
+function getModifierArchetype(key) {
+  return MODIFIER_ARCHETYPES[key] || MODIFIER_ARCHETYPES.pierce;
 }
 
 function buildScaledModifier(bp, rarityKey) {
@@ -928,6 +961,7 @@ function buildScaledModifier(bp, rarityKey) {
     id: bp.family + '_' + rarityKey,
     family: bp.family,
     axis: bp.axis,
+    archetype: bp.archetype || bp.axis,
     name: bp.name + ' ' + rarity.code,
     baseName: bp.name,
     desc: bp.desc(value),
@@ -945,11 +979,11 @@ function buildScaledModifier(bp, rarityKey) {
 }
 
 const SPECIAL_MODIFIER_DEFS = [
-  { id:'extra_life', family:'extra_life', axis:'miracle', name:'备用驾驶舱', desc:'+1 条命', icon:'LIF', rarity:'mythic', rarityRank:4, weight:30, minLevel:3, stackLimit:2, color:'#f6e5aa', rgb:'246,229,170', tradeoff:'极少出现的保险协议', jackpotEligible:false, apply(){ lives++; } },
-  { id:'full_repair', family:'full_repair', axis:'miracle', name:'圣堂整备令', desc:'HP完全回复，并获得短暂无敌', icon:'SAN', rarity:'mythic', rarityRank:4, weight:24, minLevel:3, stackLimit:2, color:'#fff0b8', rgb:'255,240,184', tradeoff:'救急协议，只在高压战线偶尔出现', jackpotEligible:false, apply(){ if(player){ player.hp = player.maxHp; player.invincible = Math.max(player.invincible || 0, 120); } } },
-  { id:'moon_300', family:'moonstone_cache', axis:'economy', name:'月光石匣 300', desc:'立即获得300 MOONSTONE', icon:'MS3', rarity:'mythic', rarityRank:4, weight:42, minLevel:2, stackLimit:9, color:'#f49800', rgb:'244,152,0', tradeoff:'放弃战力，换取研究室资源', jackpotEligible:false, grantsMoonstone:300, apply(){ grantDraftMoonstone(300); } },
-  { id:'moon_600', family:'moonstone_cache', axis:'economy', name:'月光石匣 600', desc:'立即获得600 MOONSTONE', icon:'MS6', rarity:'mythic', rarityRank:4, weight:20, minLevel:4, stackLimit:9, color:'#ffd47a', rgb:'255,212,122', tradeoff:'罕见财务异常，足够重写一段机体预算', jackpotEligible:false, grantsMoonstone:600, apply(){ grantDraftMoonstone(600); } },
-  { id:'moon_900', family:'moonstone_cache', axis:'economy', name:'月光石匣 900', desc:'立即获得900 MOONSTONE', icon:'MS9', rarity:'mythic', rarityRank:4, weight:9, minLevel:6, stackLimit:9, color:'#f6e5aa', rgb:'246,229,170', tradeoff:'最高级别的资源奇迹，概率极低', jackpotEligible:false, grantsMoonstone:900, apply(){ grantDraftMoonstone(900); } },
+  { id:'extra_life', family:'extra_life', axis:'miracle', archetype:'miracle', name:'备用驾驶舱', desc:'+1 条命', icon:'LIF', rarity:'mythic', rarityRank:4, weight:30, minLevel:3, stackLimit:2, color:'#f6e5aa', rgb:'246,229,170', tradeoff:'极少出现的保险协议', jackpotEligible:false, apply(){ lives++; } },
+  { id:'full_repair', family:'full_repair', axis:'miracle', archetype:'miracle', name:'圣堂整备令', desc:'HP完全回复，并获得短暂无敌', icon:'SAN', rarity:'mythic', rarityRank:4, weight:24, minLevel:3, stackLimit:2, color:'#fff0b8', rgb:'255,240,184', tradeoff:'救急协议，只在高压战线偶尔出现', jackpotEligible:false, apply(){ if(player){ player.hp = player.maxHp; player.invincible = Math.max(player.invincible || 0, 120); } } },
+  { id:'moon_300', family:'moonstone_cache', axis:'economy', archetype:'economy', name:'月光石匣 300', desc:'立即获得300 MOONSTONE', icon:'MS3', rarity:'mythic', rarityRank:4, weight:42, minLevel:2, stackLimit:9, color:'#f49800', rgb:'244,152,0', tradeoff:'放弃战力，换取研究室资源', jackpotEligible:false, grantsMoonstone:300, apply(){ grantDraftMoonstone(300); } },
+  { id:'moon_600', family:'moonstone_cache', axis:'economy', archetype:'economy', name:'月光石匣 600', desc:'立即获得600 MOONSTONE', icon:'MS6', rarity:'mythic', rarityRank:4, weight:20, minLevel:4, stackLimit:9, color:'#ffd47a', rgb:'255,212,122', tradeoff:'罕见财务异常，足够重写一段机体预算', jackpotEligible:false, grantsMoonstone:600, apply(){ grantDraftMoonstone(600); } },
+  { id:'moon_900', family:'moonstone_cache', axis:'economy', archetype:'economy', name:'月光石匣 900', desc:'立即获得900 MOONSTONE', icon:'MS9', rarity:'mythic', rarityRank:4, weight:9, minLevel:6, stackLimit:9, color:'#f6e5aa', rgb:'246,229,170', tradeoff:'最高级别的资源奇迹，概率极低', jackpotEligible:false, grantsMoonstone:900, apply(){ grantDraftMoonstone(900); } },
 ];
 const MODIFIER_DEFS = [
   ...MODIFIER_BLUEPRINTS.flatMap(bp => MODIFIER_RARITY_ORDER.map(r => buildScaledModifier(bp, r))),
@@ -965,16 +999,32 @@ function getModifierStackCount(mod) {
 
 function getModifierRerollCost() {
   const rerolls = currentModifierDraft ? currentModifierDraft.rerollCount : 0;
-  const base = 48 + level * 8;
-  const raw = base + rerolls * (38 + level * 4);
-  return Math.max(32, Math.floor(raw * (1 - getGlobalRerollDiscount())));
+  const safeLevel = Math.max(1, Number.isFinite(level) ? level : 1);
+  const base = 30 + safeLevel * 5;
+  const raw = base + rerolls * (22 + safeLevel * 2);
+  return Math.max(20, Math.floor(raw * (1 - getGlobalRerollDiscount())));
+}
+
+function rollRunClashPowerBonus() {
+  const value = Math.max(0, runClashPowerBonus || 0);
+  const whole = Math.floor(value);
+  return whole + (rng() < value - whole ? 1 : 0);
+}
+
+function getModifierPickWeight(m) {
+  let weight = m.weight || 10;
+  if (m.archetype) {
+    const samePath = activeModifiers.filter(a => a && a.archetype === m.archetype).length;
+    if (samePath > 0) weight *= 1 + Math.min(0.42, samePath * 0.1);
+  }
+  return weight;
 }
 
 function pickWeightedModifier(pool) {
-  const total = pool.reduce((sum, m) => sum + (m.weight || 10), 0);
+  const total = pool.reduce((sum, m) => sum + getModifierPickWeight(m), 0);
   let roll = rng() * Math.max(1, total);
   for (let i = 0; i < pool.length; i++) {
-    roll -= pool[i].weight || 10;
+    roll -= getModifierPickWeight(pool[i]);
     if (roll <= 0) return i;
   }
   return Math.max(0, pool.length - 1);
@@ -1014,7 +1064,7 @@ function createModifierDraft(mode) {
     id: Date.now() + ':' + Math.floor(rng() * 100000),
     mode,
     choices,
-    rerolled: choices.map(() => false),
+    rerolled: choices.map(() => 0),
     rerollCount: 0,
     jackpotResolved: false,
   };
@@ -1032,19 +1082,25 @@ function getModifierJackpotFamily(choices) {
 
 function buildModifierCard(m, index) {
   const rarity = getModifierRarityConfig(m.rarity);
-  const rerolled = currentModifierDraft && currentModifierDraft.rerolled[index];
+  const rerollUsed = currentModifierDraft ? (currentModifierDraft.rerolled[index] || 0) : 0;
+  const rerollExhausted = rerollUsed >= MODIFIER_REROLLS_PER_SLOT;
   const cost = getModifierRerollCost();
   const canAfford = coreFragments >= cost;
-  const disabled = rerolled || !canAfford || (currentModifierDraft && currentModifierDraft.jackpotResolved);
+  const disabled = rerollExhausted || !canAfford || (currentModifierDraft && currentModifierDraft.jackpotResolved);
   const axisLabel = MODIFIER_AXIS_LABELS[m.axis] || '战术';
-  return `<div class="mod-card rarity-${escapeHtml(rarity.className)} ${rerolled ? 'reroll-used' : ''}" data-rarity="${escapeHtml(rarity.label)}" style="--mod-accent:${escapeHtml(m.color || rarity.color)};--mod-rgb:${escapeHtml(m.rgb || rarity.rgb)}" onclick="pickModifierFromDraft(${index})">
+  const archetype = getModifierArchetype(m.archetype || m.axis);
+  const rerollLabel = rerollExhausted
+    ? '已用 ' + rerollUsed + '/' + MODIFIER_REROLLS_PER_SLOT
+    : '刷新 ' + cost + ' MS ' + rerollUsed + '/' + MODIFIER_REROLLS_PER_SLOT;
+  return `<div class="mod-card rarity-${escapeHtml(rarity.className)} ${rerollUsed > 0 ? 'reroll-used' : ''}" data-rarity="${escapeHtml(rarity.label)}" style="--mod-accent:${escapeHtml(m.color || rarity.color)};--mod-rgb:${escapeHtml(m.rgb || rarity.rgb)}" onclick="pickModifierFromDraft(${index})">
     <div class="mod-rarity-line"><span>${escapeHtml(rarity.label)}</span><span>${escapeHtml(axisLabel)}</span></div>
+    <div class="mod-archetype-line"><span>${escapeHtml(archetype.label)}</span><span>${escapeHtml(archetype.code)}</span></div>
     <span class="mod-icon">${escapeHtml(m.icon)}</span>
     <div class="mod-name">${escapeHtml(m.name)}</div>
     <div class="mod-desc">${escapeHtml(m.desc)}</div>
     <div class="mod-tradeoff">${escapeHtml(m.tradeoff || '战术协议')}</div>
     <div class="mod-actions">
-      <button class="mod-reroll" onclick="rerollModifierChoice(event, ${index})" ${disabled ? 'disabled' : ''}>${rerolled ? '已刷新' : ('刷新 ' + cost + ' MS')}</button>
+      <button class="mod-reroll" onclick="rerollModifierChoice(event, ${index})" ${disabled ? 'disabled' : ''}>${escapeHtml(rerollLabel)}</button>
     </div>
   </div>`;
 }
@@ -1060,9 +1116,10 @@ function renderModifierDraft() {
   if (title) title.textContent = currentModifierDraft.mode === 'level' ? '局 内 升 级 / 四 选 一 改 造' : '选 择 改 造 器';
   if (meta) {
     const cost = getModifierRerollCost();
-    const used = currentModifierDraft.rerolled.filter(Boolean).length;
-    meta.innerHTML = renderMoonstoneChip(coreFragments, 'REROLL ' + cost + ' MS / ' + used + '-4 USED')
-      + `<span class="mod-rule">${jackpotFamily ? '四联同调已锁定：即将获得全部选项' : '每张卡仅可刷新一次，刷新成本在本次升级内递增'}</span>`;
+    const used = currentModifierDraft.rerolled.reduce((sum, n) => sum + (n || 0), 0);
+    const total = currentModifierDraft.rerolled.length * MODIFIER_REROLLS_PER_SLOT;
+    meta.innerHTML = renderMoonstoneChip(coreFragments, 'REROLL ' + cost + ' MS / ' + used + '/' + total + ' USED')
+      + `<span class="mod-rule">${jackpotFamily ? '四联同调已锁定：即将获得全部选项' : '每张卡可刷新 ' + MODIFIER_REROLLS_PER_SLOT + ' 次，费用在本次升级内温和递增'}</span>`;
   }
   grid.innerHTML = currentModifierDraft.choices.map((m, i) => buildModifierCard(m, i)).join('');
 }
@@ -1157,7 +1214,8 @@ function rerollModifierChoice(event, index) {
     event.stopPropagation();
   }
   if (!currentModifierDraft || currentModifierDraft.jackpotResolved) return;
-  if (currentModifierDraft.rerolled[index]) return;
+  const slotRerolls = currentModifierDraft.rerolled[index] || 0;
+  if (slotRerolls >= MODIFIER_REROLLS_PER_SLOT) return;
   const cost = getModifierRerollCost();
   if (coreFragments < cost) {
     showAchievementToast('MS', '月光石不足', '刷新需要 ' + cost + ' MOONSTONE', '#ff6767');
@@ -1166,10 +1224,10 @@ function rerollModifierChoice(event, index) {
   coreFragments -= cost;
   recordRerollCost(cost);
   currentModifierDraft.rerollCount++;
-  currentModifierDraft.rerolled[index] = true;
+  currentModifierDraft.rerolled[index] = slotRerolls + 1;
   sessionModifierRerolls++;
   if (sessionModifierRerolls >= 1) unlockAchievement('modifier_reroll');
-  if (currentModifierDraft.rerolled.every(Boolean)) unlockAchievement('modifier_full_reroll');
+  if (currentModifierDraft.rerolled.every(count => count > 0)) unlockAchievement('modifier_full_reroll');
   const exclude = currentModifierDraft.choices.map(m => m && m.id).filter(Boolean);
   const replacement = getModifierChoices(1, exclude, false)[0];
   if (replacement) currentModifierDraft.choices[index] = replacement;
@@ -1204,6 +1262,7 @@ function resetModifiers() {
   powerUpDropMul = getGlobalSupplyDropMultiplier(); bulletSpeedMul = 1; comboBonusMul = 1;
   eliteDropMul = 0; explosionRadiusMul = 1; playerMagBonus = 0; playerMaxHpBonus = 0;
   playerRepairChance = getGlobalRepairChance();
+  runClashPowerBonus = 0; playerBossDamageMul = 1;
 }
 
 // --- Seeded RNG (mulberry32) ---
@@ -8298,7 +8357,14 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         const hpBeforeHit = tank.hp || 0;
         if (!fromPlayer && tank === player) recordPlayerHit(bullet);
         if (!bullet.railgun && !bullet.pierce) bullet.alive = false;
+        const originalDamage = bullet.damage;
+        if (fromPlayer && tank.bossDef && playerBossDamageMul > 1) {
+          bullet.damage = Math.max(1, Math.ceil((bullet.damage || 1) * playerBossDamageMul));
+        }
         const destroyed = tank.hit(bullet);
+        if (fromPlayer && tank.bossDef && playerBossDamageMul > 1) {
+          bullet.damage = originalDamage;
+        }
         if (fromPlayer) recordEnemyHit(tank, bullet, Math.max(0, hpBeforeHit - (tank.hp || 0)));
         if (bullet.drainOnHit > 0 && fromPlayer && player && player.alive && rng() < bullet.drainOnHit) {
           player.hp = Math.min(player.maxHp, player.hp + 1);
@@ -8847,7 +8913,7 @@ function checkBulletBulletCollisions() {
       const dy = p.y - e.y;
       const r = (p.radius || 3) + (e.radius || 3) + 2;
       if (dx * dx + dy * dy <= r * r) {
-        const pPower = Math.max(1, Math.ceil(p.damage || 1) + getGlobalClashPowerBonus());
+        const pPower = Math.max(1, Math.ceil(p.damage || 1) + getGlobalClashPowerBonus() + rollRunClashPowerBonus());
         const ePower = Math.max(1, Math.ceil(e.damage || 1));
         if (pPower > ePower) {
           p.damage = pPower - ePower;
