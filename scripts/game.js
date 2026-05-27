@@ -932,7 +932,7 @@ const MODIFIER_BLUEPRINTS = [
   },
   {
     family:'boss_hunter', axis:'boss', archetype:'boss', name:'弑月猎契', icon:'BOS', baseWeight:10, color:'#ffcf6e', rgb:'255,207,110',
-    values:{ standard:0.08, rare:0.13, elite:0.19, mythic:0.27 },
+    values:{ standard:0.06, rare:0.10, elite:0.15, mythic:0.21 },
     desc:v => '对Boss伤害 +' + Math.round(v * 100) + '%',
     tradeoff:'专精首领战，普通波次收益较低',
     apply:v => { playerBossDamageMul += v; },
@@ -1287,11 +1287,11 @@ const difficultySettings = {
 };
 const DIFFICULTY_ORDER = ['easy','normal','hard','extreme','nightmare'];
 const DIFFICULTY_TUNING = {
-  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 1, playerHp: 12, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 0.76, unlockScore: 0,     clearWave: 20 },
-  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2, playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 0.96, unlockScore: 2800,  clearWave: 24 },
-  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4, playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 1.15, unlockScore: 7200,  clearWave: 28 },
-  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6, playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 1.34, unlockScore: 12800, clearWave: 32 },
-  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8, playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 1.55, unlockScore: 20500, clearWave: 36 },
+  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 1, playerHp: 12, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 1.55, unlockScore: 0,     clearWave: 20 },
+  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2, playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 2.05, unlockScore: 2800,  clearWave: 24 },
+  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4, playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 2.55, unlockScore: 7200,  clearWave: 28 },
+  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6, playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 3.05, unlockScore: 12800, clearWave: 32 },
+  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8, playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 3.65, unlockScore: 20500, clearWave: 36 },
 };
 Object.keys(DIFFICULTY_TUNING).forEach(key => Object.assign(difficultySettings[key], DIFFICULTY_TUNING[key]));
 
@@ -5455,31 +5455,31 @@ let isBossWave = false;
 let bossRef = null;
 
 const BOSS_TYPES = [
-  { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.34, hp:70, icon:'BST', faction:'moon_arsenal',
+  { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.34, hp:150, icon:'BST', faction:'moon_arsenal',
     desc:'重型压制Boss，装甲轰杀+过载冲击',
     phases:[
       { name:'装甲镇压', hpPct:1.0, attack:'spiral', shootDelay:40, burstShots:3, burstRest:126, telegraph:46, recover:112, bulletCount:11, bulletSpeed:1.58, pressure:0.9, cue:'BREACH ARC', hint:'环形压制后有装甲空窗' },
       { name:'过载破城', hpPct:0.58, attack:'enrage', shootDelay:38, burstShots:3, burstRest:156, telegraph:56, recover:132, bulletCount:12, bulletSpeed:1.92, pressure:1.18, cue:'SIEGE BURN', hint:'正面破城弹后短暂过热' },
     ]},
-  { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.68, hp:48, icon:'PHZ', faction:'void_cult',
+  { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.68, hp:112, icon:'PHZ', faction:'void_cult',
     desc:'高速相位Boss，折跃猎杀+镜像围杀',
     phases:[
       { name:'折跃猎杀', hpPct:1.0, attack:'teleport', shootDelay:46, burstShots:3, burstRest:140, telegraph:42, recover:116, bulletCount:7, bulletSpeed:1.82, pressure:0.86, cue:'PHASE LOCK', hint:'折跃前会锁定安全距离' },
       { name:'镜像歼灭', hpPct:0.6, attack:'clone_barrage', shootDelay:44, burstShots:3, burstRest:176, telegraph:52, recover:142, bulletCount:7, bulletSpeed:1.95, pressure:1.08, cue:'MIRROR LOCK', hint:'镜像结阵后本体短暂停顿' },
     ]},
-  { name:'要塞坦克', color:'#664', turret:'#ca4', speed:0.08, hp:84, icon:'FRT', faction:'ash_church',
+  { name:'要塞坦克', color:'#664', turret:'#ca4', speed:0.08, hp:180, icon:'FRT', faction:'ash_church',
     desc:'堡垒压场Boss，多炮塔火网+雷区封锁',
     phases:[
       { name:'重炮幕墙', hpPct:1.0, attack:'turret_salvo', shootDelay:50, burstShots:3, burstRest:138, telegraph:56, recover:126, bulletCount:9, bulletSpeed:1.82, pressure:1.0, cue:'CITADEL LINE', hint:'炮线展开后侧翼可反击' },
       { name:'湮灭雷暴', hpPct:0.57, attack:'mine_storm', shootDelay:46, burstShots:3, burstRest:166, telegraph:64, recover:150, bulletCount:9, bulletSpeed:2.0, pressure:1.24, cue:'MINE LITURGY', hint:'雷区封锁结束后炮塔冷却' },
     ]},
-  { name:'虚空坦克', color:'#424', turret:'#a4f', speed:0.44, hp:60, icon:'VOID', faction:'void_cult',
+  { name:'虚空坦克', color:'#424', turret:'#a4f', speed:0.44, hp:132, icon:'VOID', faction:'void_cult',
     desc:'奇点操控Boss，引力洪流+黑洞撕裂',
     phases:[
       { name:'引力洪流', hpPct:1.0, attack:'gravity_wave', shootDelay:46, burstShots:3, burstRest:132, telegraph:50, recover:120, bulletCount:9, bulletSpeed:1.7, pressure:0.98, cue:'GRAVITY TIDE', hint:'引力波后奇点短暂失稳' },
       { name:'黑洞撕裂', hpPct:0.6, attack:'black_hole', shootDelay:44, burstShots:3, burstRest:162, telegraph:60, recover:148, bulletCount:9, bulletSpeed:1.9, pressure:1.24, cue:'BLACK WELL', hint:'吸引结束后核心暴露' },
     ]},
-  { name:'风暴坦克', color:'#446', turret:'#4ff', speed:0.56, hp:56, icon:'STM', faction:'storm_cloister',
+  { name:'风暴坦克', color:'#446', turret:'#4ff', speed:0.56, hp:126, icon:'STM', faction:'storm_cloister',
     desc:'天候支配Boss，电弧锁链+雷暴空袭',
     phases:[
       { name:'电弧狩猎', hpPct:1.0, attack:'lightning_chain', shootDelay:42, burstShots:3, burstRest:124, telegraph:42, recover:110, bulletCount:7, bulletSpeed:2.32, pressure:0.98, cue:'ARC JUDGMENT', hint:'电弧直线清晰，横移可避' },
@@ -5550,8 +5550,10 @@ const BESTIARY_LORE = {
 class BossEnemy extends EliteEnemy {
   constructor(x, y, bossDef) {
     const diff = difficultySettings[currentDifficulty];
-    const hp = Math.floor((bossDef.hp + level * 7 + diff.enemyHpBonus * 10 + Math.floor(wave * 1.35)) * (diff.bossHpMul || 1));
-    super(x, y, {name:bossDef.name, color:bossDef.color, turret:bossDef.turret, speed:bossDef.speed, hp:Math.max(34,hp), special:'boss', icon:bossDef.icon});
+    const diffIdx = Math.max(0, DIFFICULTY_ORDER.indexOf(currentDifficulty));
+    const scaling = 1 + Math.max(0, wave - 4) * 0.045 + Math.max(0, level - 1) * 0.035 + diffIdx * 0.08;
+    const hp = Math.floor((bossDef.hp + level * 10 + diff.enemyHpBonus * 18 + Math.floor(wave * 3.2)) * scaling * (diff.bossHpMul || 1));
+    super(x, y, {name:bossDef.name, color:bossDef.color, turret:bossDef.turret, speed:bossDef.speed, hp:Math.max(140,hp), special:'boss', icon:bossDef.icon});
     this.bossDef = bossDef;
     this.maxHp = this.hp;
     this.currentPhase = 0;
@@ -5591,11 +5593,11 @@ class BossEnemy extends EliteEnemy {
   }
   getBossTelegraphDuration(phase) {
     const base = phase.telegraph || 48;
-    return Math.max(30, Math.floor(base * (this.currentPhase > 0 ? 0.92 : 1)));
+    return Math.max(26, Math.floor(base * (this.currentPhase > 0 ? 0.84 : 0.96)));
   }
   getBossRecoverDuration(phase) {
     const base = phase.recover || phase.burstRest || 120;
-    return Math.max(58, Math.floor(base * (this.currentPhase > 0 ? 0.9 : 1)));
+    return Math.max(52, Math.floor(base * (this.currentPhase > 0 ? 0.78 : 0.92)));
   }
   setAttackState(state, duration) {
     this.attackState = state;
@@ -5839,7 +5841,7 @@ class BossEnemy extends EliteEnemy {
     const by = this.y + Math.sin(this.turretAngle) * 22;
     const hpRatio = this.hp / this.maxHp;
     const rageSpeed = this.currentPhase > 0 ? 0.14 : 0;
-    const bonusBullets = this.currentPhase > 0 ? 1 : 0;
+    const bonusBullets = this.currentPhase > 0 ? 2 : 0;
     if (phase.attack === 'spiral') {
       const total = phase.bulletCount + bonusBullets;
       const spinOffset = this.phaseTimer * 0.12;
@@ -8541,7 +8543,7 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
           bullet.damage = Math.max(1, Math.ceil((bullet.damage || 1) * playerBossDamageMul));
         }
         if (fromPlayer && tank.bossDef && tank.recoverVulnerable) {
-          bullet.damage = Math.max(1, Math.ceil((bullet.damage || 1) * 1.18));
+          bullet.damage = Math.max(1, Math.ceil((bullet.damage || 1) * 1.1));
         }
         const destroyed = tank.hit(bullet);
         if (fromPlayer && tank.bossDef && (playerBossDamageMul > 1 || tank.recoverVulnerable)) {
