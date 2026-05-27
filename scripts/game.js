@@ -8892,6 +8892,7 @@ function hideRunOverlays(showStart = false) {
   const gameOverPanel = document.getElementById('game-over');
   const reportEl = document.getElementById('run-report');
   if (gameOverPanel) gameOverPanel.classList.remove('visible', 'victory');
+  if (reportEl) reportEl.innerHTML = '';
   const startScreen = document.getElementById('start-screen');
   if (startScreen) startScreen.style.display = showStart ? 'flex' : 'none';
   const waveNotify = document.getElementById('wave-notify');
@@ -8945,6 +8946,7 @@ function resetRunState() {
   const finalTitle = document.getElementById('final-title');
   const endingStory = document.getElementById('ending-story');
   const gameOverPanel = document.getElementById('game-over');
+  const reportEl = document.getElementById('run-report');
   if (finalTitle) finalTitle.textContent = '游戏结束';
   if (endingStory) {
     endingStory.textContent = '';
