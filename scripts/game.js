@@ -9013,6 +9013,148 @@ function hideLabScreen() {
   document.getElementById('start-screen').style.display = 'flex';
   renderDifficultyButtons();
 }
+
+// --- Save Data Diagnostics Panel ---
+function showSaveDiagnostics() {
+  const screen = document.getElementById('save-diag-screen');
+  if (!screen) return;
+  hideAllScreens();
+  screen.style.display = 'flex';
+  
+  const content = document.getElementById('save-diag-content');
+  if (!content) return;
+  
+  const rows = [];
+  
+  // Helper: safe parse
+  const safeJson = (key) => {
+    try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }
+    catch(e) { return { _error: e.message }; }
+  };
+  const safeVal = (key) => { try { return localStorage.getItem(key); } catch(e) { return null; } };
+  
+  // 1. Save version
+  const version = safeVal('tankbattle_progress_version') || '1';
+  const versionOk = parseInt(version) >= 1;
+  rows.push({ label: '存档版本', value: 'v' + version, status: versionOk ? 'ok' : 'warn', detail: versionOk ? '版本格式正常' : '版本号异常，建议重置' });
+  
+  // 2. Moonstone
+  const fragments = parseInt(safeVal('tankbattle_fragments') || '0', 10) || 0;
+  rows.push({ label: '月光石', value: fragments + ' MS', status: 'ok', detail: '余额正常' });
+  
+  // 3. Tank unlocks
+  const tankData = safeJson('tankbattle_tank_unlocks');
+  const tankCount = tankData ? tankData.length : 0;
+  rows.push({ label: '机体解锁', value: tankCount + ' / 10', status: tankCount >= 1 ? 'ok' : 'warn', detail: tankCount >= 1 ? '已解锁 ' + (tankData || []).join(' / ') : '未读取到解锁数据' });
+  
+  // 4. Tank evolutions
+  const evoData = safeJson('tankbattle_tank_evolved');
+  const evoCount = evoData ? evoData.length : 0;
+  rows.push({ label: '机体进化', value: evoCount + ' 台', status: 'ok', detail: evoCount > 0 ? '已进化: ' + (evoData || []).join(' / ') : '尚未进化任何机体' });
+  
+  // 5. Tank upgrades
+  const upgradeData = safeJson('tankbattle_tank_upgrades');
+  let upgradeTotal = 0;
+  if (upgradeData && typeof upgradeData === 'object') {
+    Object.values(upgradeData).forEach(v => { if (v && typeof v === 'object') upgradeTotal += Object.values(v).reduce((a,b) => a + (b||0), 0); });
+  }
+  rows.push({ label: '部件升级', value: upgradeTotal + ' 次', status: upgradeTotal > 0 ? 'ok' : 'info', detail: '研究室各机体部件升级总次数' });
+  
+  // 6. Protocol tree
+  const researchData = safeJson('tankbattle_global_research');
+  let researchTotal = 0, researchMax = 0;
+  if (researchData && typeof researchData === 'object') {
+    researchTotal = Object.values(researchData).reduce((a,b) => a + (b||0), 0);
+    researchMax = 80;
+  }
+  rows.push({ label: '协议树点亮', value: researchTotal + ' / ~' + researchMax, status: researchTotal > 0 ? 'ok' : 'info', detail: '全域协议加点总次数' });
+  
+  // 7. Achievements
+  const achData = safeJson('tankbattle_achievements');
+  const achCount = achData ? achData.length : 0;
+  rows.push({ label: '成就解锁', value: achCount + ' / ~50', status: achCount > 0 ? 'ok' : 'info', detail: achCount > 0 ? '已解锁 ' + achCount + ' 个战绩' : '尚未解锁战绩' });
+  
+  // 8. Difficulty unlocks
+  const diffData = safeJson('tankbattle_unlocks');
+  const diffCount = diffData ? diffData.length : 0;
+  rows.push({ label: '难度解锁', value: diffCount + ' / 5', status: diffCount >= 2 ? 'ok' : 'warn', detail: '已解锁难度: ' + (diffData || ['简单']).join(' / ') });
+  
+  // 9. Bestiary
+  const bestData = safeJson('tankbattle_bestiary_discovered');
+  let bestTotal = 0;
+  if (bestData && typeof bestData === 'object') {
+    Object.values(bestData).forEach(v => { if (v instanceof Set || Array.isArray(v)) bestTotal += (v.size || v.length || 0); });
+  }
+  rows.push({ label: '图鉴发现', value: bestTotal + ' 项', status: bestTotal > 0 ? 'ok' : 'info', detail: '已发现敌人/道具/融合档案' });
+  
+  // 10. Leaderboard
+  const lbData = safeJson('tankbattle_leaderboard');
+  const lbCount = lbData ? (Array.isArray(lbData) ? lbData.length : Object.keys(lbData).length) : 0;
+  rows.push({ label: '排行榜', value: lbCount + ' 条', status: lbCount >= 0 ? 'ok' : 'warn', detail: '排行榜记录数' });
+  
+  // 11. First run
+  const firstRun = safeVal('tankbattle_first_run_done');
+  rows.push({ label: '新手引导', value: firstRun === '1' ? '已完成' : '未完成', status: 'ok', detail: firstRun === '1' ? '首次教程已标记完成' : '下次开局将显示引导' });
+  
+  // 12. Save size
+  let totalSize = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.includes('tankbattle')) totalSize += (localStorage.getItem(k) || '').length;
+  }
+  rows.push({ label: '存档大小', value: (totalSize / 1024).toFixed(1) + ' KB', status: totalSize < 500000 ? 'ok' : 'warn', detail: totalSize < 500000 ? '存储空间正常' : '存档较大，建议清理旧数据' });
+  
+  // Render
+  const statusIcon = { ok: '✓', warn: '!', info: '·', error: '✕' };
+  const statusColor = { ok: '#79f48d', warn: '#f49800', info: '#8ce8ff', error: '#ff6767' };
+  
+  content.innerHTML = rows.map(r => `
+    <div class="diag-row" style="--diag-color:${statusColor[r.status]}">
+      <div class="diag-label">${r.label}</div>
+      <div class="diag-value">${statusIcon[r.status]} ${r.value}</div>
+      <div class="diag-detail">${r.detail}</div>
+    </div>
+  `).join('') + `
+    <div class="diag-actions">
+      <button class="diag-btn" onclick="exportSaveData()">导出存档 JSON</button>
+      <button class="diag-btn diag-btn-danger" onclick="resetAllSaveData()">重置全部存档</button>
+    </div>
+  `;
+}
+
+function exportSaveData() {
+  const exportObj = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.includes('tankbattle')) {
+      try { exportObj[k] = JSON.parse(localStorage.getItem(k)); }
+      catch(e) { exportObj[k] = localStorage.getItem(k); }
+    }
+  }
+  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'tankbattle_save_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showAchievementToast('EXP', '存档导出', '已下载到本地', '#8ce8ff');
+}
+
+function resetAllSaveData() {
+  if (!confirm('确定要重置全部存档数据？此操作不可撤销！')) return;
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (k && k.includes('tankbattle')) localStorage.removeItem(k);
+  }
+  location.reload();
+}
+
+function hideSaveDiagnostics() {
+  const screen = document.getElementById('save-diag-screen');
+  if (screen) screen.style.display = 'none';
+  showHomeScreen();
+}
+
 function showProtocolScreen() {
   ['start-screen','tank-select-screen','lab-screen','achievements-screen','bestiary-screen','leaderboard-screen'].forEach(id => {
     const el = document.getElementById(id);
