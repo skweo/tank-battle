@@ -1,4 +1,4 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
+﻿* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   background: #060a14;
   display: flex; justify-content: center; align-items: center;
@@ -753,7 +753,18 @@ canvas { display: block; background: #0a0f18; }
 #bestiary-screen .best-row .bst-icon {
   width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-#bestiary-screen .best-row .bst-emblem {
+#bestiary-screen .best-row .bst
+.bst-lock-frame {
+  width: 28px; height: 28px; border: 2px dashed var(--lock-color, #58677a);
+  border-radius: 4px; opacity: 0.6;
+}
+.bst-lock-sigil { color: var(--lock-color, #58677a); font-size: 18px; font-weight: bold; margin-top: -24px; }
+.bst-emblem-inner {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.4); border: 1px solid var(--emblem-color, #f49800);
+  border-radius: 3px; color: var(--emblem-color, #f49800); font-size: 18px;
+}
+.locked-emblem { display: flex; flex-direction: column; align-items: center; justify-content: center; }-emblem {
   width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(220,235,255,0.12);
   background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18), rgba(12,18,26,0.95) 70%);
   display: flex; align-items: center; justify-content: center; color: var(--threat, #f49800);
@@ -812,7 +823,31 @@ canvas { display: block; background: #0a0f18; }
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
   transition: all 0.2s;
 }
-.best-back-btn:hover { background: rgba(30,38,48,0.8); border-color: rgba(244,152,0,0.4); color: #f49800; }
+.best-
+/* --- Enhanced Bestiary: threat dots, faction badges --- */
+.bst-threat-row { display: flex; gap: 4px; margin-top: 4px; margin-bottom: 2px; }
+.bst-threat-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+  transition: all 0.25s;
+}
+.bst-threat-dot.active {
+  background: var(--dot-color, #f49800); border-color: var(--dot-color, #f49800);
+  box-shadow: 0 0 6px var(--dot-color, #f49800);
+}
+.bst-faction-badge {
+  display: inline-block; font-size: 8px; font-weight: 600;
+  padding: 1px 6px; border: 1px solid var(--faction-color, #f49800);
+  color: var(--faction-color, #f49800); background: rgba(0,0,0,0.5);
+  letter-spacing: 1px; margin-right: 6px;
+}
+.best-row.locked .bst-icon { opacity: 0.45; filter: grayscale(0.7) brightness(0.5); }
+.best-row.locked .bst-name { color: #4a5568; font-style: italic; }
+.best-row.locked .bst-desc { color: #3a4355; }
+.best-row.locked { border-left: 2px solid #2a3345; }
+.best-row.locked .bst-lore { color: #2a3345; }
+.best-row.unlocked:hover { border-left: 2px solid var(--threat, #f49800); transition: border-color 0.3s; }
+.best-row.unlocked { border-left: 2px solid rgba(255,255,255,0.06); }back-btn:hover { background: rgba(30,38,48,0.8); border-color: rgba(244,152,0,0.4); color: #f49800; }
 #upgrade-screen {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: none; flex-direction: column; justify-content: center; align-items: center;
@@ -1497,6 +1532,13 @@ canvas { background: #070d13; }
   font: 800 16px "Courier New", monospace;
   letter-spacing: 1px;
   text-shadow: 0 0 14px rgba(var(--mod-rgb),0.62);
+  overflow: hidden;
+}
+#modifier-screen .mod-card .mod-icon svg {
+  display: block;
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 0 6px rgba(var(--mod-rgb),0.55));
 }
 #modifier-screen .mod-rarity-line {
   display: flex;
@@ -1594,7 +1636,12 @@ canvas { background: #070d13; }
 #modifier-screen .mod-card.rarity-mythic {
   --mod-accent: #f6e5aa;
   --mod-rgb: 246,229,170;
-  box-shadow: inset 0 0 0 1px rgba(246,229,170,0.08), 0 0 28px rgba(246,229,170,0.12), 0 22px 58px rgba(0,0,0,0.46);
+  box-shadow: inset 0 0 0 1px rgba(246,229,170,0.15), 0 0 42px rgba(246,229,170,0.16), 0 22px 58px rgba(0,0,0,0.46);
+  animation: mythicGlow 2.8s ease-in-out infinite alternate;
+}
+@keyframes mythicGlow {
+  from { box-shadow: inset 0 0 0 1px rgba(246,229,170,0.12), 0 0 28px rgba(246,229,170,0.12), 0 22px 58px rgba(0,0,0,0.46); }
+  to { box-shadow: inset 0 0 0 1px rgba(246,229,170,0.18), 0 0 52px rgba(246,229,170,0.2), 0 22px 58px rgba(0,0,0,0.46); }
 }
 #modifier-screen .mod-card.reroll-used {
   border-style: dashed;
@@ -2961,4 +3008,13 @@ canvas { background: #070d13; }
   #achievements-screen .achieve-grid,
   #lab-screen .lab-detail-panel { max-width: 92%; }
   #leaderboard-screen .leader-grid { width: 92%; }
+}
+
+/* --- New Player Tutorial Tips --- */
+.new-player-tip {
+  animation: tipFadeIn 0.5s ease-out;
+}
+@keyframes tipFadeIn {
+  from { opacity: 0; transform: translate(-50%,-50%) translateY(10px); }
+  to { opacity: 1; transform: translate(-50%,-50%) translateY(0); }
 }

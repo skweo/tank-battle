@@ -1,4 +1,4 @@
-const canvas = document.getElementById('game');
+﻿const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 const W = 1480;
@@ -1098,7 +1098,7 @@ function buildModifierCard(m, index) {
   return `<div class="mod-card rarity-${escapeHtml(rarity.className)} ${rerollUsed > 0 ? 'reroll-used' : ''}" data-rarity="${escapeHtml(rarity.label)}" style="--mod-accent:${escapeHtml(m.color || rarity.color)};--mod-rgb:${escapeHtml(m.rgb || rarity.rgb)}" onclick="pickModifierFromDraft(${index})">
     <div class="mod-rarity-line"><span>${escapeHtml(rarity.label)}</span><span>${escapeHtml(axisLabel)}</span></div>
     <div class="mod-archetype-line"><span>${escapeHtml(archetype.label)}</span><span>${escapeHtml(archetype.code)}</span></div>
-    <span class="mod-icon">${escapeHtml(m.icon)}</span>
+    <span class="mod-icon">${getModifierIconSvg(m.icon, m.rgb || rarity.rgb)}</span>
     <div class="mod-name">${escapeHtml(m.name)}</div>
     <div class="mod-desc">${escapeHtml(m.desc)}</div>
     <div class="mod-tradeoff">${escapeHtml(m.tradeoff || '战术协议')}</div>
@@ -1282,21 +1282,13 @@ let isDailyChallenge = false;
 
 // --- Difficulty Settings ---
 const difficultySettings = {
-  easy:     { lives: 5, spawnRate: 400, enemyHpBonus: 0,  playerHp: 10, enemySpeedMul: 0.7,  label: '简单', unlockScore: 0 },
-  normal:   { lives: 3, spawnRate: 350, enemyHpBonus: 1,  playerHp: 8,  enemySpeedMul: 0.9,  label: '普通', unlockScore: 5000 },
-  hard:     { lives: 2, spawnRate: 280, enemyHpBonus: 2,  playerHp: 6,  enemySpeedMul: 1.2,  label: '困难', unlockScore: 5000 },
-  extreme:  { lives: 2, spawnRate: 220, enemyHpBonus: 3,  playerHp: 5,  enemySpeedMul: 1.4,  label: '极限', unlockScore: 5000 },
-  nightmare:{ lives: 1, spawnRate: 170, enemyHpBonus: 5,  playerHp: 4,  enemySpeedMul: 1.6,  label: '梦魇', unlockScore: 5000 },
+  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 1,  playerHp: 12, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 1.55, unlockScore: 0,     clearWave: 20, label: '简单' },
+  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2,  playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 2.05, unlockScore: 2800,  clearWave: 20, label: '普通' },
+  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4,  playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 2.55, unlockScore: 7200,  clearWave: 24, label: '困难' },
+  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6,  playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 3.05, unlockScore: 12800, clearWave: 28, label: '极限' },
+  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8,  playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 3.65, unlockScore: 20500, clearWave: 32, label: '梦魇' },
 };
 const DIFFICULTY_ORDER = ['easy','normal','hard','extreme','nightmare'];
-const DIFFICULTY_TUNING = {
-  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 1, playerHp: 12, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 1.55, unlockScore: 0,     clearWave: 20 },
-  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2, playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 2.05, unlockScore: 2800,  clearWave: 20 },
-  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4, playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 2.55, unlockScore: 7200,  clearWave: 24 },
-  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6, playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 3.05, unlockScore: 12800, clearWave: 28 },
-  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8, playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 3.65, unlockScore: 20500, clearWave: 32 },
-};
-Object.keys(DIFFICULTY_TUNING).forEach(key => Object.assign(difficultySettings[key], DIFFICULTY_TUNING[key]));
 
 // --- Tank Types ---
 const tankTypes = {
@@ -1453,15 +1445,16 @@ function getTankSelectIcon(type) {
       <circle class="icon-core" cx="15" cy="39" r="1.8" opacity="0.8"/>
     </svg>`
   };
-  return specialIcons[type] || {
-    spread: '⬣',
-    focus: '▸',
-    wide: '◫',
-    burst: '✹',
-    sniper: '⟐',
-    homing: '◉',
-    border: '◇'
-  }[type] || '◇';
+  const mainIcons = {
+    spread: `<svg class="tank-select-svg spread-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle class="icon-halo" cx="32" cy="32" r="25" fill="none" stroke-width="1.15"/><path class="icon-frame" d="M32 8 L18 26 L46 26 Z M18 38 L46 38 L32 56 Z" fill="none" stroke-width="1" stroke-linejoin="round"/><path class="icon-line" d="M32 9 L32 55 M9 32 L24 32 M40 32 L55 32 M15 17 L26 26 M49 17 L38 26 M15 47 L26 38 M49 47 L38 38" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/><circle class="icon-core" cx="32" cy="32" r="4.5"/><circle class="icon-core" cx="21" cy="28" r="1.8" opacity="0.75"/><circle class="icon-core" cx="43" cy="28" r="1.8" opacity="0.75"/><path class="icon-line" d="M32 29 L32 35 M29 32 L35 32" fill="none" stroke-width="1" stroke-linecap="round" opacity="0.6"/></svg>`,
+    focus: `<svg class="tank-select-svg focus-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle class="icon-halo" cx="32" cy="32" r="22" fill="none" stroke-width="1.2"/><path class="icon-frame" d="M32 7 L44 32 L32 57 L20 32 Z" fill="none" stroke-width="1.15" stroke-linejoin="round"/><path class="icon-line" d="M32 14 L32 50 M16 32 L48 32" fill="none" stroke-width="1.1" stroke-linecap="round" opacity="0.55"/><path class="icon-line" d="M23 23 L41 41 M41 23 L23 41" fill="none" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/><ellipse class="icon-core" cx="32" cy="32" rx="3.5" ry="7" stroke-width="1.3"/><path class="icon-line" d="M9 32 H15 M49 32 H55" fill="none" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+    wide: `<svg class="tank-select-svg wide-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle class="icon-halo" cx="32" cy="32" r="23" fill="none" stroke-width="1.1"/><path class="icon-frame" d="M12 26 Q32 8 52 26 L52 38 Q32 56 12 38 Z" fill="none" stroke-width="1.1" stroke-linejoin="round"/><path class="icon-line" d="M32 12 L32 52" fill="none" stroke-width="1" stroke-linecap="round" opacity="0.55"/><path class="icon-line" d="M12 26 L52 26 M12 38 L52 38" fill="none" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/><path class="icon-line" d="M18 22 L27 30 M46 22 L37 30 M18 42 L27 34 M46 42 L37 34" fill="none" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/><circle class="icon-core" cx="32" cy="32" r="4.2"/><circle class="icon-core" cx="19" cy="32" r="2.8" opacity="0.6"/><circle class="icon-core" cx="45" cy="32" r="2.8" opacity="0.6"/></svg>`,
+    burst: `<svg class="tank-select-svg burst-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle class="icon-halo" cx="32" cy="32" r="22" fill="none" stroke-width="1.1"/><path class="icon-frame" d="M32 4 L40 26 L62 32 L40 38 L32 60 L24 38 L2 32 L24 26 Z" fill="none" stroke-width="1" stroke-linejoin="round"/><path class="icon-line" d="M32 10 L34 28 L50 32 L34 36 L32 54 L30 36 L14 32 L30 28 Z" fill="rgba(255,255,255,0.07)" stroke-width="1.3" stroke-linejoin="round"/><path class="icon-line" d="M28 24 L32 28 L36 24 M28 40 L32 36 L36 40 M24 28 L28 32 L24 36 M40 28 L36 32 L40 36" fill="none" stroke-width="1.1" stroke-linecap="round" opacity="0.6"/><circle class="icon-core" cx="32" cy="32" r="3.8"/><circle class="icon-core" cx="32" cy="20" r="1.5" opacity="0.7"/><circle class="icon-core" cx="44" cy="32" r="1.5" opacity="0.7"/><circle class="icon-core" cx="32" cy="44" r="1.5" opacity="0.7"/><circle class="icon-core" cx="20" cy="32" r="1.5" opacity="0.7"/></svg>`,
+    sniper: `<svg class="tank-select-svg sniper-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle class="icon-halo" cx="32" cy="32" r="24" fill="none" stroke-width="1.1"/><circle class="icon-frame" cx="32" cy="32" r="13" fill="none" stroke-width="1.05"/><path class="icon-frame" d="M32 4 L32 19 M32 45 L32 60 M4 32 L19 32 M45 32 L60 32" fill="none" stroke-width="1.1" stroke-linecap="round"/><path class="icon-line" d="M19 32 L25 25 M19 32 L25 39 M45 32 L39 25 M45 32 L39 39 M32 19 L25 25 M32 19 L39 25 M32 45 L25 39 M32 45 L39 39" fill="none" stroke-width="0.9" stroke-linecap="round" opacity="0.55"/><circle class="icon-core" cx="32" cy="32" r="1.8"/><circle class="icon-core" cx="32" cy="32" r="6" fill="none" stroke-width="0.6" opacity="0.45"/><path class="icon-line" d="M32 21 L32 25 M32 39 L32 43 M21 32 L25 32 M39 32 L43 32" fill="none" stroke-width="1" stroke-linecap="round"/></svg>`,
+    homing: `<svg class="tank-select-svg homing-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle class="icon-halo" cx="32" cy="32" r="24" fill="none" stroke-width="1.1"/><path class="icon-frame" d="M32 6 L48 32 L32 58 L16 32 Z" fill="none" stroke-width="1.05" stroke-linejoin="round"/><path class="icon-frame" d="M6 32 L32 16 L58 32 L32 48 Z" fill="none" stroke-width="0.85" stroke-linejoin="round" opacity="0.55"/><path class="icon-line" d="M32 14 L32 50 M16 26 L48 38 M16 38 L48 26" fill="none" stroke-width="1" stroke-linecap="round" opacity="0.5"/><circle class="icon-core" cx="32" cy="32" r="4"/><circle class="icon-core" cx="32" cy="32" r="9" fill="none" stroke-width="0.7" opacity="0.6"/><path class="icon-line" d="M26 19 L22 15 M38 19 L42 15 M26 45 L22 49 M38 45 L42 49" fill="none" stroke-width="1" stroke-linecap="round" opacity="0.65"/></svg>`,
+    border: `<svg class="tank-select-svg border-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle class="icon-halo" cx="32" cy="32" r="24" fill="none" stroke-width="1.1" stroke-dasharray="3 5"/><path class="icon-frame" d="M32 5 L32 22 M32 42 L32 59 M5 32 L22 32 M42 32 L59 32" fill="none" stroke-width="1" stroke-linecap="round"/><path class="icon-line" d="M24 16 L40 48 M16 24 L48 40 M40 16 L24 48 M48 24 L16 40" fill="none" stroke-width="0.95" stroke-linecap="round" opacity="0.55"/><path class="icon-line" d="M32 24 Q28 32 32 40 Q36 32 32 24" fill="rgba(255,255,255,0.06)" stroke-width="1.2" stroke-linejoin="round"/><circle class="icon-core" cx="32" cy="32" r="3.5"/><circle class="icon-core" cx="20" cy="20" r="2" opacity="0.65"/><circle class="icon-core" cx="44" cy="44" r="2" opacity="0.65"/><path class="icon-line" d="M41 41 L44 44 M20 20 L23 23" fill="none" stroke-width="0.8" stroke-linecap="round" opacity="0.4"/></svg>`
+  };
+  return specialIcons[type] || mainIcons[type] || '&#9670;';
 }
 
 function getSpecialCodeIconType(code, tankType) {
@@ -1480,7 +1473,10 @@ function getSpecialCodeIconType(code, tankType) {
 
 function renderCodeIcon(code, title, tankType) {
   const type = tankType !== undefined ? getSpecialCodeIconType(code, tankType) : getSpecialCodeIconType(code);
-  if (!type) return escapeHtml(code);
+  if (!type && tankType && getTankSelectIcon(tankType) !== '&#9670;') {
+    return `<span class="ui-code-icon" title="${escapeHtml(title || code)}">${getTankSelectIcon(tankType)}</span>`;
+  }
+  if (!type) return `<span class="ui-code-icon" title="${escapeHtml(title || code)}"><span class="code-text-fallback">${escapeHtml(code)}</span></span>`;
   return `<span class="ui-code-icon" title="${escapeHtml(title || code)}">${getTankSelectIcon(type)}</span>`;
 }
 
@@ -3067,7 +3063,7 @@ function renderBestiary() {
       const tier = normalizeItemTier(p.tier);
       const tc = ITEM_TIER_CONFIG[tier] || ITEM_TIER_CONFIG.basic;
       return {
-      glyph: getEnemyVisualProfile('powerup').glyph, color: p.color, classLabel: tc.code + '-MODULE',
+      iconType: 'hexgear', glyph: getEnemyVisualProfile('powerup').glyph, color: p.color, classLabel: tc.code + '-MODULE',
       name: p.name, desc: p.desc, powerType: p.type,
       tag: p.duration > 0 ? (p.duration/60).toFixed(0) + '秒' : '即时',
       subTag: tc.label,
@@ -3080,7 +3076,7 @@ function renderBestiary() {
     });
   } else if (bestiaryTab === 'items_fusion') {
     items = FUSION_RECIPES.map(f => ({
-      glyph: getEnemyVisualProfile('fusion').glyph, color: '#f6e5aa', classLabel: 'RELIC-FUSION',
+      iconType: 'merged', glyph: getEnemyVisualProfile('fusion').glyph, color: '#f6e5aa', classLabel: 'RELIC-FUSION',
       name: f.name, fusionId: f.id,
       desc: f.desc,
       tag: f.requires.map(r => powerUpDefs.find(p => p.type === r)?.name || r).join(' + '),
@@ -3094,7 +3090,7 @@ function renderBestiary() {
     items = enemyTypes.map(e => {
       const profile = getEnemyVisualProfile(e.kind);
       return {
-        glyph: profile.glyph, color: profile.color, classLabel: profile.label,
+        iconType: profile.iconType, glyph: profile.glyph, color: profile.color, classLabel: profile.label,
         name: getNormalEnemyName(e.kind), desc: getNormalEnemyDescription(e.kind), tag: '普通',
         subTag: 'HP ' + e.hp + ' · SPD ' + e.speed,
         lore: BESTIARY_LORE.normals[e.kind],
@@ -3108,10 +3104,12 @@ function renderBestiary() {
       const profile = getEnemyVisualProfile(e.special);
       const faction = getFactionInfo(e.faction);
       return {
-        glyph: profile.glyph, color: faction.color || profile.color, classLabel: profile.label,
+        iconType: profile.iconType, glyph: profile.glyph, color: faction.color || profile.color, classLabel: profile.label,
         name: e.name, desc: getEliteDescription(e.special), tag: '精英',
         subTag: faction.code + ' · HP ' + e.hp + ' · SPD ' + e.speed,
         lore: appendFactionLore(BESTIARY_LORE.elites[e.special], e.faction),
+        faction: faction.name, factionColor: faction.color,
+        threat: profile.threat === '裁断' ? 5 : (profile.threat === '重装' ? 4 : 3),
         unlocked: discoveredBestiary.elites.has(e.special),
         lockedName: '未知精英单位',
         lockedDesc: '???',
@@ -3128,6 +3126,8 @@ function renderBestiary() {
         tag: 'HP ' + b.hp,
         subTag: faction.code + ' · ' + b.phases.length + '阶段战术',
         lore: appendFactionLore(BESTIARY_LORE.bosses[b.name], b.faction),
+        faction: faction.name, factionColor: faction.color,
+        threat: 5,
         unlocked: discoveredBestiary.bosses.has(b.name),
         lockedName: '未识别首领',
         lockedDesc: '???',
@@ -3186,6 +3186,7 @@ window.addEventListener('keydown', e => {
     else if (document.getElementById('bestiary-screen').style.display === 'flex') hideBestiary();
     else if (document.getElementById('achievements-screen').style.display === 'flex') hideAchievements();
   }
+  if (e.key === 'F3') { togglePerfMonitor(); e.preventDefault(); }
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvas.addEventListener('mousemove', e => {
@@ -3214,7 +3215,8 @@ function resumeGame() {
   document.getElementById('pause-screen').style.display = 'none';
   sfxPauseState(false);
   startMusic();
-}
+}  if (isFirstRun()) { setTimeout(runNewPlayerTips, 1200); markFirstRunComplete(); }
+
 
 function returnHomeFromPause() {
   isPaused = false;
@@ -3604,10 +3606,18 @@ function drawFusionGlyph(ctx, fusionId, x, y, size) {
 }
 
 function getBestiaryVisual(item) {
-  if (item.unlocked === false) return `<div class="bst-emblem locked-emblem">?</div>`;
+  if (item.unlocked === false) {
+    const lockColor = item.color || '#58677a';
+    return `<div class="bst-emblem locked-emblem" style="--lock-color:${escapeHtml(lockColor)}">
+      <div class="bst-lock-frame"></div>
+      <div class="bst-lock-sigil">?</div>
+    </div>`;
+  }
   if (item.fusionId) return `<canvas class="bst-preview-canvas" width="36" height="36" data-kind="fusion" data-id="${escapeHtml(item.fusionId)}"></canvas>`;
   if (item.powerType) return `<canvas class="bst-preview-canvas" width="36" height="36" data-kind="powerup" data-id="${escapeHtml(item.powerType)}" data-tier="${escapeHtml(item.tier || 'basic')}"></canvas>`;
-  return `<div class="bst-emblem">${escapeHtml(item.glyph || '◇')}</div>`;
+  return `<div class="bst-emblem" style="--emblem-color:${escapeHtml(item.color || '#f49800')}">
+    <div class="bst-emblem-inner">${getBestiaryGlyphSvg(item.iconType || 'diamond', item.color)}</div>
+  </div>`;
 }
 
 function renderBestiaryCanvases() {
@@ -3750,30 +3760,60 @@ function drawSupplyChest(ctx, chest, t) {
 }
 
 const ENEMY_VISUAL_PROFILE = {
-  normal: { glyph: '◇', color: '#7f8ea3', label: 'STANDARD', threat: '一般' },
-  scout: { glyph: '◇', color: '#ff7272', label: 'SCOUT', threat: '巡哨' },
-  runner: { glyph: '⟫', color: '#ffbf72', label: 'RUSH', threat: '疾袭' },
-  brute: { glyph: '⬒', color: '#ca8cff', label: 'BULWARK', threat: '重铠' },
-  artillery: { glyph: '⌁', color: '#ff8bd4', label: 'ARTILLERY', threat: '弧炮' },
-  heavy: { glyph: '⬒', color: '#ff6767', label: 'ASSAULT', threat: '重装' },
-  sniper: { glyph: '⟐', color: '#8dff8d', label: 'PRECISION', threat: '狙击' },
-  fast: { glyph: '⟫', color: '#6bbcff', label: 'RAPID', threat: '高速' },
-  flame: { glyph: '✦', color: '#ff9a48', label: 'INCENDIARY', threat: '火焰' },
-  summoner: { glyph: '◌', color: '#78e7ff', label: 'COMMAND', threat: '召唤' },
-  stealth: { glyph: '⋄', color: '#b0b6c3', label: 'PHASE', threat: '隐匿' },
-  splitter: { glyph: '⫶', color: '#efb36a', label: 'SWARM', threat: '分裂' },
-  regen: { glyph: '✚', color: '#79f48d', label: 'REGEN', threat: '再生' },
-  laser: { glyph: '⌁', color: '#9ca8ff', label: 'BEAM', threat: '激光' },
-  miner: { glyph: '▣', color: '#f0c562', label: 'SAPPER', threat: '布雷' },
-  barrier: { glyph: '⬡', color: '#76fcff', label: 'BARRIER', threat: '护盾' },
-  missile: { glyph: '➤', color: '#ff9b7b', label: 'MISSILE', threat: '导弹' },
-  warden: { glyph: '⌬', color: '#f6e5aa', label: 'JUDICATOR', threat: '裁断' },
-  phase: { glyph: '◇', color: '#d9b6ff', label: 'RIFT', threat: '裂隙' },
-  boss: { glyph: '◈', color: '#ffd36f', label: 'BOSS', threat: '首领' },
-  powerup: { glyph: '⬢', color: '#f49800', label: 'MODULE', threat: '模组' },
-  fusion: { glyph: '⟡', color: '#f3a8ff', label: 'FUSION', threat: '融合' },
+  normal: { glyph: '◇', iconType: 'diamond', color: '#7f8ea3', label: 'STANDARD', threat: '一般' },
+  scout: { glyph: '◇', iconType: 'radar', color: '#ff7272', label: 'SCOUT', threat: '巡哨' },
+  runner: { glyph: '⟫', iconType: 'chevron', color: '#ffbf72', label: 'RUSH', threat: '疾袭' },
+  brute: { glyph: '⬒', iconType: 'shield', color: '#ca8cff', label: 'BULWARK', threat: '重铠' },
+  artillery: { glyph: '⌁', iconType: 'crosshair', color: '#ff8bd4', label: 'ARTILLERY', threat: '弧炮' },
+  heavy: { glyph: '⬒', iconType: 'plate', color: '#ff6767', label: 'ASSAULT', threat: '重装' },
+  sniper: { glyph: '⟐', iconType: 'scope', color: '#8dff8d', label: 'PRECISION', threat: '狙击' },
+  fast: { glyph: '⟫', iconType: 'streak', color: '#6bbcff', label: 'RAPID', threat: '高速' },
+  flame: { glyph: '✦', iconType: 'flame', color: '#ff9a48', label: 'INCENDIARY', threat: '火焰' },
+  summoner: { glyph: '◌', iconType: 'network', color: '#78e7ff', label: 'COMMAND', threat: '召唤' },
+  stealth: { glyph: '⋄', iconType: 'ghost', color: '#b0b6c3', label: 'PHASE', threat: '隐匿' },
+  splitter: { glyph: '⫶', iconType: 'segments', color: '#efb36a', label: 'SWARM', threat: '分裂' },
+  regen: { glyph: '✚', iconType: 'cross', color: '#79f48d', label: 'REGEN', threat: '再生' },
+  laser: { glyph: '⌁', iconType: 'beam', color: '#9ca8ff', label: 'BEAM', threat: '激光' },
+  miner: { glyph: '▣', iconType: 'mine', color: '#f0c562', label: 'SAPPER', threat: '布雷' },
+  barrier: { glyph: '⬡', iconType: 'dome', color: '#76fcff', label: 'BARRIER', threat: '护盾' },
+  missile: { glyph: '➤', iconType: 'missile', color: '#ff9b7b', label: 'MISSILE', threat: '导弹' },
+  warden: { glyph: '⌬', iconType: 'scales', color: '#f6e5aa', label: 'JUDICATOR', threat: '裁断' },
+  phase: { glyph: '◇', iconType: 'rift', color: '#d9b6ff', label: 'RIFT', threat: '裂隙' },
+  boss: { glyph: '◈', iconType: 'crown', color: '#ffd36f', label: 'BOSS', threat: '首领' },
+  powerup: { glyph: '⬢', iconType: 'hexgear', color: '#f49800', label: 'MODULE', threat: '模组' },
+  fusion: { glyph: '⟡', iconType: 'merged', color: '#f3a8ff', label: 'FUSION', threat: '融合' },
 };
 
+
+// --- SVG Glyphs for Bestiary & Lab ---
+function getBestiaryGlyphSvg(iconType, color) {
+  const c = color || '#7f8ea3';
+  var m = {
+    diamond: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><polygon points="10,2 17,10 10,18 3,10" fill="none" stroke="${c}" stroke-width="1.2" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.5" fill="${c}" opacity="0.5"/></svg>`,
+    radar: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="${c}" stroke-width="1.1"/><path d="M10 3 Q12 10 10 17" fill="none" stroke="${c}" stroke-width="1" stroke-linecap="round"/><circle cx="10" cy="10" r="1.5" fill="${c}"/><line x1="10" y1="3" x2="10" y2="6" stroke="${c}" stroke-width="0.8"/></svg>`,
+    chevron: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><polyline points="4,7 10,4 16,7" fill="none" stroke="${c}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><polyline points="4,12 10,9 16,12" fill="none" stroke="${c}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" y1="4" x2="10" y2="16" stroke="${c}" stroke-width="0.7" stroke-linecap="round" opacity="0.5"/></svg>`,
+    shield: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M10 2 L17 5 L17 12 Q17 17 10 19 Q3 17 3 12 L3 5 Z" fill="none" stroke="${c}" stroke-width="1.2" stroke-linejoin="round"/><line x1="10" y1="7" x2="10" y2="14" stroke="${c}" stroke-width="1.1" stroke-linecap="round"/><line x1="7" y1="10" x2="13" y2="10" stroke="${c}" stroke-width="1.1" stroke-linecap="round"/></svg>`,
+    crosshair: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="${c}" stroke-width="1"/><line x1="10" y1="2" x2="10" y2="6" stroke="${c}" stroke-width="1.1" stroke-linecap="round"/><line x1="10" y1="14" x2="10" y2="18" stroke="${c}" stroke-width="1.1" stroke-linecap="round"/><line x1="2" y1="10" x2="6" y2="10" stroke="${c}" stroke-width="1.1" stroke-linecap="round"/><line x1="14" y1="10" x2="18" y2="10" stroke="${c}" stroke-width="1.1" stroke-linecap="round"/><circle cx="10" cy="10" r="1.5" fill="${c}" opacity="0.6"/></svg>`,
+    plate: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><rect x="4" y="4" width="12" height="12" rx="2" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="7" y="7" width="6" height="6" rx="1.5" fill="none" stroke="${c}" stroke-width="0.8"/><circle cx="10" cy="10" r="1.2" fill="${c}" opacity="0.7"/></svg>`,
+    scope: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="${c}" stroke-width="1"/><circle cx="10" cy="10" r="2.5" fill="none" stroke="${c}" stroke-width="0.9"/><line x1="2" y1="2" x2="7" y2="7" stroke="${c}" stroke-width="0.9" stroke-linecap="round"/><line x1="18" y1="2" x2="13" y2="7" stroke="${c}" stroke-width="0.9" stroke-linecap="round"/><line x1="2" y1="18" x2="7" y2="13" stroke="${c}" stroke-width="0.9" stroke-linecap="round"/><line x1="18" y1="18" x2="13" y2="13" stroke="${c}" stroke-width="0.9" stroke-linecap="round"/><circle cx="10" cy="10" r="0.8" fill="${c}"/></svg>`,
+    streak: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><polyline points="3,17 10,10 17,3" fill="none" stroke="${c}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><polyline points="10,10 10,3 17,3" fill="none" stroke="${c}" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3" cy="17" r="1.2" fill="${c}"/></svg>`,
+    flame: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M10 18 Q6 12 7 8 Q8 4 10 2 Q12 4 13 8 Q14 12 10 18 Z" fill="none" stroke="${c}" stroke-width="1.1" stroke-linejoin="round"/><path d="M10 16 Q8 12 9 9 Q9.5 6 10 4 Q10.5 6 11 9 Q12 12 10 16 Z" fill="none" stroke="${c}" stroke-width="0.8"/><circle cx="10" cy="12" r="1" fill="${c}" opacity="0.7"/></svg>`,
+    network: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="1.8" fill="${c}"/><circle cx="3" cy="5" r="1.3" fill="${c}" opacity="0.6"/><circle cx="17" cy="5" r="1.3" fill="${c}" opacity="0.6"/><circle cx="5" cy="17" r="1.3" fill="${c}" opacity="0.6"/><circle cx="15" cy="17" r="1.3" fill="${c}" opacity="0.6"/><line x1="10" y1="8.5" x2="4" y2="6" stroke="${c}" stroke-width="0.6" opacity="0.4"/><line x1="10" y1="8.5" x2="16" y2="6" stroke="${c}" stroke-width="0.6" opacity="0.4"/><line x1="7" y1="15" x2="5" y2="15.5" stroke="${c}" stroke-width="0.6" opacity="0.4"/><line x1="13" y1="15" x2="15" y2="15.5" stroke="${c}" stroke-width="0.6" opacity="0.4"/></svg>`,
+    ghost: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M10 3 Q5 3 5 8 L5 15 Q5 17 6.5 15 L9 17 L10 15 L11 17 L13.5 15 L15 17 Q15 15 15 15 L15 8 Q15 3 10 3 Z" fill="none" stroke="${c}" stroke-width="1" stroke-linejoin="round" opacity="0.6"/><line x1="8" y1="8" x2="12" y2="8" stroke="${c}" stroke-width="0.7" stroke-linecap="round" opacity="0.5"/><line x1="8" y1="11" x2="12" y2="11" stroke="${c}" stroke-width="0.7" stroke-linecap="round" opacity="0.5"/></svg>`,
+    segments: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="${c}" stroke-width="0.8" stroke-dasharray="1.5 2"/><circle cx="10" cy="10" r="3" fill="none" stroke="${c}" stroke-width="0.8" stroke-dasharray="0.8 1.5"/><circle cx="10" cy="10" r="1" fill="${c}" opacity="0.5"/><line x1="10" y1="4" x2="10" y2="0.5" stroke="${c}" stroke-width="0.7" stroke-linecap="round"/><line x1="16" y1="10" x2="19.5" y2="10" stroke="${c}" stroke-width="0.7" stroke-linecap="round"/><line x1="10" y1="16" x2="10" y2="19.5" stroke="${c}" stroke-width="0.7" stroke-linecap="round"/></svg>`,
+    cross: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><rect x="8" y="3" width="4" height="14" rx="1" fill="none" stroke="${c}" stroke-width="1.1"/><rect x="3" y="8" width="14" height="4" rx="1" fill="none" stroke="${c}" stroke-width="1.1"/><circle cx="10" cy="10" r="2" fill="${c}" opacity="0.35"/></svg>`,
+    beam: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><line x1="10" y1="2" x2="10" y2="18" stroke="${c}" stroke-width="1.2" stroke-linecap="round"/><line x1="4" y1="6" x2="10" y2="10" stroke="${c}" stroke-width="0.6" stroke-linecap="round" opacity="0.5"/><line x1="16" y1="6" x2="10" y2="10" stroke="${c}" stroke-width="0.6" stroke-linecap="round" opacity="0.5"/><line x1="4" y1="14" x2="10" y2="10" stroke="${c}" stroke-width="0.6" stroke-linecap="round" opacity="0.5"/><line x1="16" y1="14" x2="10" y2="10" stroke="${c}" stroke-width="0.6" stroke-linecap="round" opacity="0.5"/><circle cx="10" cy="10" r="2" fill="${c}" opacity="0.4"/></svg>`,
+    mine: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><polygon points="10,2 13,7 18,7 14,11 16,16 10,13 4,16 6,11 2,7 7,7" fill="none" stroke="${c}" stroke-width="1" stroke-linejoin="round"/><circle cx="10" cy="9" r="2.5" fill="${c}" opacity="0.35"/><circle cx="10" cy="9" r="1" fill="${c}" opacity="0.6"/></svg>`,
+    dome: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M3 14 Q10 2 17 14" fill="none" stroke="${c}" stroke-width="1.2" stroke-linecap="round"/><line x1="3" y1="14" x2="3" y2="18" stroke="${c}" stroke-width="1" stroke-linecap="round"/><line x1="17" y1="14" x2="17" y2="18" stroke="${c}" stroke-width="1" stroke-linecap="round"/><line x1="3" y1="16" x2="17" y2="16" stroke="${c}" stroke-width="0.6" stroke-dasharray="1.5 1.5" opacity="0.5"/><polygon points="10,5 12,11 8,11" fill="none" stroke="${c}" stroke-width="0.9"/></svg>`,
+    missile: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><polygon points="18,10 6,5 6,15" fill="none" stroke="${c}" stroke-width="1.1" stroke-linejoin="round"/><rect x="2" y="6" width="5" height="8" rx="1" fill="none" stroke="${c}" stroke-width="1"/><line x1="6" y1="10" x2="1" y2="10" stroke="${c}" stroke-width="0.8" stroke-linecap="round"/><circle cx="15" cy="10" r="1" fill="${c}" opacity="0.5"/></svg>`,
+    scales: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><line x1="10" y1="2" x2="10" y2="5" stroke="${c}" stroke-width="0.8" stroke-linecap="round"/><path d="M3 5 L17 5 L10 10 Z" fill="none" stroke="${c}" stroke-width="1" stroke-linejoin="round"/><line x1="5" y1="7" x2="5" y2="15" stroke="${c}" stroke-width="0.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="15" stroke="${c}" stroke-width="0.8" stroke-linecap="round"/><path d="M2 15 L8 15 M12 15 L18 15" fill="none" stroke="${c}" stroke-width="0.8" stroke-linecap="round"/><circle cx="5" cy="14" r="1" fill="${c}" opacity="0.5"/><circle cx="15" cy="14" r="1" fill="${c}" opacity="0.5"/></svg>`,
+    rift: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><ellipse cx="10" cy="10" rx="7" ry="2" fill="none" stroke="${c}" stroke-width="1.1" transform="rotate(-30 10 10)"/><ellipse cx="10" cy="10" rx="7" ry="2" fill="none" stroke="${c}" stroke-width="0.9" transform="rotate(30 10 10)"/><ellipse cx="10" cy="10" rx="4.5" ry="1.2" fill="none" stroke="${c}" stroke-width="0.7"/><circle cx="10" cy="10" r="1.8" fill="${c}" opacity="0.4"/></svg>`,
+    crown: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><polyline points="3,14 5,5 10,9 15,5 17,14" fill="none" stroke="${c}" stroke-width="1.2" stroke-linejoin="round"/><rect x="3" y="14" width="14" height="3" rx="0.5" fill="none" stroke="${c}" stroke-width="1"/><circle cx="10" cy="7" r="2" fill="none" stroke="${c}" stroke-width="0.7"/><circle cx="10" cy="7" r="0.8" fill="${c}" opacity="0.6"/></svg>`,
+    hexgear: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><polygon points="10,1.5 15.5,4.5 15.5,10.5 10,13.5 4.5,10.5 4.5,4.5" fill="none" stroke="${c}" stroke-width="1.1" stroke-linejoin="round"/><circle cx="10" cy="7.5" r="2.8" fill="none" stroke="${c}" stroke-width="0.8"/><circle cx="10" cy="7.5" r="1" fill="${c}" opacity="0.5"/><line x1="10" y1="4.5" x2="10" y2="2" stroke="${c}" stroke-width="0.7"/></svg>`,
+    merged: `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="6" cy="7" r="4" fill="none" stroke="${c}" stroke-width="0.9" opacity="0.5"/><circle cx="14" cy="13" r="4" fill="none" stroke="${c}" stroke-width="0.9" opacity="0.5"/><circle cx="10" cy="10" r="5" fill="none" stroke="${c}" stroke-width="1.2"/><circle cx="10" cy="10" r="2" fill="none" stroke="${c}" stroke-width="0.8"/><circle cx="10" cy="10" r="0.8" fill="${c}" opacity="0.6"/></svg>`
+  };
+  return m[iconType] || m.diamond;
+}
 function getEnemyVisualProfile(type) {
   return ENEMY_VISUAL_PROFILE[type] || ENEMY_VISUAL_PROFILE.normal;
 }
@@ -3785,43 +3825,522 @@ function drawEnemyMarker(ctx, x, y, type, size, accentOverride) {
   const inner = Math.max(4, outer * 0.58);
   ctx.save();
   ctx.translate(x, y);
-  withGlow(ctx, accent, 8, () => {
-    drawTechModuleShell(ctx, outer, inner, accent, accent);
-  });
-  ctx.fillStyle = accent;
-  ctx.font = 'bold ' + Math.floor(inner * 1.45) + 'px monospace';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(profile.glyph, 0, 1);
+  // Outer faction ring with subtle pulse
+  const ringPulse = 0.16 + Math.sin(Date.now() / 380 + x * 0.03) * 0.06;
+  ctx.strokeStyle = accent;
+  ctx.globalAlpha = ringPulse;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, outer + 2.5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  // Tech shell - hexagonal base with radial gradient
+  const shellGrad = ctx.createRadialGradient(0, 0, inner * 0.12, 0, 0, outer);
+  shellGrad.addColorStop(0, 'rgba(255,255,255,0.14)');
+  shellGrad.addColorStop(0.4, accent);
+  shellGrad.addColorStop(1, 'rgba(5,10,16,0.94)');
+  ctx.fillStyle = shellGrad;
+  traceHexCell(ctx, outer, 3);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(220,235,255,0.16)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // Inner dark core
+  ctx.fillStyle = 'rgba(5,12,18,0.82)';
+  ctx.beginPath();
+  ctx.arc(0, 0, inner, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, inner + 1, 0, Math.PI * 2);
+  ctx.stroke();
+  // Procedural role icon
+  drawEnemyRoleIcon(ctx, profile.iconType || 'diamond', inner * 0.7, accent);
+  ctx.restore();
+}
+
+function drawEnemyRoleIcon(ctx, iconType, r, color) {
+  const s = r * 1.05;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = Math.max(1, r * 0.22);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = color;
+  ctx.shadowBlur = r * 0.35;
+
+  switch (iconType) {
+    case 'radar': // Scout - radar dish / eye
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.7, -Math.PI * 0.35, Math.PI * 0.35);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.68);
+      ctx.lineTo(0, -s * 0.92);
+      ctx.stroke();
+      break;
+
+    case 'chevron': // Runner - speed chevron
+      ctx.beginPath();
+      ctx.moveTo(s * 0.75, 0);
+      ctx.lineTo(0, -s * 0.7);
+      ctx.lineTo(-s * 0.1, 0);
+      ctx.moveTo(s * 0.75, 0);
+      ctx.lineTo(0, s * 0.7);
+      ctx.lineTo(-s * 0.1, 0);
+      ctx.stroke();
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.moveTo(s * 0.45, 0);
+      ctx.lineTo(-s * 0.25, -s * 0.48);
+      ctx.moveTo(s * 0.45, 0);
+      ctx.lineTo(-s * 0.25, s * 0.48);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'shield': // Brute/Bulwark - heavy shield
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.85);
+      ctx.lineTo(s * 0.7, -s * 0.4);
+      ctx.lineTo(s * 0.7, s * 0.35);
+      ctx.lineTo(0, s * 0.85);
+      ctx.lineTo(-s * 0.7, s * 0.35);
+      ctx.lineTo(-s * 0.7, -s * 0.4);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.25;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.3);
+      ctx.lineTo(0, s * 0.3);
+      ctx.stroke();
+      break;
+
+    case 'crosshair': // Artillery - crosshair with arc
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.42, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.9, 0);
+      ctx.lineTo(-s * 0.5, 0);
+      ctx.moveTo(s * 0.5, 0);
+      ctx.lineTo(s * 0.9, 0);
+      ctx.moveTo(0, -s * 0.9);
+      ctx.lineTo(0, -s * 0.5);
+      ctx.moveTo(0, s * 0.5);
+      ctx.lineTo(0, s * 0.9);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, s * 0.15, s * 0.65, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.stroke();
+      break;
+
+    case 'plate': // Heavy assault - armored plate
+      ctx.strokeRect(-s * 0.7, -s * 0.55, s * 1.4, s * 1.1);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.2;
+      ctx.fillRect(-s * 0.7, -s * 0.55, s * 1.4, s * 1.1);
+      ctx.globalAlpha = 1;
+      // Internal notches
+      for (let nx = -s * 0.4; nx <= s * 0.4; nx += s * 0.4) {
+        ctx.beginPath();
+        ctx.moveTo(nx, -s * 0.55);
+        ctx.lineTo(nx, -s * 0.25);
+        ctx.stroke();
+      }
+      break;
+
+    case 'scope': // Sniper - precision scope with dot
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = Math.max(0.8, r * 0.12);
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.5, 0);
+      ctx.lineTo(-s * 0.85, 0);
+      ctx.moveTo(s * 0.5, 0);
+      ctx.lineTo(s * 0.85, 0);
+      ctx.moveTo(0, -s * 0.5);
+      ctx.lineTo(0, -s * 0.85);
+      ctx.moveTo(0, s * 0.5);
+      ctx.lineTo(0, s * 0.85);
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'streak': // Fast - speed lines
+      ctx.beginPath();
+      ctx.moveTo(s * 0.8, -s * 0.6);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(s * 0.8, s * 0.6);
+      ctx.stroke();
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.moveTo(s * 0.45, -s * 0.45);
+      ctx.lineTo(-s * 0.3, -s * 0.1);
+      ctx.moveTo(s * 0.45, s * 0.45);
+      ctx.lineTo(-s * 0.3, s * 0.1);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'flame': // Flame/Incendiary
+      ctx.beginPath();
+      ctx.moveTo(0, s * 0.8);
+      ctx.quadraticCurveTo(-s * 0.55, s * 0.25, -s * 0.35, -s * 0.15);
+      ctx.quadraticCurveTo(-s * 0.2, -s * 0.55, 0, -s * 0.85);
+      ctx.quadraticCurveTo(s * 0.2, -s * 0.55, s * 0.35, -s * 0.15);
+      ctx.quadraticCurveTo(s * 0.55, s * 0.25, 0, s * 0.8);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.2;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'network': // Summoner/Command - three linked nodes
+      const na = s * 0.5;
+      ctx.beginPath();
+      ctx.arc(0, -na, s * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(-na * 0.87, na * 0.5, s * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(na * 0.87, na * 0.5, s * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = Math.max(0.6, r * 0.12);
+      ctx.beginPath();
+      ctx.moveTo(0, -na);
+      ctx.lineTo(-na * 0.87, na * 0.5);
+      ctx.lineTo(na * 0.87, na * 0.5);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'ghost': // Stealth/Phase - fading diamond
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.8);
+      ctx.lineTo(s * 0.6, 0);
+      ctx.lineTo(0, s * 0.8);
+      ctx.lineTo(-s * 0.6, 0);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.globalAlpha = 0.2;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'segments': // Splitter/Swarm - three horizontal segments
+      for (let sx = -s * 0.5; sx <= s * 0.5; sx += s * 0.5) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(sx, 0, s * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = Math.max(0.5, r * 0.1);
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.5, 0);
+      ctx.lineTo(s * 0.5, 0);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'cross': // Regen - medical cross
+      ctx.fillStyle = color;
+      ctx.fillRect(-s * 0.18, -s * 0.65, s * 0.36, s * 1.3);
+      ctx.fillRect(-s * 0.65, -s * 0.18, s * 1.3, s * 0.36);
+      ctx.globalAlpha = 0.4;
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = Math.max(0.5, r * 0.1);
+      ctx.strokeRect(-s * 0.65, -s * 0.18, s * 1.3, s * 0.36);
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'beam': // Laser - horizontal beam
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = Math.max(0.8, r * 0.15);
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.85, 0);
+      ctx.lineTo(s * 0.85, 0);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1.2, r * 0.25);
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.5, 0);
+      ctx.lineTo(s * 0.5, 0);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(-s * 0.55, 0, s * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+
+    case 'mine': // Miner/Sapper - diamond mine
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.8);
+      ctx.lineTo(s * 0.7, 0);
+      ctx.lineTo(0, s * 0.8);
+      ctx.lineTo(-s * 0.7, 0);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.3;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+
+    case 'dome': // Barrier - shield dome
+      ctx.beginPath();
+      ctx.arc(0, s * 0.1, s * 0.7, Math.PI, 0);
+      ctx.stroke();
+      ctx.globalAlpha = 0.3;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.7, s * 0.1);
+      ctx.lineTo(s * 0.7, s * 0.1);
+      ctx.stroke();
+      break;
+
+    case 'missile': // Missile - arrow with exhaust
+      ctx.beginPath();
+      ctx.moveTo(s * 0.8, 0);
+      ctx.lineTo(0, -s * 0.4);
+      ctx.lineTo(-s * 0.35, 0);
+      ctx.lineTo(0, s * 0.4);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.25;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // Exhaust lines
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.35, -s * 0.2);
+      ctx.lineTo(-s * 0.7, 0);
+      ctx.lineTo(-s * 0.35, s * 0.2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'scales': // Warden/Judicator - scales of judgment
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.75);
+      ctx.lineTo(0, s * 0.75);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.65, -s * 0.3);
+      ctx.lineTo(s * 0.65, s * 0.3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(-s * 0.45, -s * 0.35, s * 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.5;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(s * 0.45, s * 0.25, s * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'rift': // Phase/Rift - broken circle
+      ctx.setLineDash([s * 0.35, s * 0.25]);
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.55, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#fff';
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'crown': // Boss - crown/star
+      for (let ci = 0; ci < 5; ci++) {
+        const ca = (ci / 5) * Math.PI * 2 - Math.PI / 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ca) * s * 0.35, Math.sin(ca) * s * 0.35);
+        ctx.lineTo(Math.cos(ca) * s * 0.8, Math.sin(ca) * s * 0.8);
+        ctx.stroke();
+      }
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
+
+    case 'hexgear': // Powerup - hex gear
+      ctx.beginPath();
+      for (let gi = 0; gi < 6; gi++) {
+        const ga = (gi / 6) * Math.PI * 2;
+        const gx = Math.cos(ga) * s * 0.5;
+        const gy = Math.sin(ga) * s * 0.5;
+        if (gi === 0) ctx.moveTo(gx, gy);
+        else ctx.lineTo(gx, gy);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+
+    case 'merged': // Fusion - merged circles
+      ctx.beginPath();
+      ctx.arc(-s * 0.25, 0, s * 0.4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(s * 0.25, 0, s * 0.4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
+
+    default: // Diamond (normal/default)
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.75);
+      ctx.lineTo(s * 0.55, 0);
+      ctx.lineTo(0, s * 0.75);
+      ctx.lineTo(-s * 0.55, 0);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.2;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
+  }
   ctx.restore();
 }
 
 function drawEnemyInfoPlate(ctx, x, y, w, hpRatio, accent, name, label, extraText) {
   const width = w || 92;
-  const height = 26;
+  const height = 28;
   const ratio = Math.max(0, Math.min(1, hpRatio || 0));
   ctx.save();
   ctx.translate(x, y);
-  drawArmorPanel(ctx, -width / 2, -height / 2, width, height, 'rgba(9,14,20,0.84)', 'rgba(180,205,230,0.16)', 4);
-  ctx.fillStyle = accent;
-  ctx.fillRect(-width / 2 + 2, -height / 2 + 2, 3, height - 4);
-  ctx.fillStyle = 'rgba(255,255,255,0.78)';
-  ctx.font = 'bold 10px "Courier New",monospace';
+  // Main armor panel with darker fill
+  drawArmorPanel(ctx, -width / 2, -height / 2, width, height, 'rgba(5,9,14,0.88)', 'rgba(160,200,230,0.14)', 4);
+  // Faction accent stripe - thick left edge with gradient
+  const stripeGrad = ctx.createLinearGradient(-width / 2, 0, -width / 2 + 5, 0);
+  stripeGrad.addColorStop(0, accent);
+  stripeGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
+  ctx.fillStyle = stripeGrad;
+  ctx.fillRect(-width / 2 + 2, -height / 2 + 2, 4, height - 4);
+  // Subtle glow on accent stripe
+  ctx.strokeStyle = accent;
+  ctx.globalAlpha = 0.18;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-width / 2 + 4, -height / 2 + 3);
+  ctx.lineTo(-width / 2 + 4, height / 2 - 3);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  // Label (top-left)
+  ctx.fillStyle = 'rgba(255,255,255,0.72)';
+  ctx.font = 'bold 9px "Courier New",monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, -width / 2 + 10, -5);
-  ctx.fillStyle = '#dce6f1';
-  ctx.font = '11px "Segoe UI","Microsoft YaHei",sans-serif';
-  ctx.fillText(name, -width / 2 + 10, 6);
-  ctx.fillStyle = 'rgba(255,255,255,0.1)';
-  ctx.fillRect(-width / 2 + 10, height / 2 - 8, width - 20, 4);
-  ctx.fillStyle = accent;
-  ctx.fillRect(-width / 2 + 10, height / 2 - 8, (width - 20) * ratio, 4);
+  ctx.fillText(label, -width / 2 + 12, -5);
+  // Name (bottom-left)
+  ctx.fillStyle = '#d8e0eb';
+  ctx.font = 'bold 11px "Segoe UI","Microsoft YaHei",sans-serif';
+  ctx.fillText(name, -width / 2 + 12, 7);
+  // Threat indicator dots (right side)
+  const threatDots = Math.min(5, Math.ceil(extraText ? 3 : 2));
+  const dotSpacing = 10;
+  const dotR = 2;
+  for (let d = 0; d < threatDots; d++) {
+    const dx = width / 2 - 14 - d * dotSpacing;
+    ctx.fillStyle = d < 2 ? accent : (d < 4 ? accent : 'rgba(255,255,255,0.35)');
+    ctx.globalAlpha = d < 3 ? 0.7 : 0.35;
+    ctx.beginPath();
+    ctx.arc(dx, -5, dotR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // HP bar background with notch marks
+  const barX = -width / 2 + 10;
+  const barY = height / 2 - 10;
+  const barW = width - 24;
+  const barH = 5;
+  ctx.fillStyle = 'rgba(15,22,30,0.7)';
+  ctx.fillRect(barX, barY, barW, barH);
+  // Notch marks on HP bar
+  for (let n = 1; n < 4; n++) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(barX + barW * n / 4, barY + 1);
+    ctx.lineTo(barX + barW * n / 4, barY + barH - 1);
+    ctx.stroke();
+  }
+  // HP bar fill with gradient based on ratio
+  const hpGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+  if (ratio > 0.6) {
+    hpGrad.addColorStop(0, '#7ae880');
+    hpGrad.addColorStop(1, accent);
+  } else if (ratio > 0.3) {
+    hpGrad.addColorStop(0, '#f4b840');
+    hpGrad.addColorStop(1, '#ff7a3d');
+  } else {
+    hpGrad.addColorStop(0, '#ff5a4a');
+    hpGrad.addColorStop(1, '#d42030');
+  }
+  ctx.fillStyle = hpGrad;
+  ctx.fillRect(barX, barY, barW * ratio, barH);
+  // HP bar border
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(barX, barY, barW, barH);
+  // Extra text (right side)
   if (extraText) {
     ctx.fillStyle = accent;
-    ctx.font = '9px "Courier New",monospace';
+    ctx.globalAlpha = 0.7;
+    ctx.font = '8px "Courier New",monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(extraText, width / 2 - 10, -5);
+    ctx.fillText(extraText, width / 2 - 12, 7);
+    ctx.globalAlpha = 1;
   }
   ctx.restore();
 }
@@ -3867,12 +4386,20 @@ function renderMoonstoneChip(amount, extra = '') {
 
 function buildBestiaryRow(it) {
   const unlocked = it.unlocked !== false;
+  const threatColor = unlocked ? (it.color || '#f49800') : '#58677a';
   const name = unlocked ? it.name : (it.lockedName || '未解锁档案');
   const desc = unlocked ? it.desc : (it.lockedDesc || '???');
   const lore = unlocked ? it.lore : '档案加密中。遭遇、拾取或完成对应协议后，图鉴将自动解锁记录。';
   const tag = unlocked ? it.tag : 'LOCKED';
   const subTag = unlocked ? it.subTag : '资料封存';
-  return `<div class="best-row ${unlocked ? 'unlocked' : 'locked'}" tabindex="0" style="--threat:${escapeHtml(unlocked ? (it.color || '#f49800') : '#58677a')}">
+  // Threat rating visualization (1-5)
+  const threatLevel = unlocked ? Math.min(5, Math.ceil((it.threat || 2) / 2)) : 0;
+  const threatDots = Array.from({length: 5}, (_, i) =>
+    `<span class="bst-threat-dot ${i < threatLevel ? 'active' : ''}" style="${i < threatLevel ? '--dot-color:' + threatColor : ''}"></span>`
+  ).join('');
+  // Faction badge if available
+  const factionBadge = unlocked && it.faction ? `<span class="bst-faction-badge" style="--faction-color:${escapeHtml(it.factionColor || threatColor)}">${escapeHtml(it.faction)}</span>` : '';
+  return `<div class="best-row ${unlocked ? 'unlocked' : 'locked'}" tabindex="0" style="--threat:${escapeHtml(threatColor)}">
     <div class="bst-icon">${getBestiaryVisual(it)}</div>
     <div class="bst-info">
       <div class="bst-head">
@@ -3880,7 +4407,9 @@ function buildBestiaryRow(it) {
         <div class="bst-class">${escapeHtml(it.classLabel || '')}</div>
       </div>
       <div class="bst-desc">${escapeHtml(desc)}</div>
+      ${unlocked ? `<div class="bst-threat-row">${threatDots}</div>` : ''}
       <div class="bst-meta">
+        ${factionBadge}
         <span class="bst-tag">${escapeHtml(tag || '')}</span>
         ${subTag ? `<span class="bst-tag">${escapeHtml(subTag)}</span>` : ''}
       </div>
@@ -6478,13 +7007,49 @@ class BossEnemy extends EliteEnemy {
     ctx.restore();
 
     if (this.phaseFlash > 0) {
-      const overlayAlpha = Math.min(0.22, this.phaseFlash / 180 * 0.22);
-      const gradient = ctx.createRadialGradient(this.x, this.y, 30, this.x, this.y, Math.max(W, H) * 0.75);
-      gradient.addColorStop(0, 'rgba(255,120,60,0)');
-      gradient.addColorStop(0.55, 'rgba(120,16,10,' + (overlayAlpha * 0.55) + ')');
-      gradient.addColorStop(1, 'rgba(18,0,0,' + overlayAlpha + ')');
+      const flashProgress = this.phaseFlash / 180;
+      const overlayAlpha = Math.min(0.28, flashProgress * 0.28);
+      // Radial flash from boss center
+      const gradient = ctx.createRadialGradient(this.x, this.y, 20, this.x, this.y, Math.max(W, H) * 0.82);
+      gradient.addColorStop(0, 'rgba(255,140,80,0)');
+      gradient.addColorStop(0.45, 'rgba(140,18,12,' + (overlayAlpha * 0.6) + ')');
+      gradient.addColorStop(1, 'rgba(14,0,0,' + overlayAlpha + ')');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, W, H);
+      // Screen-edge vignette - darker borders during phase change
+      const vignetteAlpha = flashProgress * 0.35;
+      const vignetteGrad = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.35, W/2, H/2, Math.max(W,H)*0.65);
+      vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
+      vignetteGrad.addColorStop(1, 'rgba(0,0,0,' + vignetteAlpha + ')');
+      ctx.fillStyle = vignetteGrad;
+      ctx.fillRect(0, 0, W, H);
+      // Large phase announcement text with fade
+      if (this.currentPhase > 0 && flashProgress > 0.3) {
+        const textAlpha = Math.min(1, (flashProgress - 0.3) / 0.5);
+        const textScale = 1 + (1 - flashProgress) * 0.4;
+        const phaseName = this.getPhaseDef().name || ('PHASE ' + (this.currentPhase + 1));
+        ctx.save();
+        ctx.globalAlpha = textAlpha * 0.85;
+        ctx.translate(W / 2, H * 0.32);
+        ctx.scale(textScale, textScale);
+        // Backdrop
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.font = 'bold 42px "Segoe UI","Microsoft YaHei",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(phaseName, 2, 4);
+        // Glow text
+        ctx.shadowColor = this.bossDef.turret || '#ff5a30';
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = '#fff';
+        ctx.fillText(phaseName, 0, 0);
+        ctx.shadowBlur = 0;
+        // Subtitle
+        ctx.font = 'bold 16px "Courier New",monospace';
+        ctx.fillStyle = this.bossDef.turret || '#ff7a40';
+        ctx.globalAlpha = textAlpha * 0.7;
+        ctx.fillText('WARNING: PRESSURE ESCALATION', 0, 34);
+        ctx.restore();
+      }
     }
 
     if (this.alive) {
@@ -6495,16 +7060,25 @@ class BossEnemy extends EliteEnemy {
       const dangerPulse = Math.sin(Date.now() / 130) * 0.5 + 0.5;
       const warningAlpha = this.currentPhase > 0 ? 0.16 + dangerPulse * 0.08 : 0.08 + dangerPulse * 0.04;
       drawArmorPanel(ctx, panelX, panelY, bhpW + 44, panelH, 'rgba(6,10,16,0.92)', 'rgba(255,212,122,0.16)', 6);
-      ctx.fillStyle = 'rgba(255,120,60,' + warningAlpha + ')';
-      for (let i = 0; i < 8; i++) {
-        const stripeX = panelX + 12 + i * ((bhpW + 12) / 8);
+      // Danger striping - aggressive in phase 2
+      const stripeCount = this.currentPhase > 0 ? 12 : 8;
+      const stripeAlpha = this.currentPhase > 0 ? warningAlpha * 2.2 : warningAlpha;
+      ctx.fillStyle = 'rgba(255,60,30,' + stripeAlpha + ')';
+      for (let i = 0; i < stripeCount; i++) {
+        const stripeX = panelX + 8 + i * ((bhpW + 8) / stripeCount);
         ctx.beginPath();
-        ctx.moveTo(stripeX, panelY + 8);
-        ctx.lineTo(stripeX + 10, panelY + 8);
-        ctx.lineTo(stripeX - 4, panelY + 20);
-        ctx.lineTo(stripeX - 14, panelY + 20);
+        ctx.moveTo(stripeX, panelY + 6);
+        ctx.lineTo(stripeX + 8, panelY + 6);
+        ctx.lineTo(stripeX - 2, panelY + 18);
+        ctx.lineTo(stripeX - 10, panelY + 18);
         ctx.closePath();
         ctx.fill();
+      }
+      // Phase 2 additional red glow under the bar
+      if (this.currentPhase > 0) {
+        const p2Glow = dangerPulse * 0.08;
+        ctx.fillStyle = 'rgba(255,20,0,' + p2Glow + ')';
+        ctx.fillRect(panelX, panelY, bhpW + 44, panelH);
       }
 
       drawEnemyMarker(ctx, panelX + 16, panelY + 31, 'boss', 10, accent);
@@ -6528,13 +7102,27 @@ class BossEnemy extends EliteEnemy {
       ctx.fillStyle = 'rgba(45,12,12,0.88)';
       ctx.fillRect(barX, barY, barW, barH);
       const hpGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
-      hpGrad.addColorStop(0, accent);
-      hpGrad.addColorStop(0.5, this.currentPhase > 0 ? '#ff9448' : '#ffb45c');
-      hpGrad.addColorStop(1, hpRatio > 0.3 ? '#ff5a5a' : '#ff2f4f');
+      if (this.currentPhase > 0) {
+        hpGrad.addColorStop(0, '#ff6030');
+        hpGrad.addColorStop(0.3, '#ff8840');
+        hpGrad.addColorStop(0.7, '#ff2a2a');
+        hpGrad.addColorStop(1, '#cc0018');
+      } else {
+        hpGrad.addColorStop(0, accent);
+        hpGrad.addColorStop(0.5, '#ffb45c');
+        hpGrad.addColorStop(1, hpRatio > 0.3 ? '#ff5a5a' : '#ff2f4f');
+      }
       ctx.fillStyle = hpGrad;
       ctx.fillRect(barX, barY, barW * hpRatio, barH);
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-      ctx.lineWidth = 1;
+      // Phase 2 pulsing glow on HP bar
+      if (this.currentPhase > 0) {
+        ctx.globalAlpha = dangerPulse * 0.22;
+        ctx.fillStyle = '#ff3010';
+        ctx.fillRect(barX, barY, barW * hpRatio, barH);
+        ctx.globalAlpha = 1;
+      }
+      ctx.strokeStyle = this.currentPhase > 0 ? 'rgba(255,80,40,0.32)' : 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = this.currentPhase > 0 ? 1.5 : 1;
       ctx.strokeRect(barX, barY, barW, barH);
       for (let i = 1; i < 8; i++) {
         const gx = barX + barW * i / 8;
@@ -6681,8 +7269,38 @@ const LAB_PART_CODES = {
   ritual:'RIT',
   orbit:'ORB',
   tome:'TOM',
+
+
   prism:'PRI',
 };
+
+// --- Modifier Icon SVG Badges ---
+function getModifierIconSvg(code, rgb) {
+  const c = 'rgba(' + (rgb || '140,232,255') + ',0.9)';
+  const c2 = 'rgba(' + (rgb || '140,232,255') + ',0.55)';
+  const map = {
+    WAR: '<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 20,12 30,12 22,18 25,28 16,22 7,28 10,18 2,12 12,12" fill="none" stroke="' + c + '" stroke-width="1.2" stroke-linejoin="round"/><circle cx="16" cy="15" r="3" fill="' + c2 + '"/></svg>',
+    CLK: '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="13" fill="none" stroke="' + c + '" stroke-width="1.1"/><polyline points="16,6 16,16 23,20" fill="none" stroke="' + c + '" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" y1="15" x2="13" y2="16" stroke="' + c2 + '" stroke-width="0.8" stroke-linecap="round"/></svg>',
+    RLD: '<svg viewBox="0 0 32 32" width="32" height="32"><path d="M10 8 L22 8 L22 20 Q22 26 16 26 Q10 26 10 20 Z" fill="none" stroke="' + c + '" stroke-width="1.1" stroke-linejoin="round"/><path d="M6 4 L10 8 M26 4 L22 8" fill="none" stroke="' + c2 + '" stroke-width="0.9" stroke-linecap="round"/><line x1="13" y1="12" x2="19" y2="12" stroke="' + c + '" stroke-width="0.8" stroke-linecap="round"/><line x1="13" y1="16" x2="17" y2="16" stroke="' + c2 + '" stroke-width="0.6" stroke-linecap="round"/></svg>',
+    MAG: '<svg viewBox="0 0 32 32" width="32" height="32"><rect x="7" y="8" width="18" height="16" rx="2" fill="none" stroke="' + c + '" stroke-width="1.1"/><rect x="10" y="10" width="12" height="12" rx="1" fill="none" stroke="' + c2 + '" stroke-width="0.8"/><line x1="13" y1="14" x2="19" y2="14" stroke="' + c + '" stroke-width="1" stroke-linecap="round"/><line x1="13" y1="18" x2="17" y2="18" stroke="' + c2 + '" stroke-width="0.7" stroke-linecap="round"/><path d="M15 4 L17 4 L17 8 L15 8 Z" fill="none" stroke="' + c + '" stroke-width="0.9" stroke-linejoin="round"/></svg>',
+    PLT: '<svg viewBox="0 0 32 32" width="32" height="32"><path d="M16 3 L25 7 L25 17 Q25 25 16 29 Q7 25 7 17 L7 7 Z" fill="none" stroke="' + c + '" stroke-width="1.1" stroke-linejoin="round"/><line x1="16" y1="10" x2="16" y2="21" stroke="' + c + '" stroke-width="1" stroke-linecap="round"/><line x1="11" y1="15" x2="21" y2="15" stroke="' + c + '" stroke-width="1" stroke-linecap="round"/><circle cx="16" cy="15" r="2" fill="' + c2 + '"/></svg>',
+    REP: '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="12" fill="none" stroke="' + c + '" stroke-width="1"/><path d="M16 6 Q13 16 16 26 Q19 16 16 6" fill="none" stroke="' + c + '" stroke-width="1.1" stroke-linecap="round"/><path d="M8 12 Q16 9 24 12" fill="none" stroke="' + c2 + '" stroke-width="0.8" stroke-linecap="round"/><circle cx="16" cy="16" r="2.5" fill="' + c2 + '"/></svg>',
+    DRV: '<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="18,4 28,8 28,24 18,28 14,28 4,24 4,8 14,4" fill="none" stroke="' + c + '" stroke-width="1.1" stroke-linejoin="round"/><polyline points="6,14 18,18 26,14" fill="none" stroke="' + c + '" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><polyline points="6,20 14,22 22,20" fill="none" stroke="' + c2 + '" stroke-width="0.7" stroke-linecap="round"/><circle cx="18" cy="16" r="2" fill="' + c2 + '"/></svg>',
+    VEL: '<svg viewBox="0 0 32 32" width="32" height="32"><line x1="4" y1="16" x2="28" y2="16" stroke="' + c + '" stroke-width="1.1" stroke-linecap="round"/><polygon points="28,11 28,21 32,16" fill="' + c + '"/><circle cx="16" cy="16" r="4" fill="none" stroke="' + c2 + '" stroke-width="0.7" stroke-dasharray="1.5 2"/><line x1="8" y1="10" x2="12" y2="14" stroke="' + c2 + '" stroke-width="0.7" stroke-linecap="round"/></svg>',
+    SUP: '<svg viewBox="0 0 32 32" width="32" height="32"><rect x="6" y="6" width="20" height="20" rx="1" fill="none" stroke="' + c + '" stroke-width="1"/><polygon points="12,11 12,17 18,14" fill="' + c + '"/><path d="M6 22 L10 18 L14 22 L18 18 L22 22 L26 18" fill="none" stroke="' + c2 + '" stroke-width="0.6" stroke-linecap="round"/><line x1="16" y1="6" x2="16" y2="2" stroke="' + c + '" stroke-width="0.8" stroke-linecap="round" stroke-dasharray="2 0.8"/></svg>',
+    SCO: '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="11" cy="16" r="3" fill="none" stroke="' + c + '" stroke-width="1"/><circle cx="22" cy="16" r="3" fill="none" stroke="' + c + '" stroke-width="1"/><circle cx="16.5" cy="10" r="2" fill="none" stroke="' + c + '" stroke-width="1"/><line x1="14" y1="14.5" x2="19" y2="14.5" stroke="' + c2 + '" stroke-width="0.7" stroke-linecap="round"/><line x1="12" y1="13" x2="16" y2="11" stroke="' + c2 + '" stroke-width="0.7" stroke-linecap="round"/></svg>',
+    REC: '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="12" fill="none" stroke="' + c + '" stroke-width="1" stroke-dasharray="2.5 1.5"/><path d="M8 14 L12 10 L16 14 L20 10 L24 14" fill="none" stroke="' + c + '" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 20 L12 16 L16 20 L20 16 L24 20" fill="none" stroke="' + c2 + '" stroke-width="0.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    BLZ: '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="3.5" fill="' + c2 + '"/><line x1="16" y1="2" x2="16" y2="9" stroke="' + c + '" stroke-width="1" stroke-linecap="round"/><line x1="16" y1="23" x2="16" y2="30" stroke="' + c + '" stroke-width="1" stroke-linecap="round"/><line x1="2" y1="16" x2="9" y2="16" stroke="' + c + '" stroke-width="1" stroke-linecap="round"/><line x1="23" y1="16" x2="30" y2="16" stroke="' + c + '" stroke-width="1" stroke-linecap="round"/><line x1="6" y1="6" x2="11" y2="11" stroke="' + c + '" stroke-width="0.8" stroke-linecap="round" opacity="0.6"/><line x1="26" y1="6" x2="21" y2="11" stroke="' + c + '" stroke-width="0.8" stroke-linecap="round" opacity="0.6"/><line x1="6" y1="26" x2="11" y2="21" stroke="' + c + '" stroke-width="0.8" stroke-linecap="round" opacity="0.6"/><line x1="26" y1="26" x2="21" y2="21" stroke="' + c + '" stroke-width="0.8" stroke-linecap="round" opacity="0.6"/></svg>',
+    AIG: '<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,3 28,10 28,22 16,29 4,22 4,10" fill="none" stroke="' + c + '" stroke-width="1" stroke-linejoin="round"/><polygon points="16,7 23,11 23,21 16,25 9,21 9,11" fill="none" stroke="' + c2 + '" stroke-width="0.8" stroke-linejoin="round"/><circle cx="16" cy="16" r="2" fill="' + c + '"/></svg>',
+    BOS: '<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 18,10 26,10 19,14 22,22 16,16 10,22 13,14 6,10 14,10" fill="none" stroke="' + c + '" stroke-width="1" stroke-linejoin="round"/><circle cx="16" cy="12" r="3" fill="' + c2 + '"/><path d="M7 25 L25 25" stroke="' + c + '" stroke-width="0.7" stroke-linecap="round"/><path d="M10 28 L22 28" stroke="' + c2 + '" stroke-width="0.5" stroke-linecap="round"/></svg>',
+    LIF: '<svg viewBox="0 0 32 32" width="32" height="32"><path d="M16 28 Q6 18 5 10 Q4 4 10 4 Q14 4 16 8 Q18 4 22 4 Q28 4 27 10 Q26 18 16 28 Z" fill="none" stroke="' + c + '" stroke-width="1.1" stroke-linejoin="round"/><circle cx="16" cy="14" r="2" fill="' + c2 + '"/><line x1="12" y1="14" x2="20" y2="14" stroke="' + c + '" stroke-width="0.8" stroke-linecap="round"/><line x1="16" y1="10" x2="16" y2="18" stroke="' + c + '" stroke-width="0.8" stroke-linecap="round"/></svg>',
+    SAN: '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="11" fill="none" stroke="' + c + '" stroke-width="1"/><polygon points="16,3 17,13 27,13 18,16 22,28 16,18 10,28 14,16 5,13 15,13" fill="none" stroke="' + c + '" stroke-width="0.9" stroke-linejoin="round"/><circle cx="16" cy="15" r="3" fill="' + c2 + '"/></svg>',
+    MS3: '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="11" fill="none" stroke="' + c + '" stroke-width="1"/><circle cx="16" cy="10" r="3" fill="' + c2 + '"/><circle cx="11" cy="20" r="3" fill="' + c2 + '"/><circle cx="21" cy="20" r="3" fill="' + c2 + '"/><line x1="14" y1="13" x2="12" y2="17" stroke="' + c + '" stroke-width="0.6"/><line x1="18" y1="13" x2="20" y2="17" stroke="' + c + '" stroke-width="0.6"/><line x1="11.5" y1="17" x2="20.5" y2="17" stroke="' + c + '" stroke-width="0.6"/></svg>',
+    MS6: '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="11" fill="none" stroke="' + c + '" stroke-width="1.1"/><polygon points="16,4 28,16 16,28 4,16" fill="none" stroke="' + c2 + '" stroke-width="0.9"/><circle cx="16" cy="16" r="3" fill="' + c + '" opacity="0.5"/><circle cx="16" cy="10" r="1.5" fill="' + c2 + '" opacity="0.7"/><circle cx="21" cy="19" r="1.5" fill="' + c2 + '" opacity="0.7"/><circle cx="11" cy="19" r="1.5" fill="' + c2 + '" opacity="0.7"/></svg>',
+    MS9: '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="12" fill="none" stroke="' + c + '" stroke-width="1.1"/><circle cx="16" cy="16" r="7" fill="none" stroke="' + c2 + '" stroke-width="0.9"/><circle cx="16" cy="16" r="2" fill="' + c + '"/><line x1="16" y1="4" x2="16" y2="9" stroke="' + c + '" stroke-width="1"/><line x1="16" y1="23" x2="16" y2="28" stroke="' + c + '" stroke-width="1"/><line x1="4" y1="16" x2="9" y2="16" stroke="' + c + '" stroke-width="1"/><line x1="23" y1="16" x2="28" y2="16" stroke="' + c + '" stroke-width="1"/><line x1="7.5" y1="7.5" x2="11" y2="11" stroke="' + c2 + '" stroke-width="0.8"/><line x1="24.5" y1="7.5" x2="21" y2="11" stroke="' + c2 + '" stroke-width="0.8"/><line x1="7.5" y1="24.5" x2="11" y2="21" stroke="' + c2 + '" stroke-width="0.8"/><line x1="24.5" y1="24.5" x2="21" y2="21" stroke="' + c2 + '" stroke-width="0.8"/></svg>',
+  };
+  return map[code] || ('<svg viewBox="0 0 32 32" width="32" height="32"><rect x="5" y="5" width="22" height="22" rx="2" fill="none" stroke="' + c + '" stroke-width="0.9"/><text x="16" y="22" text-anchor="middle" fill="' + c + '" font-size="12" font-weight="bold" font-family="monospace">' + (code || '?') + '</text></svg>');
+}
 
 const GLOBAL_RESEARCH_DEFS = [
   {
@@ -8283,9 +8901,11 @@ function showProtocolScreen() {
   const protocolScreen = document.getElementById('protocol-screen');
   protocolScreen.scrollTop = 0;
   protocolScreen.style.display = 'flex';
-  resetProtocolMapView();
   renderProtocolTree();
-  requestAnimationFrame(resetProtocolMapView);
+  requestAnimationFrame(() => {
+    resetProtocolMapView();
+    requestAnimationFrame(resetProtocolMapView);
+  });
 }
 function hideProtocolScreen() {
   document.getElementById('protocol-screen').style.display = 'none';
@@ -9520,13 +10140,63 @@ function init() {
   // Auto-scale game container to fit viewport
   scaleToFit();
   window.addEventListener('resize', scaleToFit);
-}
+}  ensurePerfOverlay();
+  if (new URLSearchParams(location.search).has('debug')) { perfEnabled = true; document.getElementById('perf-overlay').style.display = 'block'; }
+
 function scaleToFit() {
   const container = document.getElementById('game-container');
   const scaleX = (window.innerWidth - 20) / W;
   const scaleY = (window.innerHeight - 20) / H;
   const scale = Math.min(scaleX, scaleY, 1.0);
   container.style.transform = 'scale(' + scale + ')';
+}
+
+
+// --- New Player Tutorial ---
+const FIRST_RUN_KEY = 'tankbattle_first_run_done';
+let newPlayerTips = [];
+let newPlayerTipIndex = 0;
+let newPlayerTipTimer = null;
+
+function showNewPlayerTip(text, duration = 6000) {
+  const tip = document.createElement('div');
+  tip.className = 'new-player-tip';
+  tip.textContent = text;
+  tip.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2000;pointer-events:none;' +
+    'background:rgba(4,8,14,0.92);color:#f6e5aa;padding:14px 28px;font:12px "Courier New",monospace;letter-spacing:1.5px;' +
+    'border:1px solid rgba(246,229,170,0.3);clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);' +
+    'opacity:0;transition:opacity 0.5s ease;text-align:center;line-height:1.5;';
+  document.body.appendChild(tip);
+  requestAnimationFrame(() => { tip.style.opacity = '1'; });
+  setTimeout(() => {
+    tip.style.opacity = '0';
+    setTimeout(() => tip.remove(), 500);
+  }, duration);
+  newPlayerTips.push(tip);
+  return tip;
+}
+
+function runNewPlayerTips() {
+  const tips = [
+    { text: 'WASD / 方向键 · 移动机体', delay: 800, duration: 4500 },
+    { text: '鼠标 / 空格键 · 发射弹幕', delay: 3000, duration: 4500 },
+    { text: '击杀敌人升级 · 四选一改造', delay: 6000, duration: 5000 },
+    { text: 'ESC · 暂停 & 返回', delay: 9000, duration: 5000 },
+  ];
+  tips.forEach((t, i) => {
+    setTimeout(() => {
+      if (!gameRunning && i > 0) return; // stop if game ended
+      showNewPlayerTip(t.text, t.duration);
+    }, t.delay);
+  });
+}
+
+function markFirstRunComplete() {
+  try { localStorage.setItem(FIRST_RUN_KEY, '1'); } catch(e) {}
+}
+
+function isFirstRun() {
+  try { return localStorage.getItem(FIRST_RUN_KEY) !== '1'; } catch(e) { return true; }
 }
 
 function startGame(difficulty, tankType, options = {}) {
@@ -9589,6 +10259,54 @@ function ensureGameLoopScheduled() {
   gameLoopScheduled = true;
   requestAnimationFrame(gameLoop);
 }
+
+// --- Performance Monitor (F3 toggle or ?debug URL param) ---
+let perfEnabled = false;
+let perfFrames = 0;
+let perfLastTime = 0;
+let perfFps = 0;
+let perfMaxFps = 0;
+let perfMinFps = 999;
+let perfObjectCounts = '';
+
+function togglePerfMonitor() {
+  perfEnabled = !perfEnabled;
+  const el = document.getElementById('perf-overlay');
+  if (el) el.style.display = perfEnabled ? 'block' : 'none';
+}
+
+function updatePerfMonitor(now) {
+  if (!perfEnabled) return;
+  perfFrames++;
+  if (perfLastTime === 0) perfLastTime = now;
+  const elapsed = now - perfLastTime;
+  if (elapsed >= 1000) {
+    const fps = Math.round(perfFrames / (elapsed / 1000));
+    perfFps = fps;
+    if (fps > perfMaxFps) perfMaxFps = fps;
+    if (fps < perfMinFps) perfMinFps = fps;
+    perfFrames = 0;
+    perfLastTime = now;
+    const bullets = (playerBullets ? playerBullets.length : 0) + (enemyBullets ? enemyBullets.length : 0);
+    const particles = particles2 ? particles2.length : 0;
+    const pups = powerUps ? powerUps.length : 0;
+    perfObjectCounts = 'OBJ:' + enemies.length + '/' + bullets + '/' + particles + '/' + pups;
+    const el = document.getElementById('perf-overlay');
+    if (el) {
+      el.textContent = 'FPS:' + fps + ' | ' + perfObjectCounts + ' | W:' + wave + ' | MAX:' + perfMaxFps + ' MIN:' + perfMinFps;
+    }
+  }
+}
+
+function ensurePerfOverlay() {
+  if (document.getElementById('perf-overlay')) return;
+  const el = document.createElement('div');
+  el.id = 'perf-overlay';
+  el.style.cssText = 'position:fixed;top:4px;left:4px;z-index:9999;background:rgba(0,0,0,0.75);color:#0f0;' +
+    'padding:3px 8px;font:10px monospace;display:none;pointer-events:none;';
+  document.body.appendChild(el);
+}
+
 function gameLoop() {
   gameLoopScheduled = false;
   try {
@@ -9602,6 +10320,7 @@ function gameLoop() {
     }
   }
   ensureGameLoopScheduled();
+  if (perfEnabled) updatePerfMonitor(performance.now());
 }
 
 ensureGameLoopScheduled();
