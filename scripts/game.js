@@ -550,7 +550,14 @@ function sfxBossAttack(attack='boss', phase=0) {
     playSweep(720, 90, 0.18, 'sawtooth', audioNodes.sfxGain, vol);
   } else if (attack === 'lightning_chain' || attack === 'thunder_storm') {
     playSweep(1900, 760, 0.08, 'square', audioNodes.sfxGain, vol);
-    playFilteredNoise(0.055, vol * 0.75, audioNodes.sfxGain, 'highpass', 2200, 0.8);
+    playFilteredNoise(0.055, vol * 0.75, audioNodes.sfxGain, 'highpass', 2200, 0.8);  } else if (attack === 'scan_mark') {
+    playSweep(1600, 420, 0.14, 'sine', audioNodes.sfxGain, 0.045);
+    playFilteredNoise(0.08, 0.03, audioNodes.sfxGain, 'highpass', 1800, 1.2);
+  } else if (attack === 'orbital_strike') {
+    playSweep(2400, 110, 0.22, 'sawtooth', audioNodes.sfxGain, 0.06);
+    playFilteredNoise(0.18, 0.06, audioNodes.sfxGain, 'lowpass', 400, 1.0);
+    playChord([180, 270, 360], 0.18, 'sine', audioNodes.sfxGain, 0.035, 0.06);
+
   } else {
     playTone(180, 0.11, 'sawtooth', audioNodes.sfxGain, vol);
     playTone(360, 0.07, 'triangle', audioNodes.sfxGain, vol * 0.65);
@@ -2304,6 +2311,12 @@ function onEnemyKilled(enemyOrElite) {
   sfxEnemyDestroyed(isElite, isBossKill);
   sessionKills++;
   if (isElite) sessionEliteKills++;
+  // Faction salvage: graveyard enemies drop extra moonstone
+  if (killedEnemy && killedEnemy.salvageDropChance && rng() < killedEnemy.salvageDropChance) {
+    const salvageAmt = 3 + Math.floor(rng() * 6);
+    coreFragments += salvageAmt;
+    showAchievementToast('SALV', '灰域残骸回收', '+' + salvageAmt + ' MOONSTONE', '#9ca8ff');
+  }
   updateTankUnlockProgress({
     maxEliteKills: sessionEliteKills,
     bossKills: nextBossKills,
@@ -5471,7 +5484,10 @@ class EnemyTank extends Tank {
     const by = this.y + Math.sin(this.turretAngle) * 18;
     const spread = (rng() - 0.5) * 0.15;
     const ebs = 1.7;
-    enemyBullets.push(new Bullet(bx, by, this.turretAngle + spread, ebs, '#f44', false));
+    const dmg = 1 + (this.bulletDamageBonus || 0);
+    const b = new Bullet(bx, by, this.turretAngle + spread, ebs * (this.bulletSpeedMul || 1), '#f44', false, dmg);
+    if (this.bulletSpeedMul && this.bulletSpeedMul > 1) b.radius = 2.6;
+    enemyBullets.push(b);
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
     sfxEnemyShoot(this.kind);
@@ -5592,6 +5608,37 @@ class EliteEnemy extends EnemyTank {
       this.preferredRange = 225 + rng() * 55;
       this.phaseBlinkCooldown = 150 + rng() * 80;
       this.phaseAfterimage = 0;
+    }
+    // Faction assignment and traits
+    this.faction = eliteDef.faction || 'graveyard';
+    this.applyFactionTraits();
+  }
+  applyFactionTraits() {
+    switch (this.faction) {
+      case 'moon_arsenal':
+        // Armor-piercing: shots do +1 damage to player
+        this.bulletDamageBonus = 1;
+        break;
+      case 'ash_church':
+        // Fortress: +2 bonus HP
+        this.hp += 2; this.maxHp += 2;
+        break;
+      case 'observatory':
+        // Scanner: slightly faster shooting
+        this.shootDelay = Math.max(30, this.shootDelay - 8);
+        break;
+      case 'graveyard':
+        // Salvaged: 15% chance to drop extra moonstone on death
+        this.salvageDropChance = 0.15;
+        break;
+      case 'void_cult':
+        // Phase: 8% chance per shot to teleport short distance
+        this.phaseChance = 0.08;
+        break;
+      case 'storm_cloister':
+        // Chain: shots travel 15% faster
+        this.bulletSpeedMul = 1.15;
+        break;
     }
   }
   update() {
@@ -5790,6 +5837,17 @@ class EliteEnemy extends EnemyTank {
     else if (this.special === 'missile') glowColor = '#f84';
     else if (this.special === 'warden') glowColor = '#f6e5aa';
     else if (this.special === 'phase') glowColor = '#d9b6ff';
+
+    // Faction aura tint
+    const factionInfo = getFactionInfo(this.faction);
+    if (factionInfo && factionInfo.color) {
+      ctx.save();
+      ctx.globalAlpha = 0.22 + Math.sin(Date.now() / 400) * 0.08;
+      ctx.strokeStyle = factionInfo.color;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
 
     ctx.shadowColor = glowColor;
     ctx.shadowBlur = 8 + Math.sin(Date.now() / 200) * 3;
@@ -6204,6 +6262,13 @@ const BOSS_TYPES = [
       { name:'电弧狩猎', hpPct:1.0, attack:'lightning_chain', shootDelay:42, burstShots:3, burstRest:124, telegraph:42, recover:110, bulletCount:7, bulletSpeed:2.32, pressure:0.98, cue:'ARC JUDGMENT', hint:'电弧直线清晰，横移可避' },
       { name:'雷霆天幕', hpPct:0.58, attack:'thunder_storm', shootDelay:40, burstShots:3, burstRest:160, telegraph:54, recover:138, bulletCount:9, bulletSpeed:2.38, pressure:1.25, cue:'STORM CANOPY', hint:'落雷前会标记区域' },
     ]},
+,
+  { name:'观星者坦克', color:'#244', turret:'#4ec', speed:0.42, hp:138, icon:'OBS', faction:'observatory',
+    desc:'数据支配Boss，扫描标记+轨道轰炸',
+    phases:[
+      { name:'扫描标记', hpPct:1.0, attack:'scan_mark', shootDelay:44, burstShots:3, burstRest:136, telegraph:48, recover:118, bulletCount:8, bulletSpeed:1.76, pressure:0.96, cue:'SCAN LOCK', hint:'扫描束间隙可闪避，被标记后子弹会追踪' },
+      { name:'轨道审判', hpPct:0.56, attack:'orbital_strike', shootDelay:42, burstShots:3, burstRest:172, telegraph:62, recover:146, bulletCount:10, bulletSpeed:2.08, pressure:1.28, cue:'ORBITAL JUDGMENT', hint:'光束锁定区域后短暂撤退' },
+    ]}
 ];
 
 const BESTIARY_LORE = {
@@ -6257,6 +6322,7 @@ const BESTIARY_LORE = {
     '虚空坦克': '第七观测站试图用它封存月洞。现在月洞反过来驾驶它，在战场上寻找新的边界。',
     '风暴坦克': '气象控制塔的核心残骸。它召来的雷并非来自天空，而是来自碎月背面的静电海。',
   },
+    '观星者坦克': '第七观测站把一座天文台倒置装进车体。它不是在射击——它在记录。每一次光束扫描都是一份证词，每一轮轨道打击都是一次结案。',
   fusions: {
     gold_magnet: '回收协议与结算插件互相吞并后的产物。它会吸来补给，也会吸来贪婪。',
     railgun_plus: '观测炮与穿甲祈文的重叠协议。发射瞬间，炮口会出现一圈微型月蚀。',
@@ -6699,6 +6765,60 @@ class BossEnemy extends EliteEnemy {
       }
       spawnExplosion(this.x, this.y, this.currentPhase > 0 ? 28 : 20, '#4ff', '#fff');
       triggerShake(this.currentPhase > 0 ? 8 : 5, 8);
+    } else if (phase.attack === 'scan_mark') {
+      // Observatory Phase 1: Scanning beam fan + marking rounds
+      const total = phase.bulletCount + bonusBullets;
+      const scanWidth = 0.7 + this.phaseTimer * 0.01;
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total / 2) * scanWidth / total;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + rageSpeed, '#4ec', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 3;
+        b.isMarking = true; // Marks player for tracking
+        enemyBullets.push(b);
+      }
+      // Side scanner pulses
+      for (let s = -1; s <= 1; s += 2) {
+        for (let i = 0; i < 3; i++) {
+          const a = this.turretAngle + s * (0.4 + i * 0.15);
+          const b = new Bullet(bx, by, a, phase.bulletSpeed + 0.3, '#3cc', false, 1);
+          b.radius = 2.4;
+          enemyBullets.push(b);
+        }
+      }
+      if (this.currentPhase > 0) {
+        for (let i = 0; i < 5; i++) {
+          const a = this.turretAngle + (i - 2) * 0.08;
+          const b = new Bullet(bx, by, a, 2.45, '#aff', false, 1);
+          b.radius = 3.2;
+          enemyBullets.push(b);
+        }
+      }
+    } else if (phase.attack === 'orbital_strike') {
+      // Observatory Phase 2: Orbital bombardment from 4 cardinal directions
+      const baseX = this.telegraphX || (player ? player.x : this.x);
+      const baseY = this.telegraphY || (player ? player.y : this.y);
+      const strikeRadius = this.currentPhase > 0 ? 155 : 125;
+      const directions = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+      for (const dir of directions) {
+        const sx = baseX + Math.cos(dir) * strikeRadius;
+        const sy = baseY + Math.sin(dir) * strikeRadius;
+        for (let i = 0; i < Math.floor((phase.bulletCount + bonusBullets) / 4); i++) {
+          const a = dir + Math.PI + (i - 1) * 0.14;
+          const b = new Bullet(sx, sy, a, phase.bulletSpeed + rageSpeed, '#0ee', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = 3.6;
+          enemyBullets.push(b);
+        }
+        spawnExplosion(sx, sy, 8, '#4ec', '#0ee');
+      }
+      // Center implosion
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + this.phaseTimer * 0.04;
+        const b = new Bullet(baseX, baseY, a, 1.4, '#0ee', false, 1);
+        b.radius = 2;
+        enemyBullets.push(b);
+      }
+      triggerShake(this.currentPhase > 0 ? 12 : 8, 12);
+      spawnExplosion(baseX, baseY, 22, '#4ec', '#aff');
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
