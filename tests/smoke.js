@@ -500,6 +500,19 @@ const smokeHarness = `
     hideLeaderboard();
   });
 
+  step('clear-mode boss archive pacing is compact', () => {
+    currentRunMode = 'clear';
+    currentDifficulty = 'normal';
+    runBossesSeen = new Set(BOSS_TYPES.map(b => b.name));
+    wave = getBossArchiveFinalWave();
+    assert(getBossArchiveFinalWave() === 20, 'boss archive should finish on wave 20');
+    assert(getDifficultyClearWaveTarget(difficultySettings.normal) === 20, 'normal clear target should be wave 20');
+    assert(getBossSupportCount(4) === 0 && getBossSupportCount(20) === 0, 'archive bosses should not spawn support mobs');
+    assert(getBossSupportCount(24) === 1, 'post-archive bosses should reintroduce one support mob');
+    assert(shouldClearDifficulty() === true, 'clear mode should finish after all five archive bosses');
+    currentRunMode = 'clear';
+  });
+
   step('lab screen renders preview panel', () => {
     showLabScreen();
     assert(el('lab-screen').style.display === 'flex', 'lab screen not visible');

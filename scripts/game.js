@@ -1291,10 +1291,10 @@ const difficultySettings = {
 const DIFFICULTY_ORDER = ['easy','normal','hard','extreme','nightmare'];
 const DIFFICULTY_TUNING = {
   easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 1, playerHp: 12, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 1.55, unlockScore: 0,     clearWave: 20 },
-  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2, playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 2.05, unlockScore: 2800,  clearWave: 24 },
-  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4, playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 2.55, unlockScore: 7200,  clearWave: 28 },
-  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6, playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 3.05, unlockScore: 12800, clearWave: 32 },
-  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8, playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 3.65, unlockScore: 20500, clearWave: 36 },
+  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2, playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 2.05, unlockScore: 2800,  clearWave: 20 },
+  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4, playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 2.55, unlockScore: 7200,  clearWave: 24 },
+  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6, playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 3.05, unlockScore: 12800, clearWave: 28 },
+  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8, playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 3.65, unlockScore: 20500, clearWave: 32 },
 };
 Object.keys(DIFFICULTY_TUNING).forEach(key => Object.assign(difficultySettings[key], DIFFICULTY_TUNING[key]));
 
@@ -2378,9 +2378,34 @@ function getWaveEnemyBudget(waveNo) {
   return Math.max(2, Math.floor(base * (diff.waveBudgetMul || 1)));
 }
 
+const BOSS_WAVE_INTERVAL = 4;
+function getBossArchiveFinalWave() {
+  return BOSS_TYPES.length * BOSS_WAVE_INTERVAL;
+}
+function getBossWaveIndex(waveNo) {
+  return waveNo >= BOSS_WAVE_INTERVAL && waveNo % BOSS_WAVE_INTERVAL === 0
+    ? Math.floor(waveNo / BOSS_WAVE_INTERVAL) - 1
+    : -1;
+}
+function isBossWaveNumber(waveNo) {
+  return getBossWaveIndex(waveNo) >= 0;
+}
+function isBossArchiveWave(waveNo) {
+  const idx = getBossWaveIndex(waveNo);
+  return idx >= 0 && idx < BOSS_TYPES.length;
+}
+function getDifficultyClearWaveTarget(diff = difficultySettings[currentDifficulty] || difficultySettings.normal) {
+  return Math.max(diff.clearWave || getBossArchiveFinalWave(), getBossArchiveFinalWave());
+}
+function getBossDuelHpMultiplier(waveNo = wave) {
+  return currentRunMode === 'clear' && isBossArchiveWave(waveNo) ? 1.1 : 1;
+}
+
 function getBossSupportCount(waveNo) {
-  if (waveNo < 20) return 0;
-  return Math.min(1, Math.floor(waveNo / 20));
+  if (isBossArchiveWave(waveNo)) return 0;
+  if (waveNo <= getBossArchiveFinalWave()) return 0;
+  const cap = currentRunMode === 'clear' ? 1 : 2;
+  return Math.min(cap, 1 + Math.floor((waveNo - getBossArchiveFinalWave()) / 20));
 }
 
 function getWaveSpawnBurst(waveNo) {
@@ -2398,7 +2423,7 @@ function getWaveSpawnRate(diff) {
 }
 
 function selectBossForWave(waveNo) {
-  const bossWaveIndex = Math.floor(waveNo / 4) - 1;
+  const bossWaveIndex = getBossWaveIndex(waveNo);
   if (bossWaveIndex < BOSS_TYPES.length) return BOSS_TYPES[bossWaveIndex];
   const diffIdx = Math.max(0, DIFFICULTY_ORDER.indexOf(currentDifficulty));
   const maxPool = Math.min(BOSS_TYPES.length, 3 + diffIdx);
@@ -2418,7 +2443,7 @@ function hasSeenAllRunBosses() {
 
 function shouldClearDifficulty() {
   const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
-  return currentRunMode === 'clear' && !isDailyChallenge && wave >= (diff.clearWave || 20) && hasSeenAllRunBosses();
+  return currentRunMode === 'clear' && !isDailyChallenge && wave >= getDifficultyClearWaveTarget(diff) && hasSeenAllRunBosses();
 }
 
 function getEndingStory() {
@@ -2459,7 +2484,7 @@ function startNextWave() {
   if (wave > 1) earnFragments(wave + 1);
 
   // Boss wave every 4 waves (starting from wave 4)
-  if (wave >= 4 && wave % 4 === 0) {
+  if (isBossWaveNumber(wave)) {
     isBossWave = true;
     const bossSupportCount = getBossSupportCount(wave);
     waveEnemiesTotal = 1 + bossSupportCount;
@@ -5717,7 +5742,7 @@ class BossEnemy extends EliteEnemy {
     const diff = difficultySettings[currentDifficulty];
     const diffIdx = Math.max(0, DIFFICULTY_ORDER.indexOf(currentDifficulty));
     const scaling = 1 + Math.max(0, wave - 4) * 0.045 + Math.max(0, level - 1) * 0.035 + diffIdx * 0.08;
-    const hp = Math.floor((bossDef.hp + level * 10 + diff.enemyHpBonus * 18 + Math.floor(wave * 3.2)) * scaling * (diff.bossHpMul || 1));
+    const hp = Math.floor((bossDef.hp + level * 10 + diff.enemyHpBonus * 18 + Math.floor(wave * 3.2)) * scaling * (diff.bossHpMul || 1) * getBossDuelHpMultiplier(wave));
     super(x, y, {name:bossDef.name, color:bossDef.color, turret:bossDef.turret, speed:bossDef.speed, hp:Math.max(140,hp), special:'boss', icon:bossDef.icon});
     this.bossDef = bossDef;
     this.maxHp = this.hp;
