@@ -8337,30 +8337,6 @@ function addToLeaderboard(diff, scoreValue, tank, waveValue, mode = currentRunMo
   leaderboardData[bucketMode][diff] = leaderboardData[bucketMode][diff].slice(0, 8);
   saveLeaderboard();
 }
-function renderLeaderboard() {
-  const tabs = document.getElementById('leader-tabs');
-  tabs.innerHTML = DIFFICULTY_ORDER.map(d =>
-    `<button class="leader-tab${leaderboardTab===d?' active':''}" onclick="switchLeaderTab('${d}')">${difficultySettings[d].label}</button>`
-  ).join('');
-  const grid = document.getElementById('leader-grid');
-  const scores = leaderboardData[leaderboardTab] || [];
-  if (scores.length === 0) {
-    grid.innerHTML = '<div class="leader-empty">暂无记录<br>在' + difficultySettings[leaderboardTab].label + '模式下游戏即可上榜</div>';
-    return;
-  }
-  grid.innerHTML = scores.map((s, i) => {
-    const rankClass = i === 0 ? 'gold' : (i === 1 ? 'silver' : (i === 2 ? 'bronze' : ''));
-    const rankCodes = ['RK-I','RK-II','RK-III'];
-    const tankNames = {spread:'扩散',focus:'集中',wide:'广域',burst:'爆裂',sniper:'狙击',homing:'追踪',border:'境界',blade:'斩魂',scarlet:'红枪',astral:'星仪'};
-    return `<div class="leader-row">
-      <span class="leader-rank ${rankClass}">${rankCodes[i] || ('RK-' + String(i+1).padStart(2,'0'))}</span>
-      <div class="leader-info">
-        <div class="leader-score">${s.score.toLocaleString()} 分</div>
-        <div class="leader-detail">${tankNames[s.tank]||'?'}型 · 第${s.wave}波 · ${s.date}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
 function switchLeaderTab(diff) { leaderboardTab = diff; renderLeaderboard(); }
 function switchLeaderMode(mode) { leaderboardMode = mode === 'endless' ? 'endless' : 'clear'; renderLeaderboard(); }
 function renderLeaderboard() {
