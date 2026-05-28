@@ -85,3 +85,10 @@ git clone https://github.com/skweo/tank-battle.git
 # 或使用 Live Server
 npx live-server
 ```
+
+### 本地质量检查
+
+```bash
+node --check scripts/game.js
+node tests/smoke.js
+```
