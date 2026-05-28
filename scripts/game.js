@@ -9055,6 +9055,7 @@ function endGame(victory = false, runId = activeRunId) {
   }
   renderRunReport(victory);
   gameOverPanel.classList.toggle('victory', !!victory);
+  gameOverPanel.scrollTop = 0;
   gameOverPanel.classList.add('visible');
   // Show quick restart hint
   const hint = gameOverPanel;

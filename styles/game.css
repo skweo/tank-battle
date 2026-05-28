@@ -59,8 +59,15 @@ canvas { display: block; background: #0a0f18; }
   align-items: center;
   gap: 16px;
   pointer-events: none;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
-#game-over.visible { display: flex; }
+#game-over.visible {
+  display: flex;
+  pointer-events: auto;
+}
 #game-over h1 {
   color: #f49800; font-size: 36px; font-weight: 300; letter-spacing: 6px;
   font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
@@ -76,6 +83,11 @@ canvas { display: block; background: #0a0f18; }
 }
 #game-over button.retry-btn { color: #f6e5aa; border-color: rgba(244,152,0,0.44); background: rgba(244,152,0,0.13); }
 #game-over button:hover { background: rgba(40,48,58,0.9); border-color: rgba(244,152,0,0.6); }
+#game-over::-webkit-scrollbar { width: 8px; }
+#game-over::-webkit-scrollbar-track { background: rgba(7,10,16,0.62); }
+#game-over::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(244,152,0,0.62), rgba(140,232,255,0.28));
+}
 #pause-screen {
   position: absolute; inset: 0; z-index: 18; display: none;
   flex-direction: column; justify-content: center; align-items: center; gap: 14px;
