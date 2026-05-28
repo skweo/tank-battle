@@ -14,6 +14,8 @@ let gameRunning = true;
 let gameOverFlag = false;
 let isPaused = false;
 let currentDifficulty = 'normal';
+let currentRunMode = 'clear';
+let selectedRunMode = 'clear';
 let wave = 1;
 let waveEnemiesRemaining = 0;
 let waveEnemiesToSpawn = 0;
@@ -796,6 +798,7 @@ function startDailyChallenge() {
   const dailyDifficulty = diffs[Math.floor((seed % 100) / 100 * diffs.length)] || 'easy';
   startGame(dailyDifficulty, dailyTank, {
     dailyChallenge: true,
+    mode: 'clear',
     seededRandom: mulberry32(seed),
     dailyTarget: dailyTargetDef,
   });
@@ -1382,6 +1385,12 @@ function appendFactionLore(baseLore, factionId) {
 
 function renderDifficultyButtons() {
   const container = document.getElementById('difficulty-buttons');
+  const modeSwitch = document.getElementById('run-mode-switch');
+  if (modeSwitch) {
+    modeSwitch.querySelectorAll('.run-mode-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = modeSwitch.querySelector(selectedRunMode === 'endless' ? '.run-mode-btn:nth-child(2)' : '.run-mode-btn:nth-child(1)');
+    if (activeBtn) activeBtn.classList.add('active');
+  }
   const classes = ['easy','normal','hard','extreme','nightmare'];
   container.innerHTML = DIFFICULTY_ORDER.map((key, idx) => {
     const diff = difficultySettings[key];
@@ -1401,10 +1410,19 @@ function renderDifficultyButtons() {
     return unlocked
       ? `${d.label}: ${d.lives}条命 · 通关第${d.clearWave}波 · 敌HP+${d.enemyHpBonus} · 速度×${d.enemySpeedMul}`
       : `<span class="locked-info">${d.label}: LOCK · 需分数${d.unlockScore}解锁</span>`;
-  }).join('<br>');
+  }).join('<br>') + '<br><span class="run-mode-hint">'
+    + (selectedRunMode === 'endless'
+      ? 'ENDLESS FRONT / 無盡戰線：不會通關，排行榜按最高波次與分數記錄'
+      : 'CLEAR ARCHIVE / 通關戰線：達成固定波次並歸檔全部Boss後結算')
+    + '</span>';
   // Update currency + active tank
   const curEl = document.getElementById('currency-display');
   if (curEl) curEl.innerHTML = renderMoonstoneChip(coreFragments, 'CHASSIS ' + (tankTypes[currentTankType]?.name || '??'));
+}
+
+function selectRunMode(mode) {
+  selectedRunMode = mode === 'endless' ? 'endless' : 'clear';
+  renderDifficultyButtons();
 }
 
 function getTankSelectIcon(type) {
@@ -1479,7 +1497,7 @@ function showTankSelect(difficulty) {
     const unlocked = unlockedTanks.has(key);
     if (unlocked) {
       const cadence = '弹匣 ' + t.magSize + ' / 装填 ' + (t.reloadTime / 60).toFixed(1) + 's / 冷却 ' + t.shootDelay;
-      return `<div class="tank-card ${key}" onclick="startGame(currentDifficulty, '${key}')">
+      return `<div class="tank-card ${key}" onclick="startGame(currentDifficulty, '${key}', {mode:selectedRunMode})">
         <span class="tank-icon">${tankIcons[i]}</span>
         <div class="tank-name">${t.name}</div>
         <div class="tank-subtitle">${tankNamesExtra[i]}</div>
@@ -1828,6 +1846,7 @@ function createRunReport() {
     endTime: 0,
     difficulty: currentDifficulty,
     tank: currentTankType,
+    mode: currentRunMode,
     victory: false,
     deathCause: '',
     shotsFired: 0,
@@ -2044,6 +2063,7 @@ function buildBossBalanceDebugSnapshot(report) {
   return {
     version: 1,
     timestamp: new Date().toISOString(),
+    mode: report.mode || currentRunMode,
     difficulty: report.difficulty,
     tank: report.tank,
     victory: !!report.victory,
@@ -2136,7 +2156,7 @@ function renderRunReport(victory) {
       <div class="report-kicker">TACTICAL BLACK BOX</div>
       <div class="report-title">战术黑匣子 / 本局战报</div>
     </div>
-    <div class="report-verdict">${victory ? 'CLEAR' : 'FAILED'} / ${escapeHtml(difficultySettings[report.difficulty]?.label || report.difficulty)}</div>
+    <div class="report-verdict">${report.mode === 'endless' ? 'ENDLESS' : (victory ? 'CLEAR' : 'FAILED')} / ${escapeHtml(difficultySettings[report.difficulty]?.label || report.difficulty)}</div>
   </div>
   <div class="report-grid">
     <div class="report-cell"><div class="report-label">作战时长</div><div class="report-value accent">${duration}</div></div>
@@ -2398,7 +2418,7 @@ function hasSeenAllRunBosses() {
 
 function shouldClearDifficulty() {
   const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
-  return !isDailyChallenge && wave >= (diff.clearWave || 20) && hasSeenAllRunBosses();
+  return currentRunMode === 'clear' && !isDailyChallenge && wave >= (diff.clearWave || 20) && hasSeenAllRunBosses();
 }
 
 function getEndingStory() {
@@ -6564,6 +6584,7 @@ const TANK_EVOLVE_KEY = 'tankbattle_tank_evolved';
 const GLOBAL_RESEARCH_KEY = 'tankbattle_global_research';
 const LEADERBOARD_KEY = 'tankbattle_leaderboard';
 let leaderboardData = {};
+let leaderboardMode = 'clear';
 let leaderboardTab = 'easy';
 let coreFragments = 0;
 let unlockedTanks = new Set(['spread']);
@@ -8238,22 +8259,72 @@ function hideProtocolScreen() {
 }
 
 // --- Leaderboard ---
+function createEmptyLeaderboardData() {
+  return {
+    clear: DIFFICULTY_ORDER.reduce((acc, d) => { acc[d] = []; return acc; }, {}),
+    endless: DIFFICULTY_ORDER.reduce((acc, d) => { acc[d] = []; return acc; }, {}),
+  };
+}
+
+function normalizeLeaderboardData(raw) {
+  const data = createEmptyLeaderboardData();
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const hasModes = source.clear || source.endless;
+  if (hasModes) {
+    ['clear', 'endless'].forEach(mode => {
+      DIFFICULTY_ORDER.forEach(d => {
+        data[mode][d] = Array.isArray(source[mode]?.[d]) ? source[mode][d] : [];
+      });
+    });
+  } else {
+    DIFFICULTY_ORDER.forEach(d => {
+      data.endless[d] = Array.isArray(source[d]) ? source[d] : [];
+    });
+  }
+  return data;
+}
+
 function loadLeaderboard() {
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);
-    leaderboardData = raw ? JSON.parse(raw) : {};
-    DIFFICULTY_ORDER.forEach(d => { if (!leaderboardData[d]) leaderboardData[d] = []; });
-  } catch(e) { leaderboardData = {}; }
+    leaderboardData = normalizeLeaderboardData(raw ? JSON.parse(raw) : {});
+  } catch(e) { leaderboardData = createEmptyLeaderboardData(); }
 }
 function saveLeaderboard() {
   try { localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboardData)); } catch(e) {}
 }
-function addToLeaderboard(diff, score, tank, wave) {
-  if (!leaderboardData[diff]) leaderboardData[diff] = [];
-  const entry = { score, tank, wave, date: new Date().toLocaleDateString('zh-CN') };
-  leaderboardData[diff].push(entry);
-  leaderboardData[diff].sort((a,b) => b.score - a.score);
-  leaderboardData[diff] = leaderboardData[diff].slice(0, 5);
+function addToLeaderboard(diff, scoreValue, tank, waveValue, mode = currentRunMode, victory = false) {
+  leaderboardData = normalizeLeaderboardData(leaderboardData);
+  const bucketMode = mode === 'endless' ? 'endless' : 'clear';
+  if (bucketMode === 'clear' && !victory) return;
+  if (!leaderboardData[bucketMode][diff]) leaderboardData[bucketMode][diff] = [];
+  const report = runReport || {};
+  const durationMs = report.endTime && report.startTime ? report.endTime - report.startTime : Math.max(0, runFrameCount * 1000 / 60);
+  const bossAvg = report.bossKills > 0 ? Math.round((report.bossTimeFrames || 0) / report.bossKills / 60) : 0;
+  const entry = {
+    score: Math.max(0, Math.floor(scoreValue || 0)),
+    tank,
+    wave: Math.max(0, Math.floor(waveValue || 0)),
+    date: new Date().toLocaleDateString('zh-CN'),
+    durationMs,
+    bossKills: report.bossKills || 0,
+    bossAvg,
+    damageTaken: report.damageTaken || 0,
+    level,
+    victory: !!victory,
+  };
+  leaderboardData[bucketMode][diff].push(entry);
+  leaderboardData[bucketMode][diff].sort((a, b) => {
+    if (bucketMode === 'clear') {
+      if ((a.durationMs || 0) !== (b.durationMs || 0)) return (a.durationMs || 0) - (b.durationMs || 0);
+      if ((a.damageTaken || 0) !== (b.damageTaken || 0)) return (a.damageTaken || 0) - (b.damageTaken || 0);
+      return (b.score || 0) - (a.score || 0);
+    }
+    if ((b.wave || 0) !== (a.wave || 0)) return (b.wave || 0) - (a.wave || 0);
+    if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
+    return (b.bossKills || 0) - (a.bossKills || 0);
+  });
+  leaderboardData[bucketMode][diff] = leaderboardData[bucketMode][diff].slice(0, 8);
   saveLeaderboard();
 }
 function renderLeaderboard() {
@@ -8281,6 +8352,42 @@ function renderLeaderboard() {
   }).join('');
 }
 function switchLeaderTab(diff) { leaderboardTab = diff; renderLeaderboard(); }
+function switchLeaderMode(mode) { leaderboardMode = mode === 'endless' ? 'endless' : 'clear'; renderLeaderboard(); }
+function renderLeaderboard() {
+  leaderboardData = normalizeLeaderboardData(leaderboardData);
+  const tabs = document.getElementById('leader-tabs');
+  tabs.innerHTML = `<div class="leader-mode-tabs">
+    <button class="leader-mode-tab${leaderboardMode==='clear'?' active':''}" onclick="switchLeaderMode('clear')">CLEAR ARCHIVE / 通关档案</button>
+    <button class="leader-mode-tab${leaderboardMode==='endless'?' active':''}" onclick="switchLeaderMode('endless')">ENDLESS FRONT / 无尽战线</button>
+  </div><div class="leader-diff-tabs">` + DIFFICULTY_ORDER.map(d =>
+    `<button class="leader-tab${leaderboardTab===d?' active':''}" onclick="switchLeaderTab('${d}')">${difficultySettings[d].label}</button>`
+  ).join('') + '</div>';
+  const grid = document.getElementById('leader-grid');
+  if (!leaderboardData[leaderboardMode][leaderboardTab]) leaderboardData[leaderboardMode][leaderboardTab] = [];
+  const scores = leaderboardData[leaderboardMode][leaderboardTab] || [];
+  if (scores.length === 0) {
+    grid.innerHTML = '<div class="leader-empty">暂无记录<br>' + (leaderboardMode === 'clear'
+      ? '通关固定战线后，会按用时与承伤归档'
+      : '进入无尽战线后，会按最高波次与分数归档') + '</div>';
+    return;
+  }
+  grid.innerHTML = scores.map((s, i) => {
+    const rankClass = i === 0 ? 'gold' : (i === 1 ? 'silver' : (i === 2 ? 'bronze' : ''));
+    const rankCodes = ['RK-I','RK-II','RK-III'];
+    const tankNames = {spread:'扩散',focus:'集中',wide:'广域',burst:'爆裂',sniper:'狙击',homing:'追踪',border:'境界',blade:'斩魂',scarlet:'红枪',astral:'星仪'};
+    const mainMetric = leaderboardMode === 'clear' ? formatMsAsTime(s.durationMs || 0) : 'WAVE ' + (s.wave || 0);
+    const subMetric = leaderboardMode === 'clear'
+      ? ('承伤 ' + (s.damageTaken || 0) + ' / Boss均时 ' + (s.bossAvg || 0) + 's')
+      : ((s.score || 0).toLocaleString() + ' 分 / Boss ' + (s.bossKills || 0) + ' / LV ' + (s.level || 1));
+    return `<div class="leader-row">
+      <span class="leader-rank ${rankClass}">${rankCodes[i] || ('RK-' + String(i+1).padStart(2,'0'))}</span>
+      <div class="leader-info">
+        <div class="leader-score">${mainMetric}</div>
+        <div class="leader-detail">${tankNames[s.tank]||'?'}型 / ${subMetric} / ${s.date}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
 function showLeaderboard() {
   renderLeaderboard();
   document.getElementById('start-screen').style.display = 'none';
@@ -9188,13 +9295,17 @@ function endGame(victory = false, runId = activeRunId) {
     saveDailyBest(score);
     renderDailyTarget();
   }
-  if (!isDailyChallenge) addToLeaderboard(currentDifficulty, score, currentTankType, wave);
+  const finalReport = ensureRunReport();
+  finalizeActiveBossReports(victory ? 'victory' : 'run_end');
+  finalReport.endTime = finalReport.endTime || Date.now();
+  finalReport.victory = !!victory;
+  if (!isDailyChallenge) addToLeaderboard(currentDifficulty, score, currentTankType, wave, currentRunMode, victory);
   document.getElementById('final-score').textContent = score;
   if (!isDailyChallenge) document.getElementById('daily-target').style.display = 'none';
   const gameOverPanel = document.getElementById('game-over');
   const finalTitle = document.getElementById('final-title');
   const endingStory = document.getElementById('ending-story');
-  if (finalTitle) finalTitle.textContent = victory ? '难 度 通 关' : '游戏结束';
+  if (finalTitle) finalTitle.textContent = victory ? '难 度 通 关' : (currentRunMode === 'endless' ? '无 尽 战 线 中 断' : '游戏结束');
   if (endingStory) {
     endingStory.textContent = victory
       ? getEndingStory()
@@ -9228,11 +9339,12 @@ function quickRestart() {
     loadDailyChallengeStatus();
     startGame(savedDiff, savedTank, {
       dailyChallenge: true,
+      mode: 'clear',
       seededRandom: mulberry32(seed),
       dailyTarget: getDailyTarget(seed),
     });
   } else {
-    startGame(savedDiff, savedTank);
+    startGame(savedDiff, savedTank, { mode: currentRunMode });
   }
 }
 
@@ -9368,6 +9480,8 @@ function restartGame() {
   clearInputState();
   resetRunState();
   hideRunOverlays(true);
+  currentRunMode = 'clear';
+  selectedRunMode = 'clear';
   isDailyChallenge = false;
   seededRandom = null;
   dailyTarget = null;
@@ -9411,6 +9525,7 @@ function startGame(difficulty, tankType, options = {}) {
   clearInputState();
   hideRunOverlays(false);
   currentDifficulty = difficulty;
+  currentRunMode = options.mode === 'endless' ? 'endless' : 'clear';
   if (tankType) currentTankType = tankType;
   // Ensure selected tank is unlocked
   if (!unlockedTanks.has(currentTankType)) currentTankType = 'spread';
