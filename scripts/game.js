@@ -1819,6 +1819,8 @@ let sessionModifierTokenClaims = 0;
 let sessionModifierJackpots = 0;
 let runReport = null;
 let runFrameCount = 0;
+const BOSS_BALANCE_DEBUG_KEY = 'tankbattle_boss_balance_debug';
+const BOSS_BALANCE_DEBUG_LIMIT = 16;
 
 function createRunReport() {
   return {
@@ -1841,6 +1843,7 @@ function createRunReport() {
     bossEncounters: [],
     bossKills: 0,
     bossTimeFrames: 0,
+    bossDamageDealt: 0,
     powerUps: {},
     fusions: [],
     chestsOpened: 0,
@@ -1849,6 +1852,7 @@ function createRunReport() {
     rerollSpent: 0,
     peakEnemies: 0,
     peakBullets: 0,
+    debugPersisted: false,
   };
 }
 
@@ -1892,6 +1896,15 @@ function recordEnemyHit(tank, bullet, damageDone) {
   const report = ensureRunReport();
   report.playerHits++;
   report.damageDealt += dmg;
+  if (tank && tank.bossDef) {
+    report.bossDamageDealt += dmg;
+    const entry = getActiveBossReportEntry(tank);
+    if (entry) {
+      entry.damageTaken += dmg;
+      entry.lastHp = Math.max(0, Math.ceil(tank.hp || 0));
+      entry.lowestHpPct = Math.min(entry.lowestHpPct, entry.maxHp > 0 ? Math.max(0, tank.hp || 0) / entry.maxHp : 1);
+    }
+  }
 }
 
 function recordPlayerDamageCause(cause) {
@@ -1901,19 +1914,76 @@ function recordPlayerDamageCause(cause) {
   report.deathCause = cause || report.deathCause || '战场伤害';
 }
 
-function recordBossEncounter(bossDef) {
+function recordBossEncounter(bossDef, bossUnit) {
   const report = ensureRunReport();
   if (!bossDef) return;
-  report.bossEncounters.push({ name: bossDef.name, wave, startFrame: runFrameCount || 0, durationFrames: 0, killed: false });
+  const entry = {
+    id: 'boss-' + wave + '-' + report.bossEncounters.length + '-' + Math.floor((runFrameCount || 0) % 999999),
+    name: bossDef.name,
+    wave,
+    difficulty: currentDifficulty,
+    tank: currentTankType,
+    playerLevelStart: level,
+    playerLevelEnd: level,
+    startFrame: runFrameCount || 0,
+    durationFrames: 0,
+    killed: false,
+    maxHp: bossUnit ? Math.ceil(bossUnit.maxHp || bossUnit.hp || 0) : 0,
+    lastHp: bossUnit ? Math.max(0, Math.ceil(bossUnit.hp || 0)) : 0,
+    damageTaken: 0,
+    lowestHpPct: 1,
+    phasesReached: [bossDef.phases && bossDef.phases[0] ? bossDef.phases[0].name : 'Phase 1'],
+    endReason: 'active',
+  };
+  if (bossUnit) bossUnit.reportId = entry.id;
+  report.bossEncounters.push(entry);
+  return entry;
 }
 
-function recordBossKill(name) {
+function getActiveBossReportEntry(bossUnit) {
   const report = ensureRunReport();
+  if (!report.bossEncounters.length) return null;
+  if (bossUnit && bossUnit.reportId) {
+    const matched = report.bossEncounters.find(b => b.id === bossUnit.reportId);
+    if (matched) return matched;
+  }
+  const bossName = bossUnit && bossUnit.bossDef ? bossUnit.bossDef.name : null;
+  return [...report.bossEncounters].reverse().find(b => !b.killed && (!bossName || b.name === bossName)) || null;
+}
+
+function finalizeBossReportEntry(entry, bossUnit, reason) {
+  if (!entry || entry.endReason === 'killed') return;
+  entry.durationFrames = Math.max(entry.durationFrames || 0, (runFrameCount || 0) - (entry.startFrame || 0));
+  entry.playerLevelEnd = level;
+  entry.endReason = reason || entry.endReason || 'ended';
+  if (bossUnit) {
+    entry.maxHp = Math.max(entry.maxHp || 0, Math.ceil(bossUnit.maxHp || 0));
+    entry.lastHp = Math.max(0, Math.ceil(bossUnit.hp || 0));
+    entry.lowestHpPct = Math.min(entry.lowestHpPct, entry.maxHp > 0 ? Math.max(0, bossUnit.hp || 0) / entry.maxHp : entry.lowestHpPct);
+  }
+}
+
+function recordBossPhaseChange(bossUnit, phase) {
+  const entry = getActiveBossReportEntry(bossUnit);
+  if (!entry) return;
+  const phaseName = phase && phase.name ? phase.name : 'Phase ' + ((bossUnit && bossUnit.currentPhase || 0) + 1);
+  if (!entry.phasesReached.includes(phaseName)) entry.phasesReached.push(phaseName);
+  entry.playerLevelEnd = level;
+  entry.lastHp = Math.max(0, Math.ceil((bossUnit && bossUnit.hp) || 0));
+  entry.lowestHpPct = Math.min(entry.lowestHpPct, entry.maxHp > 0 ? Math.max(0, bossUnit.hp || 0) / entry.maxHp : 1);
+}
+
+function recordBossKill(bossUnitOrName) {
+  const report = ensureRunReport();
+  const name = typeof bossUnitOrName === 'string' ? bossUnitOrName : bossUnitOrName?.bossDef?.name;
   report.bossKills++;
-  const active = [...report.bossEncounters].reverse().find(b => b.name === name && !b.killed);
+  const active = typeof bossUnitOrName === 'string'
+    ? [...report.bossEncounters].reverse().find(b => b.name === name && !b.killed)
+    : getActiveBossReportEntry(bossUnitOrName);
   if (active) {
     active.killed = true;
-    active.durationFrames = Math.max(0, (runFrameCount || 0) - active.startFrame);
+    finalizeBossReportEntry(active, typeof bossUnitOrName === 'string' ? null : bossUnitOrName, 'killed');
+    active.endReason = 'killed';
     report.bossTimeFrames += active.durationFrames;
   }
 }
@@ -1960,6 +2030,75 @@ function updateRunReportPeaks() {
   runReport.peakBullets = Math.max(runReport.peakBullets, playerBullets.length + enemyBullets.length);
 }
 
+function finalizeActiveBossReports(reason) {
+  if (!runReport || !runReport.bossEncounters.length) return;
+  const activeBossUnits = enemies.filter(e => e && e.bossDef);
+  runReport.bossEncounters.forEach(entry => {
+    if (entry.killed || entry.endReason === 'killed') return;
+    const bossUnit = activeBossUnits.find(e => e.reportId === entry.id) || activeBossUnits.find(e => e.bossDef && e.bossDef.name === entry.name);
+    if (entry.endReason === 'active' || !entry.endReason) finalizeBossReportEntry(entry, bossUnit, reason || 'run_end');
+  });
+}
+
+function buildBossBalanceDebugSnapshot(report) {
+  return {
+    version: 1,
+    timestamp: new Date().toISOString(),
+    difficulty: report.difficulty,
+    tank: report.tank,
+    victory: !!report.victory,
+    score,
+    wave,
+    level,
+    damageDealt: report.damageDealt,
+    bossDamageDealt: report.bossDamageDealt,
+    bossKills: report.bossKills,
+    bossEncounters: report.bossEncounters.map(b => ({
+      name: b.name,
+      wave: b.wave,
+      difficulty: b.difficulty,
+      tank: b.tank,
+      killed: !!b.killed,
+      durationSeconds: Number(((b.durationFrames || 0) / 60).toFixed(1)),
+      maxHp: b.maxHp || 0,
+      remainingHp: b.lastHp || 0,
+      remainingHpPct: b.maxHp > 0 ? Number(((b.lastHp || 0) / b.maxHp).toFixed(3)) : 0,
+      damageTaken: b.damageTaken || 0,
+      playerLevelStart: b.playerLevelStart || 1,
+      playerLevelEnd: b.playerLevelEnd || b.playerLevelStart || 1,
+      phasesReached: b.phasesReached || [],
+      endReason: b.endReason || 'unknown',
+    })),
+    modifierPicks: report.modifierPicks.map(m => ({ name: m.name, rarity: m.rarity, axis: m.axis, jackpot: !!m.jackpot })),
+  };
+}
+
+function getBossBalanceDebugHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(BOSS_BALANCE_DEBUG_KEY) || '[]') || [];
+  } catch(e) {
+    return [];
+  }
+}
+
+function persistBossBalanceDebug(report) {
+  if (!report || report.debugPersisted || !report.bossEncounters.length) return;
+  try {
+    const history = getBossBalanceDebugHistory();
+    history.unshift(buildBossBalanceDebugSnapshot(report));
+    localStorage.setItem(BOSS_BALANCE_DEBUG_KEY, JSON.stringify(history.slice(0, BOSS_BALANCE_DEBUG_LIMIT)));
+    report.debugPersisted = true;
+  } catch(e) {}
+}
+
+if (typeof window !== 'undefined') {
+  window.getBossBalanceDebug = getBossBalanceDebugHistory;
+  window.clearBossBalanceDebug = function() {
+    try { localStorage.removeItem(BOSS_BALANCE_DEBUG_KEY); } catch(e) {}
+    return [];
+  };
+}
+
 function getRunReportAdvice(report) {
   if (!report) return 'NO DATA';
   if (report.victory) return '战线完成，建议复盘 Boss 耗时与升级路径。';
@@ -1975,11 +2114,17 @@ function renderRunReport(victory) {
   const el = document.getElementById('run-report');
   if (!el) return;
   const report = ensureRunReport();
+  finalizeActiveBossReports(victory ? 'victory' : 'run_end');
   report.endTime = report.endTime || Date.now();
   report.victory = !!victory;
+  persistBossBalanceDebug(report);
   const duration = formatMsAsTime(report.endTime - report.startTime);
   const accuracy = report.shotsFired > 0 ? Math.round((report.playerHits / report.shotsFired) * 100) : 0;
-  const bossNames = report.bossEncounters.map(b => b.name + (b.killed ? ' 已击破' : ' 未击破')).slice(-4);
+  const bossNames = report.bossEncounters.map(b => {
+    const hpPct = b.maxHp > 0 ? Math.max(0, Math.round((b.lastHp || 0) / b.maxHp * 100)) : 0;
+    const state = b.killed ? 'KILL' : 'LEFT ' + hpPct + '%';
+    return b.name + ' ' + state + ' / ' + formatFramesAsTime(b.durationFrames);
+  }).slice(-4);
   const topPowerUps = Object.entries(report.powerUps)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
@@ -2139,7 +2284,7 @@ function onEnemyKilled(enemyOrElite) {
   const isElite = killedEnemy ? !!killedEnemy.isElite : !!enemyOrElite;
   const isBossKill = !!(killedEnemy && killedEnemy.bossDef);
   const nextBossKills = (tankUnlockProgress.bossKills || 0) + (isBossKill ? 1 : 0);
-  if (isBossKill) recordBossKill(killedEnemy.bossDef.name);
+  if (isBossKill) recordBossKill(killedEnemy);
   sfxEnemyDestroyed(isElite, isBossKill);
   sessionKills++;
   if (isElite) sessionEliteKills++;
@@ -2304,7 +2449,6 @@ function startNextWave() {
     const bossDef = selectBossForWave(wave);
     lastBossName = bossDef.name;
     runBossesSeen.add(bossDef.name);
-    recordBossEncounter(bossDef);
     const bossSpawn = findSafeTankSpawn({
       w: 54,
       h: 54,
@@ -2317,6 +2461,7 @@ function startNextWave() {
       ],
     });
     bossRef = new BossEnemy(bossSpawn.x, bossSpawn.y, bossDef);
+    recordBossEncounter(bossDef, bossRef);
     enemies.push(bossRef);
     sfxBossIntro();
     for (let i = 0; i < bossSupportCount; i++) {
@@ -5743,6 +5888,7 @@ class BossEnemy extends EliteEnemy {
         this.attackBurstShots = 0;
         this.attackCycleLength = phases[i].burstRest || 86;
         this.baseSpeed *= 1.08;
+        recordBossPhaseChange(this, phases[i]);
         triggerShake(12, 18);
         spawnExplosion(this.x, this.y, 60, '#fff', this.bossDef.turret || '#ff0');
         sfxBossPhase();
@@ -8576,7 +8722,9 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
               const odx = bullet.x - other.x;
               const ody = bullet.y - other.y;
               if (Math.sqrt(odx * odx + ody * ody) < explosionRadius) {
+                const otherHpBefore = other.hp || 0;
                 other.hit(bullet);
+                recordEnemyHit(other, bullet, Math.max(0, otherHpBefore - (other.hp || 0)));
               }
             }
           }
