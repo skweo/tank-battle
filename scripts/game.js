@@ -3204,8 +3204,10 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvas.addEventListener('mousemove', e => {
   const rect = canvas.getBoundingClientRect();
-  mouse.x = e.clientX - rect.left;
-  mouse.y = e.clientY - rect.top;
+  const scaleX = canvas.width / (rect.width || 1);
+  const scaleY = canvas.height / (rect.height || 1);
+  mouse.x = (e.clientX - rect.left) * scaleX;
+  mouse.y = (e.clientY - rect.top) * scaleY;
 });
 canvas.addEventListener('mousedown', e => { if (e.button === 0) mouseDown = true; });
 canvas.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
