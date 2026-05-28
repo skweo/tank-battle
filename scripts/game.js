@@ -1,4 +1,5 @@
-﻿const canvas = document.getElementById('game');
+﻿
+const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 const W = 1480;
@@ -557,7 +558,20 @@ function sfxBossAttack(attack='boss', phase=0) {
     playSweep(2400, 110, 0.22, 'sawtooth', audioNodes.sfxGain, 0.06);
     playFilteredNoise(0.18, 0.06, audioNodes.sfxGain, 'lowpass', 400, 1.0);
     playChord([180, 270, 360], 0.18, 'sine', audioNodes.sfxGain, 0.035, 0.06);
-
+  } else if (attack === 'salvage_swarm') {
+    playFilteredNoise(0.12, 0.04, audioNodes.sfxGain, 'bandpass', 600, 1.8);
+    playTone(140, 0.1, 'sawtooth', audioNodes.sfxGain, 0.045);
+  } else if (attack === 'scrap_overload') {
+    playFilteredNoise(0.18, 0.065, audioNodes.sfxGain, 'lowpass', 380, 1.4);
+    playSweep(320, 80, 0.22, 'square', audioNodes.sfxGain, 0.055);
+    playChord([160, 240, 320], 0.14, 'sawtooth', audioNodes.sfxGain, 0.035, 0.05);
+  } else if (attack === 'arc_judgment') {
+    playSweep(2200, 520, 0.09, 'square', audioNodes.sfxGain, 0.05);
+    playFilteredNoise(0.06, 0.032, audioNodes.sfxGain, 'highpass', 2400, 0.9);
+  } else if (attack === 'storm_domain') {
+    playSweep(1800, 180, 0.28, 'sawtooth', audioNodes.sfxGain, 0.06);
+    playFilteredNoise(0.2, 0.07, audioNodes.sfxGain, 'bandpass', 800, 1.6);
+    playChord([200, 300, 500, 750], 0.22, 'sine', audioNodes.sfxGain, 0.04, 0.06);
   } else {
     playTone(180, 0.11, 'sawtooth', audioNodes.sfxGain, vol);
     playTone(360, 0.07, 'triangle', audioNodes.sfxGain, vol * 0.65);
@@ -5479,7 +5493,8 @@ class EnemyTank extends Tank {
       ctx.fillStyle = '#8cf';
       ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
     }
-    ctx.restore();
+    ctx.restore();    
+
   }
   shoot() {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
@@ -6271,6 +6286,20 @@ const BOSS_TYPES = [
       { name:'扫描标记', hpPct:1.0, attack:'scan_mark', shootDelay:44, burstShots:3, burstRest:136, telegraph:48, recover:118, bulletCount:8, bulletSpeed:1.76, pressure:0.96, cue:'SCAN LOCK', hint:'扫描束间隙可闪避，被标记后子弹会追踪' },
       { name:'轨道审判', hpPct:0.56, attack:'orbital_strike', shootDelay:42, burstShots:3, burstRest:172, telegraph:62, recover:146, bulletCount:10, bulletSpeed:2.08, pressure:1.28, cue:'ORBITAL JUDGMENT', hint:'光束锁定区域后短暂撤退' },
     ]}
+,
+  { name:'废铁巨像', color:'#643', turret:'#c84', speed:0.16, hp:165, icon:'SCP', faction:'graveyard',
+    desc:'残骸支配Boss，废铁回收+过载狂潮',
+    phases:[
+      { name:'残骸回收', hpPct:1.0, attack:'salvage_swarm', shootDelay:52, burstShots:3, burstRest:148, telegraph:50, recover:134, bulletCount:10, bulletSpeed:1.48, pressure:0.88, cue:'SALVAGE PROTOCOL', hint:'碎片弹幕密度高但速度慢，横移可规避' },
+      { name:'废铁觉醒', hpPct:0.54, attack:'scrap_overload', shootDelay:44, burstShots:3, burstRest:158, telegraph:58, recover:140, bulletCount:12, bulletSpeed:1.82, pressure:1.16, cue:'OVERLOAD AWAKENING', hint:'全向弹幕后巨像核心短暂暴露' },
+    ]},
+  { name:'雷霆执政官', color:'#348', turret:'#6ff', speed:0.48, hp:114, icon:'ARB', faction:'storm_cloister',
+    desc:'天罚支配Boss，电弧裁决+雷域展开',
+    phases:[
+      { name:'电弧裁决', hpPct:1.0, attack:'arc_judgment', shootDelay:38, burstShots:3, burstRest:120, telegraph:40, recover:108, bulletCount:6, bulletSpeed:2.62, pressure:1.02, cue:'ARC JUDGMENT', hint:'电弧直线清晰可辨，横移躲避' },
+      { name:'雷域展开', hpPct:0.55, attack:'storm_domain', shootDelay:36, burstShots:3, burstRest:156, telegraph:56, recover:136, bulletCount:10, bulletSpeed:2.48, pressure:1.35, cue:'DOMAIN EXPANSION', hint:'雷域边缘安全，但中心持续高压' },
+    ]}
+
 ];
 
 const BESTIARY_LORE = {
@@ -6324,6 +6353,8 @@ const BESTIARY_LORE = {
     '虚空坦克': '第七观测站试图用它封存月洞。现在月洞反过来驾驶它，在战场上寻找新的边界。',
     '风暴坦克': '气象控制塔的核心残骸。它召来的雷并非来自天空，而是来自碎月背面的静电海。',
   },
+    '废铁巨像': '灰域深处，无人认领的残骸在月光下开始互相寻找。废铁巨像不是被制造的——它是被废弃之物共同的记忆。',
+    '雷霆执政官': '修会最高审判庭的唯一机动席位。它携带的不是武器，是已然生效的判决。雷声只是宣读。',
     '观星者坦克': '第七观测站把一座天文台倒置装进车体。它不是在射击——它在记录。每一次光束扫描都是一份证词，每一轮轨道打击都是一次结案。',
   fusions: {
     gold_magnet: '回收协议与结算插件互相吞并后的产物。它会吸来补给，也会吸来贪婪。',
@@ -6820,7 +6851,82 @@ class BossEnemy extends EliteEnemy {
         enemyBullets.push(b);
       }
       triggerShake(this.currentPhase > 0 ? 12 : 8, 12);
-      spawnExplosion(baseX, baseY, 22, '#4ec', '#aff');
+      spawnExplosion(baseX, baseY, 22, '#4ec', '#aff');    } else if (phase.attack === 'salvage_swarm') {
+      // Graveyard Phase 1: Wide salvaged debris arcs
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total / 2) * 0.22;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + (i % 3) * 0.22, '#c84', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 2.8 + (i % 2) * 1.4;
+        enemyBullets.push(b);
+      }
+      for (let i = 0; i < 4; i++) {
+        const a = this.phaseTimer * 0.06 + (i / 4) * Math.PI * 2;
+        const b = new Bullet(this.x + Math.cos(a) * 22, this.y + Math.sin(a) * 22, a + rng() * 0.3, 1.35, '#964', false, 1);
+        b.radius = 3.5;
+        enemyBullets.push(b);
+      }
+      if (this.currentPhase > 0 && rng() < 0.35) this.deployMines(1, 120);
+    } else if (phase.attack === 'scrap_overload') {
+      // Graveyard Phase 2: Chaotic overload
+      const total = phase.bulletCount + bonusBullets + 2;
+      for (let i = 0; i < total; i++) {
+        const a = this.phaseTimer * 0.09 + (i / total) * Math.PI * 2;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + rng() * 0.35, '#f84', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 3.2 + rng() * 1.8;
+        enemyBullets.push(b);
+      }
+      for (let i = 0; i < 5; i++) {
+        const a = this.turretAngle + (i - 2) * 0.16;
+        const b = new Bullet(bx, by, a, 2.8, '#fa3', false, 2);
+        b.radius = 2.6;
+        enemyBullets.push(b);
+      }
+      spawnExplosion(this.x, this.y, 16, '#c84', '#964');
+      triggerShake(6, 8);
+    } else if (phase.attack === 'arc_judgment') {
+      // Storm Phase 1: Precision lightning bolts
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total / 2) * 0.065;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + rageSpeed, '#6ff', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 2.2;
+        b.railgun = true;
+        enemyBullets.push(b);
+      }
+      for (let s = -1; s <= 1; s += 2) {
+        const a = this.turretAngle + s * 0.38;
+        const b = new Bullet(bx, by, a, 2.95, '#0ee', false, 1);
+        b.radius = 1.8;
+        b.railgun = true;
+        enemyBullets.push(b);
+      }
+      if (this.currentPhase > 0) this.spawnStormLances(1);
+    } else if (phase.attack === 'storm_domain') {
+      // Storm Phase 2: Expanding lightning domain
+      const baseX = this.telegraphX || (player ? player.x : this.x);
+      const baseY = this.telegraphY || (player ? player.y : this.y);
+      const rings = this.currentPhase > 0 ? 3 : 2;
+      const ringRadii = [75, 120, 170];
+      for (let r = 0; r < Math.min(rings, ringRadii.length); r++) {
+        const count = 6 + r * 3;
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2 + this.phaseTimer * 0.04 * (r + 1) * (r % 2 ? -1 : 1);
+          const sx = baseX + Math.cos(a) * ringRadii[r];
+          const sy = baseY + Math.sin(a) * ringRadii[r];
+          const b = new Bullet(sx, sy, a + Math.PI / 2, phase.bulletSpeed + r * 0.3, '#6ff', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = 2.4;
+          enemyBullets.push(b);
+        }
+      }
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const b = new Bullet(baseX, baseY, a, 1.55, '#0ff', false, 1);
+        b.radius = 2;
+        enemyBullets.push(b);
+      }
+      spawnExplosion(baseX, baseY, 26, '#6ff', '#fff');
+      triggerShake(this.currentPhase > 0 ? 10 : 7, 10);
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
