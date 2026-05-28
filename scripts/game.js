@@ -7902,6 +7902,15 @@ function centerProtocolMapOnCore(force = false) {
   updateProtocolMapPan();
 }
 
+function resetProtocolMapView() {
+  protocolMapPan.zoom = 1;
+  protocolMapPan.x = 0;
+  protocolMapPan.y = 0;
+  protocolMapPan.dragging = false;
+  protocolMapPan.initialized = false;
+  centerProtocolMapOnCore(true);
+}
+
 function renderProtocolTree() {
   const panel = document.getElementById('protocol-panel');
   if (!panel) return;
@@ -8242,7 +8251,6 @@ function hideLabScreen() {
   renderDifficultyButtons();
 }
 function showProtocolScreen() {
-  renderProtocolTree();
   ['start-screen','tank-select-screen','lab-screen','achievements-screen','bestiary-screen','leaderboard-screen'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -8250,7 +8258,9 @@ function showProtocolScreen() {
   const protocolScreen = document.getElementById('protocol-screen');
   protocolScreen.scrollTop = 0;
   protocolScreen.style.display = 'flex';
-  requestAnimationFrame(() => centerProtocolMapOnCore(!protocolMapPan.initialized));
+  resetProtocolMapView();
+  renderProtocolTree();
+  requestAnimationFrame(resetProtocolMapView);
 }
 function hideProtocolScreen() {
   document.getElementById('protocol-screen').style.display = 'none';
