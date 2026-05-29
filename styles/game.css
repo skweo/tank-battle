@@ -431,7 +431,8 @@ canvas { display: block; background: #0a0f18; }
 }
 #achievements-screen .achieve-grid {
   display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 720px;
-  padding: 10px;
+  padding: 10px; margin: 0 auto;
+  background: transparent;
 }
 #achievements-screen .achieve-row {
   display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px;
