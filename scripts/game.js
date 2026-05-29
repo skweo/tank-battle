@@ -10371,6 +10371,7 @@ function update() {
       showWaveNotification('第 ' + wave + ' 波 清除!', (wave % 3 === 0) ? '补给时间! 准备迎接下一波' : '');
       if (shouldClearDifficulty()) {
         clearDifficulty();
+        wavePause++; // prevent re-triggering every frame
         return;
       }
     }
