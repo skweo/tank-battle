@@ -4578,17 +4578,17 @@ function groupBestiaryItems(items, tab) {
   const groups = [];
   if (tab === 'items_basic') {
     const cats = {
-      '火力强化': t => ['railgun','rapid','multishot','big_bullet','explosive','overdrive','pierce'].includes(t.powerType),
-      '生存保障': t => ['shield','repair','vampire','invisible','thorns'].includes(t.powerType),
-      '机动支援': t => ['speed','magnet','ricochet','freeze','double_score','timewarp','goldrush'].includes(t.powerType),
+      '火力强化': { pred: t => ['railgun','rapid','multishot','big_bullet','explosive','overdrive','pierce'].includes(t.powerType), color: '#ff5a4a' },
+      '生存保障': { pred: t => ['shield','repair','vampire','invisible','thorns'].includes(t.powerType), color: '#5ee870' },
+      '机动支援': { pred: t => ['speed','magnet','ricochet','freeze','double_score','timewarp','goldrush'].includes(t.powerType), color: '#60b0ff' },
     };
-    for (const [label, pred] of Object.entries(cats)) {
-      const grp = items.filter(pred).sort(sortFn);
-      if (grp.length) { groups.push({ _isHeader: true, name: label, count: grp.length }); groups.push(...grp); }
+    for (const [label, cfg] of Object.entries(cats)) {
+      const grp = items.filter(cfg.pred).sort(sortFn);
+      if (grp.length) { groups.push({ _isHeader: true, name: label, count: grp.length, color: cfg.color }); groups.push(...grp); }
     }
-    const used = new Set(Object.values(cats).flatMap(fn => items.filter(fn).map(i => i.powerType)));
+    const used = new Set(Object.values(cats).flatMap(cfg => items.filter(cfg.pred).map(i => i.powerType)));
     const rest = items.filter(i => !used.has(i.powerType)).sort(sortFn);
-    if (rest.length) { groups.push({ _isHeader: true, name: '其他', count: rest.length }); groups.push(...rest); }
+    if (rest.length) { groups.push({ _isHeader: true, name: '其他', count: rest.length, color: '#888' }); groups.push(...rest); }
     return groups;
   }
   if (tab === 'enemies_elite' || tab === 'enemies_boss' || tab === 'enemies_normal') {
@@ -4598,12 +4598,14 @@ function groupBestiaryItems(items, tab) {
       if (!factions[f]) factions[f] = [];
       factions[f].push(e);
     }
-    // Sort factions by count descending
+    const factionColors = {
+      '月面兵工厂': '#ff4040', '虚空教派': '#a080f0', '灰域教会': '#ffb060',
+      '风暴修会': '#60d0ff', '观星台': '#80d0f0', '灰域残骸群': '#ff8040',
+    };
     const sortedFactions = Object.entries(factions).sort((a, b) => b[1].length - a[1].length);
     for (const [fname, ents] of sortedFactions) {
-      // Sort within faction: by threat/HP descending
       ents.sort((a, b) => (b.threat || b.hp || 0) - (a.threat || a.hp || 0));
-      groups.push({ _isHeader: true, name: fname, count: ents.length });
+      groups.push({ _isHeader: true, name: fname, count: ents.length, color: factionColors[fname] || '#888' });
       groups.push(...ents);
     }
     return groups;
@@ -4618,7 +4620,11 @@ function groupBestiaryItems(items, tab) {
 
 function buildBestiaryRow(it) {
   if (it._isHeader) {
-    return `<div class="best-group-header"><span>${escapeHtml(it.name)}</span><span class="bst-count">${it.count}</span></div>`;
+    const hdrColor = it.color || '#f49800';
+    return `<div class="best-group-header" style="--hdr-color:${hdrColor}">
+      <span style="color:${hdrColor}">&#9656; ${escapeHtml(it.name)}</span>
+      <span class="bst-count">${it.count} 项</span>
+    </div>`;
   }
   const unlocked = it.unlocked !== false;
   const threatColor = unlocked ? (it.color || '#f49800') : '#58677a';

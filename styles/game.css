@@ -742,9 +742,9 @@ canvas { display: block; background: #0a0f18; }
 #bestiary-screen .best-group-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 14px 5px; margin-top: 10px; margin-bottom: 2px;
-  border-bottom: 2px solid rgba(244,152,0,0.25);
-  color: #f49800; font: bold 14px "Segoe UI","Microsoft YaHei",sans-serif;
-  letter-spacing: 3px; text-transform: uppercase;
+  border-bottom: 2px solid var(--hdr-color, rgba(244,152,0,0.3));
+  font: bold 14px "Segoe UI","Microsoft YaHei",sans-serif;
+  letter-spacing: 3px;
 }
 #bestiary-screen .best-group-header .bst-count {
   font: 11px "Courier New",monospace; color: rgba(255,255,255,0.4); letter-spacing: 1px;
