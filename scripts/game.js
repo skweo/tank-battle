@@ -1815,6 +1815,31 @@ const achievementsDef = [
   { id: 'fusion_all', name: '融合全典', desc: '完成全部融合协议', icon: 'FAL', tier: 'mythic' },
   { id: 'elite_50', name: '精英灭绝令', desc: '单局消灭50个精英敌人', icon: 'E50', tier: 'mythic' },
   { id: 'lab_max_tank', name: '究极造机', desc: '任意坦克达到最高级强化', icon: 'LMT', tier: 'mythic' },
+  // === More achievements ===
+  { id: 'score_200k', name: '碎月神话', desc: '单局得分达到200000', icon: 'S2M', tier: 'mythic' },
+  { id: 'wave_60', name: '灰域尽头', desc: '到达第60波', icon: 'W60', tier: 'mythic' },
+  { id: 'wave_75', name: '永夜绝笔', desc: '到达第75波', icon: 'W75', tier: 'mythic' },
+  { id: 'combo_150', name: '弹幕启示录', desc: '达成150连击', icon: 'C15', tier: 'mythic' },
+  { id: 'kills_10000', name: '月面终焉', desc: '累计消灭10000个敌人', icon: 'K10', tier: 'mythic' },
+  { id: 'endless_30', name: '无尽行刑者', desc: '无尽模式到达第30波', icon: 'E30', tier: 'elite' },
+  { id: 'endless_50', name: '无尽征服者', desc: '无尽模式到达第50波', icon: 'E50W', tier: 'mythic' },
+  { id: 'one_run_3boss', name: '三连屠戮', desc: '单局无伤击败3个不同Boss', icon: 'B3N', tier: 'mythic' },
+  { id: 'modifier_10_stack', name: '十重圣礼', desc: '单局持有10个以上的局内改造', icon: 'M10', tier: 'elite' },
+  { id: 'modifier_20_stack', name: '二十重加护', desc: '单局持有20个以上的局内改造', icon: 'M20S', tier: 'mythic' },
+  { id: 'evolve_twice', name: '二度进化', desc: '任意坦克进化2次', icon: 'EV2', tier: 'elite' },
+  { id: 'one_life_clear', name: '一条命', desc: '全程不损失生命通关任意难度', icon: '1LC', tier: 'mythic' },
+  { id: 'bullet_hell_survivor', name: '弹幕幸存者', desc: '单局承受500发敌方子弹未被命中', icon: 'BHS', tier: 'mythic' },
+  { id: 'poverty_run', name: '清贫行者', desc: '不拾取任何道具到达第5波', icon: 'POV', tier: 'elite' },
+  { id: 'rich_run', name: '贪婪远征', desc: '单局拾取80个道具', icon: 'RCH', tier: 'mythic' },
+  { id: 'boss_speed_kill', name: '速杀令', desc: 'Boss出场后30秒内击杀', icon: 'BSK', tier: 'elite' },
+  { id: 'boss_phase_skip', name: '阶段跨越', desc: '在Boss进入二阶段前将其击杀', icon: 'BPS', tier: 'mythic' },
+  { id: 'moonstone_2000', name: '月面巨贾', desc: '持有2000个月光石', icon: 'M2K', tier: 'elite' },
+  { id: 'moonstone_5000', name: '灰域富豪', desc: '持有5000个月光石', icon: 'M5K', tier: 'mythic' },
+  { id: 'chest_10', name: '宝箱猎人', desc: '单局开启10个宝箱', icon: 'CH10', tier: 'elite' },
+  { id: 'chest_20', name: '宝箱之王', desc: '单局开启20个宝箱', icon: 'CH20', tier: 'mythic' },
+  { id: 'first_try_clear', name: '初见杀', desc: '首次使用新解锁坦克即通关第5波', icon: 'FTC', tier: 'elite' },
+  { id: 'perfect_daily', name: '完美日课', desc: '每日挑战中达成所有隐藏条件', icon: 'PDY', tier: 'mythic' },
+  { id: 'research_max_all', name: '全域解锁', desc: '全部全局研究协议达到上限', icon: 'RMA', tier: 'mythic' },
 ];
 
 const ACHIEVEMENT_LORE = {
@@ -3191,12 +3216,12 @@ function renderAchievements() {
 let achievementsTab = 'combat';
 function getAchievementGroups() {
   return {
-    'combat': { label:'战斗', color:'#ff5a4a', ids:['first_blood','sharpshooter','tank_hunter','battle_veteran','kills_500','kills_1000','kills_2000','kills_5000','combo_20','combo_35','combo_50','combo_75','combo_100','elite_hunter','elite_hunter_25','elite_hunter_40','elite_50'] },
-    'survival': { label:'生存', color:'#5ee870', ids:['survivor','tenacious','flawless','perfect_run','no_hit_wave10','mine_dodger','speed_demon','speed_120','speed_90','wave_15','wave_20','wave_25','wave_30','wave_35','wave_40','wave_50','hardcore','hardcore_wave10','nightmare_survivor','boss_no_hit','boss_all_no_hit','untouched_combo'] },
-    'score': { label:'分数', color:'#ffb060', ids:['score_500','score_2000','score_5000','score_10000','score_20000','score_30000','score_50000','score_100k'] },
-    'tank': { label:'机体', color:'#60b0ff', ids:['tank_spread_win','tank_focus_win','tank_wide_win','tank_burst_win','tank_sniper_win','tank_homing_win','tank_border_win','tank_blade_win','tank_scarlet_win','tank_astral_win','tank_hard_spread','tank_hard_sniper','tank_hard_astral','all_tank_hard','all_tank_evo'] },
-    'collection': { label:'收藏', color:'#a080f0', ids:['powerup_collector','powerup_collector_40','powerup_60','fragment_500','fragment_1000','upgrade_apprentice','upgrade_master','evolution_first','evolution_six','all_tanks_unlocked','daily_clear','daily_10','fusion_first','fusion_5','fusion_all','lab_max_tank'] },
-    'special': { label:'特殊', color:'#f6e5aa', ids:['modifier_reroll','modifier_full_reroll','modifier_mythic','modifier_treasury','modifier_jackpot','global_research_first','global_research_10','global_research_max','boss_witness','boss_breaker','boss_5_run','boss_8_run','clear_easy','clear_hard','clear_nightmare','clear_all_diff'] },
+    'combat': { label:'战斗', color:'#ff5a4a', ids:['first_blood','sharpshooter','tank_hunter','battle_veteran','kills_500','kills_1000','kills_2000','kills_5000','kills_10000','combo_20','combo_35','combo_50','combo_75','combo_100','combo_150','elite_hunter','elite_hunter_25','elite_hunter_40','elite_50'] },
+    'survival': { label:'生存', color:'#5ee870', ids:['survivor','tenacious','flawless','perfect_run','no_hit_wave10','one_life_clear','bullet_hell_survivor','mine_dodger','speed_demon','speed_120','speed_90','wave_15','wave_20','wave_25','wave_30','wave_35','wave_40','wave_50','wave_60','wave_75','endless_30','endless_50','hardcore','hardcore_wave10','nightmare_survivor','boss_no_hit','boss_all_no_hit','boss_speed_kill','boss_phase_skip','one_run_3boss','untouched_combo'] },
+    'score': { label:'分数', color:'#ffb060', ids:['score_500','score_2000','score_5000','score_10000','score_20000','score_30000','score_50000','score_100k','score_200k'] },
+    'tank': { label:'机体', color:'#60b0ff', ids:['tank_spread_win','tank_focus_win','tank_wide_win','tank_burst_win','tank_sniper_win','tank_homing_win','tank_border_win','tank_blade_win','tank_scarlet_win','tank_astral_win','tank_hard_spread','tank_hard_sniper','tank_hard_astral','all_tank_hard','all_tank_evo','first_try_clear'] },
+    'collection': { label:'收藏', color:'#a080f0', ids:['powerup_collector','powerup_collector_40','powerup_60','rich_run','poverty_run','fragment_500','fragment_1000','moonstone_2000','moonstone_5000','upgrade_apprentice','upgrade_master','evolution_first','evolution_six','evolve_twice','all_tanks_unlocked','daily_clear','daily_10','perfect_daily','fusion_first','fusion_5','fusion_all','lab_max_tank','chest_10','chest_20'] },
+    'special': { label:'特殊', color:'#f6e5aa', ids:['modifier_reroll','modifier_full_reroll','modifier_mythic','modifier_treasury','modifier_jackpot','modifier_10_stack','modifier_20_stack','global_research_first','global_research_10','global_research_max','research_max_all','boss_witness','boss_breaker','boss_5_run','boss_8_run','clear_easy','clear_hard','clear_nightmare','clear_all_diff'] },
   };
 }
 function switchAchievementsTab(tab) {
