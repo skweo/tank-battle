@@ -5613,6 +5613,7 @@ class EnemyTank extends Tank {
       }
     }
 
+    ctx.shadowBlur = 0;
     if (this.hp < this.maxHp) {
       const hpColor = this.hp / this.maxHp > 0.5 ? '#79f48d' : (this.hp / this.maxHp > 0.25 ? '#ffd36f' : '#ff6a6a');
       drawEnemyInfoPlate(ctx, 0, -25, 74, this.hp / this.maxHp, hpColor, this.kind.toUpperCase(), 'HOSTILE', 'HP');
@@ -10623,11 +10624,8 @@ function draw() {
     }
   }
 
-  // Player (safety reset — prevent enemy draw state leak)
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // Player
   ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
-  ctx.shadowColor = 'transparent';
   if (player.alive) player.draw(ctx);
 
   // Particles
