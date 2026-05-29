@@ -2,8 +2,8 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const W = 1480;
-const H = 960;
+const W = 1680;
+const H = 1080;
 canvas.width = W;
 canvas.height = H;
 
@@ -9420,6 +9420,14 @@ const OBSTACLE_TYPES = {
   crystal:{ color:'#3a2a5a', stroke:'#7a5aaa', passable:false, slow:0, minW:15, maxW:25, minH:20, maxH:35, weight:8 },
   metal:  { color:'#445566', stroke:'#667788', passable:false, slow:0, minW:35, maxW:60, minH:25, maxH:45, weight:8 },
   bunker: { color:'#3a3028', stroke:'#5a5048', passable:false, slow:0, minW:50, maxW:90, minH:35, maxH:55, weight:5 },
+  crater:  { color:'#332211', stroke:'#554433', passable:true,  slow:0.35, minW:45, maxW:90, minH:35, maxH:70, weight:10 },
+  energy:  { color:'#1a2a3a', stroke:'#4a9acc', passable:true,  slow:0.25, minW:30, maxW:60, minH:25, maxH:50, weight:8 },
+  wreck:   { color:'#443322', stroke:'#886644', passable:false, slow:0,    minW:35, maxW:70, minH:25, maxH:50, weight:10 },
+  trench:  { color:'#1a1510', stroke:'#3a3020', passable:true,  slow:0.45, minW:55, maxW:120, minH:20, maxH:50, weight:6  },
+  scorched:{ color:'#1a0c0a', stroke:'#4a2018', passable:true,  slow:0.2,  minW:35, maxW:75, minH:25, maxH:55, weight:7  },
+  ruins:   { color:'#3a3428', stroke:'#6a6050', passable:false, slow:0,    minW:40, maxW:85, minH:30, maxH:60, weight:7  },
+  reactor: { color:'#1a2828', stroke:'#2a8888', passable:false, slow:0,    minW:30, maxW:55, minH:30, maxH:55, weight:5  },
+  spires:  { color:'#2a1a3a', stroke:'#5a3a7a', passable:false, slow:0,    minW:20, maxW:40, minH:30, maxH:65, weight:6  },
 };
 
 function generateObstacles() {
@@ -9558,6 +9566,98 @@ function drawObstacles(ctx) {
       ctx.strokeStyle = '#4a4038'; ctx.lineWidth = 0.5;
       for (let ly = obs.y + obs.h * 0.4; ly < obs.y + obs.h; ly += obs.h * 0.3) {
         ctx.beginPath(); ctx.moveTo(obs.x, ly); ctx.lineTo(obs.x + obs.w, ly); ctx.stroke();
+      }
+    } else if (obs.type === 'crater') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1.5; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      const cGrad = ctx.createRadialGradient(obs.x + obs.w/2, obs.y + obs.h/2, 4, obs.x + obs.w/2, obs.y + obs.h/2, obs.w * 0.4);
+      cGrad.addColorStop(0, 'rgba(20,12,6,0.5)'); cGrad.addColorStop(1, obs.color);
+      ctx.fillStyle = cGrad; ctx.fillRect(obs.x + 4, obs.y + 4, obs.w - 8, obs.h - 8);
+    } else if (obs.type === 'energy') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.fillStyle = 'rgba(100,180,255,0.15)';
+      ctx.fillRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h - 6);
+    } else if (obs.type === 'wreck') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = '#553311'; ctx.lineWidth = 0.8;
+      for (let lx = obs.x + 6; lx < obs.x + obs.w; lx += 14) {
+        ctx.beginPath(); ctx.moveTo(lx, obs.y); ctx.lineTo(lx + 5, obs.y + obs.h); ctx.stroke();
+      }
+    } else if (obs.type === 'trench') {
+      const tGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.h);
+      tGrad.addColorStop(0, '#2a2018'); tGrad.addColorStop(0.5, '#0d0a06'); tGrad.addColorStop(1, '#1a1008');
+      ctx.fillStyle = tGrad; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = '#4a3828'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(obs.x, obs.y);
+      for (let tx = obs.x; tx <= obs.x + obs.w; tx += 8) {
+        ctx.lineTo(tx, obs.y + (Math.sin(tx * 0.3 + obs.x) * 4));
+      }
+      ctx.lineTo(obs.x + obs.w, obs.y + obs.h);
+      for (let tx = obs.x + obs.w; tx >= obs.x; tx -= 8) {
+        ctx.lineTo(tx, obs.y + obs.h + (Math.sin(tx * 0.3 + obs.x) * 3));
+      }
+      ctx.closePath(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,150,30,0.3)'; ctx.lineWidth = 0.8;
+      for (let lx = obs.x + 10; lx < obs.x + obs.w; lx += 20) {
+        ctx.beginPath(); ctx.moveTo(lx, obs.y + 3); ctx.lineTo(lx + 6, obs.y + obs.h - 3); ctx.stroke();
+      }
+    } else if (obs.type === 'scorched') {
+      const sGrad = ctx.createRadialGradient(obs.x + obs.w/2, obs.y + obs.h/2, 5, obs.x + obs.w/2, obs.y + obs.h/2, obs.w/1.5);
+      sGrad.addColorStop(0, 'rgba(30,15,10,0.6)'); sGrad.addColorStop(0.5, 'rgba(20,8,5,0.5)'); sGrad.addColorStop(1, 'rgba(50,20,12,0.2)');
+      ctx.fillStyle = sGrad; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = '#5a2818'; ctx.lineWidth = 1.5; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.fillStyle = 'rgba(255,120,30,0.35)';
+      for (let e = 0; e < 6; e++) {
+        const ex = obs.x + ((e * 37 + obs.x) % obs.w);
+        const ey = obs.y + ((e * 53 + obs.y) % obs.h);
+        ctx.beginPath(); ctx.arc(ex, ey, 1.5 + (e % 2), 0, Math.PI*2); ctx.fill();
+      }
+    } else if (obs.type === 'ruins') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2.5; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = '#5a5040'; ctx.lineWidth = 1;
+      for (let px = obs.x + 8; px < obs.x + obs.w; px += 20) {
+        ctx.beginPath(); ctx.moveTo(px, obs.y + 4); ctx.lineTo(px, obs.y + obs.h - 4); ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(244,152,0,0.25)';
+      const rx = obs.x + obs.w/2, ry = obs.y + obs.h/2;
+      ctx.beginPath(); ctx.arc(rx, ry, obs.w * 0.2, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rx - obs.w*0.15, ry); ctx.lineTo(rx + obs.w*0.15, ry); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rx, ry - obs.w*0.15); ctx.lineTo(rx, ry + obs.w*0.15); ctx.stroke();
+    } else if (obs.type === 'reactor') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      const pulse = Math.sin(Date.now() / 400 + obs.x * 0.01) * 0.15 + 0.5;
+      const cx = obs.x + obs.w/2, cy = obs.y + obs.h/2, cr = obs.w * 0.18;
+      const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
+      coreGrad.addColorStop(0, 'rgba(150,255,255,' + pulse.toFixed(2) + ')');
+      coreGrad.addColorStop(0.5, 'rgba(30,180,180,' + (pulse*0.6).toFixed(2) + ')');
+      coreGrad.addColorStop(1, 'rgba(0,60,60,0)');
+      ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(80,220,220,' + (pulse*0.5).toFixed(2) + ')'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx, cy, cr + 4, 0, Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(40,160,160,0.4)'; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.arc(cx, cy, cr + 10, 0, Math.PI*2); ctx.stroke();
+    } else if (obs.type === 'spires') {
+      const spireGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.h);
+      spireGrad.addColorStop(0, '#4a2a6a'); spireGrad.addColorStop(0.5, '#2a1a3a'); spireGrad.addColorStop(1, '#1a0a2a');
+      ctx.fillStyle = spireGrad; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      const spireCount = 2 + Math.floor(obs.w / 20);
+      for (let si = 0; si < spireCount; si++) {
+        const sx = obs.x + (si + 0.5) * (obs.w / spireCount);
+        const sh = obs.h * (0.5 + (si % 3) * 0.2);
+        ctx.fillStyle = 'rgba(120,80,180,0.3)';
+        ctx.beginPath(); ctx.moveTo(sx - 6, obs.y + obs.h);
+        ctx.lineTo(sx, obs.y + obs.h - sh); ctx.lineTo(sx + 6, obs.y + obs.h); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#7a5aaa'; ctx.lineWidth = 1; ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(200,160,255,0.5)';
+      for (let sp = 0; sp < 3; sp++) {
+        const spx = obs.x + ((sp * 47 + obs.x) % obs.w);
+        const spy = obs.y + ((sp * 31 + obs.y) % (obs.h * 0.7));
+        ctx.beginPath(); ctx.arc(spx, spy, 1.2, 0, Math.PI*2); ctx.fill();
       }
     }
   }
@@ -10511,7 +10611,7 @@ function init() {
   scaleToFit();
   window.addEventListener('resize', scaleToFit);
 }  ensurePerfOverlay();
-  if (new URLSearchParams(location.search).has('debug')) { perfEnabled = true; document.getElementById('perf-overlay').style.display = 'block'; }
+  try { if (new URLSearchParams(location.search).has('debug')) { perfEnabled = true; document.getElementById('perf-overlay').style.display = 'block'; } } catch(e) {}
 
 function scaleToFit() {
   const container = document.getElementById('game-container');
