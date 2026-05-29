@@ -3156,7 +3156,6 @@ function getAchievementGroups() {
     '收藏': ['powerup_collector','powerup_collector_40','fragment_500','fragment_1000','upgrade_apprentice','upgrade_master','evolution_first','evolution_six','all_tanks_unlocked','daily_clear'],
     '特殊': ['modifier_reroll','global_research_first','boss_witness','boss_breaker'],
   };
-  }).join('');
 }
 
 function showAchievements() {
