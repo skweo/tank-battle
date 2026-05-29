@@ -3162,17 +3162,9 @@ function getEnemyBulletSpeedMul() {
 function renderAchievements() {
   const grid = document.getElementById('achieve-grid');
   const groups = getAchievementGroups();
-  // Render tabs
+  // Render tabs — temporarily hidden for debug
   const tabsEl = document.getElementById('achieve-tabs');
-  if (tabsEl) {
-    let tabsHtml = '';
-    for (const [key, cfg] of Object.entries(groups)) {
-      const activeCls = key === achievementsTab ? ' active' : '';
-      const total = cfg.ids.length;
-      const unlocked = cfg.ids.filter(id => unlockedAchievements.has(id)).length;
-      tabsHtml += `<button class="best-section-tab${activeCls}" data-tab="${key}" onclick="switchAchievementsTab('${key}')">${cfg.label} <span class="best-tab-code">${unlocked}/${total}</span></button>`;
-    }
-    tabsEl.innerHTML = tabsHtml;
+  if (tabsEl) { tabsEl.innerHTML = ''; // tabsEl.style.display = 'none';
   }
   // Render current tab's items
   const activeGroup = groups[achievementsTab];
