@@ -1457,8 +1457,8 @@ canvas { background: #070d13; }
   filter: drop-shadow(0 0 7px currentColor);
 }
 #achievements-screen .ach-medal .ui-code-icon .tank-select-svg {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
 }
 #lab-screen .lab-tank-icon .ui-code-icon .tank-select-svg,
 #lab-screen .lab-evo-current .ui-code-icon .tank-select-svg,
