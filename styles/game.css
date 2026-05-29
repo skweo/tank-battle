@@ -420,7 +420,7 @@ canvas { display: block; background: #0a0f18; }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 #achievements-screen {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  position: fixed; top: 0; left: 0; right: 0; min-height: 100vh;
   background: #060a14; z-index: 15; display: none;
   flex-direction: column; align-items: center; padding: 24px 30px; overflow-y: auto;
 }
@@ -691,8 +691,8 @@ canvas { display: block; background: #0a0f18; }
   background: rgba(50,50,50,0.5);
 }
 #bestiary-screen {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(4,8,16,0.96); z-index: 15; display: none;
+  position: fixed; top: 0; left: 0; right: 0; min-height: 100vh;
+  background: #060a14; z-index: 15; display: none;
   flex-direction: column; align-items: center; padding: 20px 24px; overflow-y: auto;
 }
 #bestiary-screen h1, #achievements-screen h1 {
