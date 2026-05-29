@@ -178,6 +178,7 @@ function triggerShake(intensity, duration) {
 
 // --- Audio System ---
 let audioCtx = null;
+let musicSys = null;
 let audioNodes = {}; // category gain nodes
 let audioSfxLast = {};
 let audioUnlockPromise = null;
@@ -840,11 +841,16 @@ function musicTick() {
 }
 
 function startMusic() {
+  if (musicSys) { musicSys.switchMode('combat', wave); musicSys.fadeIn(0.08); }
   if (!audioCtx || musicTimeout) return;
   musicTick();
 }
+function startBossMusic() {
+  if (musicSys) { musicSys.switchMode('boss', wave); musicSys.fadeIn(0.09); }
+}
 
 function stopMusic() {
+  if (musicSys) musicSys.fadeOut();
   if (musicTimeout) { clearTimeout(musicTimeout); musicTimeout = null; }
   if (musicLowPass) { musicLowPass.disconnect(); musicLowPass = null; }
 }
@@ -2643,6 +2649,7 @@ function startNextWave() {
   // Boss wave every 4 waves (starting from wave 4)
   if (isBossWaveNumber(wave)) {
     isBossWave = true;
+    startBossMusic();
     const bossSupportCount = getBossSupportCount(wave);
     waveEnemiesTotal = 1 + bossSupportCount;
     waveEnemiesRemaining = 1 + bossSupportCount;
@@ -2677,6 +2684,7 @@ function startNextWave() {
   if (isBossWave) {
     spawnChest(W/2 + (rng()-0.5)*200, H/2 + (rng()-0.5)*100, true);
     isBossWave = false;
+    startMusic(); // Back to combat after boss
   }
   bossRef = null;
   const enemiesPerWave = getWaveEnemyBudget(wave);
@@ -10898,6 +10906,12 @@ function init() {
   // Auto-scale game container to fit viewport
   scaleToFit();
   window.addEventListener('resize', scaleToFit);
+  // Init procedural BGM
+  if (typeof CyberSynth !== 'undefined' && !musicSys) {
+    musicSys = new CyberSynth(audioCtx || new (window.AudioContext || window.webkitAudioContext)());
+    musicSys.start();
+    musicSys.switchMode('menu');
+  }
 }  ensurePerfOverlay();
   try { if (new URLSearchParams(location.search).has('debug')) { perfEnabled = true; document.getElementById('perf-overlay').style.display = 'block'; } } catch(e) {}
 
