@@ -7074,6 +7074,22 @@ class BossEnemy extends EliteEnemy {
       if (this.currentPhase > 0 && this.attackState === 'firing' && this.zoneTimer % 110 === 0) {
         this.spawnStormLances(2);
       }
+    } else if (this.bossDef.name === '观星者坦克') {
+      // Keeps medium-long distance, slowly strafes
+      if (dist < 200) { moveX -= dx/dist * 0.3; moveY -= dy/dist * 0.3; }
+      else if (dist > 340) { moveX += dx/dist * 0.35; moveY += dy/dist * 0.35; }
+      moveX += -dy/dist * strafeDir * 0.25;
+      moveY += dx/dist * strafeDir * 0.25;
+    } else if (this.bossDef.name === '废铁巨像') {
+      // Very slow, lumbering advance — never backs off
+      moveX += dx/dist * 0.22;
+      moveY += dy/dist * 0.22;
+    } else if (this.bossDef.name === '雷霆执政官') {
+      // Fast floating circles — swift strafing, keeps close-mid range
+      moveX += -dy/dist * strafeDir * 0.82;
+      moveY += dx/dist * strafeDir * 0.82;
+      if (dist > 260) { moveX += dx/dist * 0.55; moveY += dy/dist * 0.55; }
+      else if (dist < 100) { moveX -= dx/dist * 0.45; moveY -= dy/dist * 0.45; }
     }
 
     const slowMul = this.currentPhase > 0 ? 1.18 : 1;
