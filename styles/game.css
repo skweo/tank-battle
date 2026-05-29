@@ -464,14 +464,11 @@ canvas { display: block; background: #0a0f18; }
 }
 #achievements-screen .achieve-row::after {
   content: ''; position: absolute; inset: 0;
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--ach-accent, #f49800) 12%, transparent), transparent 42%),
-    repeating-linear-gradient(90deg, transparent 0 28px, rgba(255,255,255,0.018) 28px 29px);
+  background: linear-gradient(90deg, rgba(246,229,170,0.03), transparent 50%);
   pointer-events: none;
-  opacity: 0.78;
 }
-#achievements-screen .achieve-row.unlocked { border-color: color-mix(in srgb, var(--ach-accent, #f49800) 44%, rgba(246,229,170,0.12)); }
-#achievements-screen .achieve-row.locked { filter: saturate(0.72); }
+#achievements-screen .achieve-row.unlocked { border-color: rgba(246,229,170,0.15); }
+#achievements-screen .achieve-row.locked { filter: grayscale(0.6) brightness(0.7); }
 #achievements-screen .achieve-row:hover,
 #achievements-screen .achieve-row:focus {
   border-color: var(--ach-accent, #f49800);

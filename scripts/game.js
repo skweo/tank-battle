@@ -3126,7 +3126,7 @@ function renderAchievements() {
       const activeCls = key === achievementsTab ? ' active' : '';
       const total = cfg.ids.length;
       const unlocked = cfg.ids.filter(id => unlockedAchievements.has(id)).length;
-      tabsHtml += `<button class="best-tab${activeCls}" data-tab="${key}" onclick="switchAchievementsTab('${key}')"><span class="best-tab-code">${unlocked}/${total}</span>${cfg.label}</button>`;
+      tabsHtml += `<button class="best-section-tab${activeCls}" data-tab="${key}" onclick="switchAchievementsTab('${key}')">${cfg.label} <span class="best-tab-code">${unlocked}/${total}</span></button>`;
     }
     tabsEl.innerHTML = tabsHtml;
   }
@@ -3184,7 +3184,7 @@ function switchAchievementsTab(tab) {
   achievementsTab = tab;
   renderAchievements();
   // Update tab buttons
-  document.querySelectorAll('#achieve-tabs .best-tab').forEach(el => {
+  document.querySelectorAll('#achieve-tabs .best-section-tab').forEach(el => {
     el.classList.toggle('active', el.dataset.tab === tab);
   });
 }
