@@ -885,13 +885,13 @@ function rotateTurretToward(current, target, maxSpeed) {
 }
 // Turret rotation speeds (radians per frame)
 const TURRET_SPEED_FACTION = {
-  observatory: 0.10, storm_cloister: 0.07, void_cult: 0.06,
-  moon_arsenal: 0.05, ash_church: 0.04, graveyard: 0.03,
+  observatory: 0.12, storm_cloister: 0.08, void_cult: 0.06,
+  moon_arsenal: 0.05, ash_church: 0.03, graveyard: 0.02,
 };
 const TURRET_SPEED_PLAYER = {
-  sniper: 0.14, scarlet: 0.14, homing: 0.11, astral: 0.11,
-  focus: 0.09, blade: 0.09, spread: 0.07, burst: 0.07,
-  wide: 0.05, border: 0.05,
+  sniper: 0.18, scarlet: 0.18, homing: 0.13, astral: 0.13,
+  focus: 0.10, blade: 0.10, spread: 0.07, burst: 0.07,
+  wide: 0.04, border: 0.04,
 };
 function getDailySeed() {
   const d = new Date();
