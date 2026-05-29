@@ -462,8 +462,11 @@ canvas { display: block; background: #0a0f18; }
 #achievements-screen .achieve-grid {
   display: flex; flex-direction: column; width: 100%; max-width: 720px;
   padding: 8px; margin: 0 auto;
-  background: #080c14;
+  flex: 1; min-height: 0; overflow-y: auto;
 }
+#achievements-screen .achieve-grid::-webkit-scrollbar { width: 6px; }
+#achievements-screen .achieve-grid::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+#achievements-screen .achieve-grid::-webkit-scrollbar-thumb { background: rgba(244,152,0,0.35); border-radius: 3px; }
 #achievements-screen .achieve-row {
   display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px;
   min-height: 52px;
