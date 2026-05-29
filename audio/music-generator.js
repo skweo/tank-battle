@@ -5,7 +5,7 @@ class CyberSynth {
   constructor(ctx) {
     this.ctx = ctx;
     this.masterGain = ctx.createGain();
-    this.masterGain.gain.value = 0.12;
+    this.masterGain.gain.value = 0.16;
     this.masterGain.connect(ctx.destination);
     // Reverb-like delay node for extra depth
     this.delayNode = ctx.createDelay(0.3);
@@ -21,8 +21,8 @@ class CyberSynth {
     this._nextBeat = 0;
     this._bpm = 70;
     this._beat = 0;
-    this._fadeTarget = 0.12;
-    this._fadeCurrent = 0.12;
+    this._fadeTarget = 0.16;
+    this._fadeCurrent = 0.16;
   }
 
   _outputNodes() { return [this.masterGain, this.delayGain]; }
@@ -245,9 +245,9 @@ class CyberSynth {
   switchMode(mode, wave = 1) {
     this.currentMode = mode;
     this.currentWave = wave;
-    if (mode === 'menu') { this._bpm = 70; this._fadeTarget = 0.14; }
-    else if (mode === 'boss') { this._bpm = 88 + wave * 1.5; this._fadeTarget = 0.12; }
-    else { this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.11; }
+    if (mode === 'menu') { this._bpm = 70; this._fadeTarget = 0.16; }
+    else if (mode === 'boss') { this._bpm = 88 + wave * 1.5; this._fadeTarget = 0.16; }
+    else { this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.16; }
     this._nextBeat = this.ctx.currentTime + 0.1;
     this._beat = 0;
   }
