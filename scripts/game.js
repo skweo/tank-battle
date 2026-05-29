@@ -3232,13 +3232,11 @@ function switchAchievementsTab(tab) {
 
 function showAchievements() {
   renderAchievements();
-  document.getElementById('game-container').style.display = 'none';
   document.getElementById('achievements-screen').style.display = 'flex';
   document.getElementById('start-screen').style.display = 'none';
 }
 
 function hideAchievements() {
-  document.getElementById('game-container').style.display = '';
   document.getElementById('achievements-screen').style.display = 'none';
   document.getElementById('start-screen').style.display = 'flex';
   renderDifficultyButtons();
