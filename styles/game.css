@@ -454,17 +454,6 @@ canvas { display: block; background: #0a0f18; }
   background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 2px;
 }
 #achievements-screen .ach-group-header:first-child { margin-top: 0; }
-#achievements-screen .achieve-row::before {
-  content: ''; position: absolute; inset: 0 auto 0 0; width: 4px;
-  background: var(--ach-accent, #f49800);
-  box-shadow: 0 0 18px var(--ach-accent, #f49800);
-  opacity: 0.62;
-}
-#achievements-screen .achieve-row::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(90deg, rgba(246,229,170,0.03), transparent 50%);
-  pointer-events: none;
-}
 #achievements-screen .achieve-row.unlocked { border-color: rgba(246,229,170,0.15); }
 #achievements-screen .achieve-row.locked { filter: grayscale(0.6) brightness(0.7); }
 #achievements-screen .achieve-row:hover,
