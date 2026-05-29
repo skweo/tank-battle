@@ -845,7 +845,7 @@ document.addEventListener('click', () => {
   if (audioUnlocked) return;
   audioUnlocked = true;
   ensureMusicSystem();
-  if (musicSys) { musicSys.switchMode('menu'); musicSys.fadeIn(0.06); }
+  if (musicSys) { musicSys.switchMode('menu'); }
 }, { once: false });
 
 function ensureMusicSystem() {

@@ -117,30 +117,36 @@ class CyberSynth {
     return base[idx] * Math.pow(2, octShift);
   }
 
-  // === MENU — lush cyber ambient ===
+  // === MENU — signature cyber ambient (loudest, most distinctive) ===
   _menuBeat(n) {
     const t = this.ctx.currentTime;
     const bp = 60 / 70;
 
-    // Rich pad — changes every 16 beats
+    // Lush evolving pad — foundation always present, changes every 32 beats
+    if (n % 32 === 0) {
+      const root = [0, -4, -2, 3][(n / 32) % 4];
+      this._pad([this._n(root, -1), this._n(root + 2, -1), this._n(root + 4, -1), this._n(root + 6, -1), this._n(root, 0)], t, bp * 32, 0.06);
+    }
+    // Warm lower pad layer
     if (n % 16 === 0) {
       const root = [0, -2, -4, 2][(n / 16) % 4];
-      this._pad([this._n(root, -1), this._n(root + 2, -1), this._n(root + 4, -1), this._n(root + 6, -1), this._n(root, 0)], t, bp * 16, 0.05);
+      this._pad([this._n(root, -2), this._n(root + 3, -2), this._n(root + 5, -2)], t + bp * 0.5, bp * 16, 0.04);
     }
-    // Chord swell — every 8 beats
-    if (n % 8 === 0) {
-      const chord = [0, 2, 4];
-      this._chordStab(chord.map(c => this._n(c, -1)), t + bp * 0.25, bp * 3, 0.025);
+    // Signature melody — the memorable hook
+    if (n % 3 === 0) {
+      const mel = [0, 3, 5, 7, 10, 7, 5, 3, 0, -2, 0, 3, 5, 3, 2, 0, -1, 2, 4, 5, 7, 5, 4, 2];
+      this._lead(this._n(mel[n % 24], 0), t, 1.6, 0.05);
+      this._osc('triangle', this._n(mel[n % 24] + 4, 0), t + 0.12, 1.2, 0.022, 2500);
     }
-    // Lead melody
-    if (n % 4 === 0) {
-      const mel = [0, 3, 5, 7, 5, 3, 2, 0, -1, 0, 2, 3, 5, 3, 0, -2];
-      this._lead(this._n(mel[(n / 4) % 16], 0), t, 2.0, 0.035);
-      this._osc('triangle', this._n(mel[(n / 4) % 16] + 4, 0), t + 0.15, 1.5, 0.018, 2000);
+    // Gentle arp sparkles
+    if (n % 2 === 0) {
+      const sparkle = [7, 11, 14, 11, 7, 4, 0, 4, 5, 10, 12, 10, 5, 2, -2, 2];
+      this._osc('sine', this._n(sparkle[n % 16], 1), t + bp * 0.3, 0.4, 0.015, 4000);
     }
-    // Bass pulse
-    if (n % 8 === 0) this._bass(this._n(0, -2), t, 2.5, 0.08);
-    if (n % 8 === 4) this._bass(this._n(-2, -2), t, 2.5, 0.06);
+    // Very subtle low pulse — no "Duang"
+    if (n % 16 === 0) {
+      this._osc('sine', this._n(0, -2), t, 3.0, 0.04);
+    }
   }
 
   // === COMBAT — driving synthwave ===
@@ -239,9 +245,9 @@ class CyberSynth {
   switchMode(mode, wave = 1) {
     this.currentMode = mode;
     this.currentWave = wave;
-    if (mode === 'menu') this._bpm = 70;
-    else if (mode === 'boss') this._bpm = 88 + wave * 1.5;
-    else this._bpm = 82 + Math.min(wave, 18) * 0.8;
+    if (mode === 'menu') { this._bpm = 70; this._fadeTarget = 0.14; }
+    else if (mode === 'boss') { this._bpm = 88 + wave * 1.5; this._fadeTarget = 0.12; }
+    else { this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.11; }
     this._nextBeat = this.ctx.currentTime + 0.1;
     this._beat = 0;
   }
