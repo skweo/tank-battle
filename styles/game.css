@@ -693,24 +693,27 @@ canvas { display: block; background: #0a0f18; }
   background: rgba(4,8,16,0.96); z-index: 15; display: none;
   flex-direction: column; align-items: center; padding: 20px 24px; overflow-y: auto;
 }
-#bestiary-screen h1 {
+#bestiary-screen h1, #achievements-screen h1 {
   color: #f49800; font-size: 26px; font-weight: 300; letter-spacing: 5px;
   margin-bottom: 10px; font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
   text-shadow: 0 0 20px rgba(244,152,0,0.3);
 }
-#bestiary-screen .best-archive-nav {
+#bestiary-screen .best-archive-nav, #achievements-screen .best-archive-nav {
   display: flex; flex-direction: column; align-items: center; gap: 7px; margin-bottom: 10px;
 }
 #bestiary-screen .best-section-tabs,
-#bestiary-screen .best-tabs { display: flex; gap: 0; }
-#bestiary-screen .best-section-tab {
+#bestiary-screen .best-tabs,
+#achievements-screen .best-section-tabs { display: flex; gap: 0; }
+#bestiary-screen .best-section-tab,
+#achievements-screen .best-section-tab {
   min-width: 156px;
   padding: 8px 22px; font-size: 13px; font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
   letter-spacing: 3px; border: 1px solid rgba(107,125,149,0.16); cursor: pointer;
   color: #7e8fa5; background: rgba(10,14,22,0.72); transition: all 0.2s;
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
-#bestiary-screen .best-section-tab.active {
+#bestiary-screen .best-section-tab.active,
+#achievements-screen .best-section-tab.active {
   color: #f6e5aa; border-color: rgba(246,229,170,0.38);
   background: linear-gradient(90deg, rgba(244,152,0,0.18), rgba(12,18,24,0.86), rgba(140,232,255,0.1));
   box-shadow: inset 0 0 16px rgba(246,229,170,0.06), 0 0 24px rgba(244,152,0,0.08);
@@ -724,7 +727,8 @@ canvas { display: block; background: #0a0f18; }
 #bestiary-screen .best-tab.active {
   color: #f49800; border-color: rgba(244,152,0,0.3); background: rgba(20,26,36,0.7);
 }
-#bestiary-screen .best-tab-code {
+#bestiary-screen .best-tab-code,
+#achievements-screen .best-tab-code {
   color: rgba(140,232,255,0.56);
   font: 700 8px 'Courier New', monospace;
   letter-spacing: 1px;
