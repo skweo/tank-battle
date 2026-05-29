@@ -840,12 +840,31 @@ function musicTick() {
   musicTimeout = setTimeout(musicTick, tempo);
 }
 
+let audioUnlocked = false;
+document.addEventListener('click', () => {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  ensureMusicSystem();
+  if (musicSys) { musicSys.switchMode('menu'); musicSys.fadeIn(0.06); }
+}, { once: false });
+
+function ensureMusicSystem() {
+  if (musicSys) return;
+  if (typeof CyberSynth === 'undefined') return;
+  const actx = initAudio();
+  if (!actx) return;
+  musicSys = new CyberSynth(actx);
+  musicSys.start();
+}
+
 function startMusic() {
+  ensureMusicSystem();
   if (musicSys) { musicSys.switchMode('combat', wave); musicSys.fadeIn(0.08); }
   if (!audioCtx || musicTimeout) return;
   musicTick();
 }
 function startBossMusic() {
+  ensureMusicSystem();
   if (musicSys) { musicSys.switchMode('boss', wave); musicSys.fadeIn(0.09); }
 }
 
@@ -10906,12 +10925,6 @@ function init() {
   // Auto-scale game container to fit viewport
   scaleToFit();
   window.addEventListener('resize', scaleToFit);
-  // Init procedural BGM
-  if (typeof CyberSynth !== 'undefined' && !musicSys) {
-    musicSys = new CyberSynth(audioCtx || new (window.AudioContext || window.webkitAudioContext)());
-    musicSys.start();
-    musicSys.switchMode('menu');
-  }
 }  ensurePerfOverlay();
   try { if (new URLSearchParams(location.search).has('debug')) { perfEnabled = true; document.getElementById('perf-overlay').style.display = 'block'; } } catch(e) {}
 
