@@ -460,8 +460,7 @@ canvas { display: block; background: #0a0f18; }
 #achievements-screen .achieve-row:first-child { border-top: none; }
 #achievements-screen .ach-group-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 14px 6px; margin-top: 10px; margin-bottom: 2px;
-  border-bottom: 2px solid var(--hdr-color, rgba(244,152,0,0.3));
+  padding: 14px 14px 6px; margin-bottom: 3px;
   font: bold 14px "Segoe UI","Microsoft YaHei",sans-serif;
   letter-spacing: 3px;
 }
