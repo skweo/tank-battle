@@ -4418,93 +4418,135 @@ function drawEnemyRoleIcon(ctx, iconType, r, color) {
 
 function drawEnemyInfoPlate(ctx, x, y, w, hpRatio, accent, name, label, extraText) {
   const width = w || 92;
-  const height = 28;
+  const height = 34;
   const ratio = Math.max(0, Math.min(1, hpRatio || 0));
+  const t = Date.now() / 1000;
   ctx.save();
   ctx.translate(x, y);
-  // Main armor panel with darker fill
-  drawArmorPanel(ctx, -width / 2, -height / 2, width, height, 'rgba(5,9,14,0.88)', 'rgba(160,200,230,0.14)', 4);
-  // Faction accent stripe - thick left edge with gradient
-  const stripeGrad = ctx.createLinearGradient(-width / 2, 0, -width / 2 + 5, 0);
-  stripeGrad.addColorStop(0, accent);
-  stripeGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
-  ctx.fillStyle = stripeGrad;
-  ctx.fillRect(-width / 2 + 2, -height / 2 + 2, 4, height - 4);
-  // Subtle glow on accent stripe
-  ctx.strokeStyle = accent;
-  ctx.globalAlpha = 0.18;
+
+  // === Outer frame with scan-line corners ===
+  const hw = -width / 2, hh = -height / 2;
+  ctx.fillStyle = 'rgba(3,6,10,0.92)';
+  ctx.fillRect(hw, hh, width, height);
+  ctx.strokeStyle = 'rgba(120,160,200,0.22)';
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(-width / 2 + 4, -height / 2 + 3);
-  ctx.lineTo(-width / 2 + 4, height / 2 - 3);
+  ctx.strokeRect(hw, hh, width, height);
+  // Corner accents
+  const cornerLen = 8;
+  ctx.strokeStyle = accent;
+  ctx.globalAlpha = 0.55;
+  ctx.lineWidth = 1.5;
+  [ [hw, hh, 1, 1], [hw + width, hh, -1, 1], [hw, hh + height, 1, -1], [hw + width, hh + height, -1, -1] ]
+    .forEach(([cx, cy, dx, dy]) => {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + dy * cornerLen);
+      ctx.lineTo(cx, cy);
+      ctx.lineTo(cx + dx * cornerLen, cy);
+      ctx.stroke();
+    });
+  ctx.globalAlpha = 1;
+
+  // === Faction emblem (left hex) ===
+  const emblemX = hw + 18;
+  const emblemY = hh + height / 2;
+  const emblemR = 10;
+  ctx.save();
+  ctx.translate(emblemX, emblemY);
+  // Outer hex ring
+  const hexPulse = 0.4 + Math.sin(t * 2.5 + x * 0.02) * 0.15;
+  ctx.strokeStyle = accent;
+  ctx.globalAlpha = hexPulse;
+  ctx.lineWidth = 1.3;
+  traceHexCell(ctx, emblemR, 3);
   ctx.stroke();
   ctx.globalAlpha = 1;
-  // Label (top-left)
-  ctx.fillStyle = 'rgba(255,255,255,0.72)';
+  // Inner fill with faction color
+  const hexGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, emblemR);
+  hexGrad.addColorStop(0, accent);
+  hexGrad.addColorStop(0.5, 'rgba(0,0,0,0.7)');
+  hexGrad.addColorStop(1, 'rgba(5,12,18,0.85)');
+  ctx.fillStyle = hexGrad;
+  traceHexCell(ctx, emblemR - 1.5, 3);
+  ctx.fill();
+  // Center glyph — threat symbol
+  ctx.fillStyle = '#fff';
+  ctx.globalAlpha = 0.8;
+  ctx.font = 'bold 8px "Courier New",monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('!', 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // === Name & label ===
+  const textX = hw + 34;
+  ctx.fillStyle = accent;
+  ctx.globalAlpha = 0.8;
   ctx.font = 'bold 9px "Courier New",monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, -width / 2 + 12, -5);
-  // Name (bottom-left)
-  ctx.fillStyle = '#d8e0eb';
-  ctx.font = 'bold 11px "Segoe UI","Microsoft YaHei",sans-serif';
-  ctx.fillText(name, -width / 2 + 12, 7);
-  // Threat indicator dots (right side)
-  const threatDots = Math.min(5, Math.ceil(extraText ? 3 : 2));
-  const dotSpacing = 10;
-  const dotR = 2;
-  for (let d = 0; d < threatDots; d++) {
-    const dx = width / 2 - 14 - d * dotSpacing;
-    ctx.fillStyle = d < 2 ? accent : (d < 4 ? accent : 'rgba(255,255,255,0.35)');
-    ctx.globalAlpha = d < 3 ? 0.7 : 0.35;
-    ctx.beginPath();
-    ctx.arc(dx, -5, dotR, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  ctx.fillText(label, textX, hh + 9);
   ctx.globalAlpha = 1;
-  // HP bar background with notch marks
-  const barX = -width / 2 + 10;
-  const barY = height / 2 - 10;
-  const barW = width - 24;
-  const barH = 5;
-  ctx.fillStyle = 'rgba(15,22,30,0.7)';
-  ctx.fillRect(barX, barY, barW, barH);
-  // Notch marks on HP bar
-  for (let n = 1; n < 4; n++) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(barX + barW * n / 4, barY + 1);
-    ctx.lineTo(barX + barW * n / 4, barY + barH - 1);
-    ctx.stroke();
-  }
-  // HP bar fill with gradient based on ratio
-  const hpGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
-  if (ratio > 0.6) {
-    hpGrad.addColorStop(0, '#7ae880');
-    hpGrad.addColorStop(1, accent);
-  } else if (ratio > 0.3) {
-    hpGrad.addColorStop(0, '#f4b840');
-    hpGrad.addColorStop(1, '#ff7a3d');
-  } else {
-    hpGrad.addColorStop(0, '#ff5a4a');
-    hpGrad.addColorStop(1, '#d42030');
-  }
-  ctx.fillStyle = hpGrad;
-  ctx.fillRect(barX, barY, barW * ratio, barH);
-  // HP bar border
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-  ctx.lineWidth = 0.8;
-  ctx.strokeRect(barX, barY, barW, barH);
-  // Extra text (right side)
-  if (extraText) {
-    ctx.fillStyle = accent;
-    ctx.globalAlpha = 0.7;
-    ctx.font = '8px "Courier New",monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(extraText, width / 2 - 12, 7);
+  ctx.fillStyle = '#e8eef4';
+  ctx.font = 'bold 12px "Segoe UI","Microsoft YaHei",sans-serif';
+  ctx.fillText(name, textX, hh + 22);
+
+  // === Threat bars (right side) ===
+  const threatCount = label === 'BOSS LOCK' ? 5 : (label === 'ELITE' ? 3 : 2);
+  const threatX = hw + width - 12;
+  for (let d = 0; d < 5; d++) {
+    const dy = hh + 5 + d * 5;
+    ctx.fillStyle = d < threatCount ? accent : 'rgba(255,255,255,0.08)';
+    ctx.globalAlpha = d < threatCount ? (0.5 + d * 0.12) : 0.25;
+    ctx.fillRect(threatX - 6, dy, 10, 3);
     ctx.globalAlpha = 1;
   }
+
+  // === HP bar (segmented) ===
+  const barX = hw + 10;
+  const barY = hh + height - 9;
+  const barW = width - 20;
+  const barH = 5;
+  const segments = 8;
+  const segW = (barW - segments + 1) / segments;
+  ctx.fillStyle = 'rgba(8,14,22,0.8)';
+  ctx.fillRect(barX, barY, barW, barH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 0.5;
+  for (let s = 0; s < segments; s++) {
+    ctx.strokeRect(barX + s * (segW + 1), barY, segW, barH);
+  }
+  // Filled segments
+  const filledSegs = Math.ceil(ratio * segments);
+  for (let s = 0; s < filledSegs; s++) {
+    const sx = barX + s * (segW + 1);
+    if (ratio > 0.6) {
+      ctx.fillStyle = s / segments < ratio ? '#5ee870' : 'transparent';
+    } else if (ratio > 0.3) {
+      ctx.fillStyle = s / segments < ratio ? '#f4b030' : 'transparent';
+    } else {
+      ctx.fillStyle = s / segments < ratio ? '#ff4030' : 'transparent';
+    }
+    if (s < filledSegs) ctx.fillRect(sx + 1, barY + 1, segW - 2, barH - 2);
+  }
+  // HP glow on bar
+  if (ratio < 0.35) {
+    ctx.shadowColor = '#ff3020';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = 'rgba(255,40,20,0.3)';
+    ctx.fillRect(barX, barY, barW * ratio, barH);
+    ctx.shadowBlur = 0;
+  }
+
+  // === Extra text right-aligned ===
+  if (extraText) {
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '7px "Courier New",monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(extraText, hw + width - 12, hh + 22);
+  }
+
   ctx.restore();
 }
 
@@ -5567,53 +5609,99 @@ class EnemyTank extends Tank {
     ctx.translate(this.x, this.y);
 
     switch(this.kind) {
-      case 'runner':
-        drawTankTracks(ctx, -14, 10, -9, 18, 4, '#311912', '#6a3526');
-        ctx.fillStyle = this.color;
+      case 'runner': {
+        // === SLEEK INTERCEPTOR ===
+        drawTankTracks(ctx, -16, 9, -12, 24, 5, '#1a0c08', '#4a2018');
+        const rBodyGrad = ctx.createLinearGradient(-14, -10, 14, -10);
+        rBodyGrad.addColorStop(0, '#cc5a2a'); rBodyGrad.addColorStop(0.5, '#ff8c4a'); rBodyGrad.addColorStop(1, '#cc5a2a');
+        ctx.fillStyle = rBodyGrad;
         ctx.beginPath();
-        ctx.moveTo(18, 0); ctx.lineTo(0, -10); ctx.lineTo(-12, -4); ctx.lineTo(-12, 4); ctx.lineTo(0, 10); ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = '#7a3d2c'; ctx.lineWidth = 1.6; ctx.stroke();
-        drawTechCore(ctx, 1, 0, 3.4, '#ffe6c9', accent);
+        ctx.moveTo(20, 0); ctx.lineTo(4, -12); ctx.lineTo(-8, -10); ctx.lineTo(-14, -4);
+        ctx.lineTo(-14, 4); ctx.lineTo(-8, 10); ctx.lineTo(4, 12); ctx.closePath();
+        ctx.fill(); ctx.strokeStyle = '#ff5a1f'; ctx.lineWidth = 1.8; ctx.stroke();
+        drawArmorPanel(ctx, -2, -6, 12, 12, 'rgba(20,8,4,0.8)', '#ff7a3d', 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1;
+        for (let c = 0; c < 3; c++) {
+          ctx.beginPath();
+          ctx.moveTo(-11 + c * 3, -8 + c); ctx.lineTo(-6 + c * 3, 0); ctx.lineTo(-11 + c * 3, 8 - c); ctx.stroke();
+        }
+        const rBurnGlow = ctx.createRadialGradient(-14, 0, 0, -14, 0, 8);
+        rBurnGlow.addColorStop(0, 'rgba(255,200,60,0.9)'); rBurnGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = rBurnGlow; ctx.beginPath(); ctx.arc(-14, 0, 8, 0, Math.PI * 2); ctx.fill();
+        drawTechCore(ctx, 2, 0, 3.8, '#fff2cc', accent);
         ctx.save(); ctx.rotate(this.turretAngle);
-        drawWeaponBarrel(ctx, 3, -2.2, 13, 4.4, this.turretColor, '#7a3d2c', '#fff2df');
+        drawWeaponBarrel(ctx, 4, -1.8, 14, 3.6, '#cc5a2a', '#ff5a1f', '#ffe8c0');
         ctx.restore();
         break;
-      case 'brute':
-        drawTankTracks(ctx, -21, 15, -13, 26, 7, '#241533', '#513271');
-        drawArmorPanel(ctx, -18, -11, 36, 22, this.color, '#5a3790', 4);
-        drawArmorPanel(ctx, -13, -7, 26, 14, '#c18cff', '#efd9ff', 3);
-        ctx.fillStyle = '#5a3790';
-        ctx.fillRect(-20, -8, 4, 16);
-        ctx.fillRect(16, -8, 4, 16);
-        drawTechCore(ctx, 0, 0, 5.2, '#f5e7ff', accent);
+      }
+      case 'brute': {
+        // === HEAVY JUGGERNAUT ===
+        drawTankTracks(ctx, -22, 16, -14, 28, 7, '#150825', '#3a1e5a');
+        const bBodyGrad = ctx.createLinearGradient(-18, -12, 18, -12);
+        bBodyGrad.addColorStop(0, '#5a2890'); bBodyGrad.addColorStop(0.5, '#8248cc'); bBodyGrad.addColorStop(1, '#5a2890');
+        ctx.fillStyle = bBodyGrad;
+        ctx.beginPath();
+        ctx.moveTo(10, -14); ctx.lineTo(-18, -7); ctx.lineTo(-18, 7); ctx.lineTo(10, 14); ctx.closePath();
+        ctx.fill(); ctx.strokeStyle = '#9148e0'; ctx.lineWidth = 2.5; ctx.stroke();
+        [[-18, -3, 6, 6], [12, -3, 6, 6]].forEach(([px, py, pw, ph]) => {
+          drawArmorPanel(ctx, px, py, pw, ph, '#3a1e5a', '#7a48c0', 2);
+        });
+        const shieldPulse = Math.sin(t * 3 + this.x * 0.02) * 0.15 + 0.55;
+        ctx.strokeStyle = 'rgba(180,100,255,' + shieldPulse.toFixed(2) + ')';
+        ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.stroke();
+        drawTechCore(ctx, 0, 0, 5.5, '#f0e0ff', accent);
         ctx.save(); ctx.rotate(this.turretAngle);
-        drawWeaponBarrel(ctx, 4, -3.5, 14, 7, this.turretColor, '#54327e', '#fff7ff');
+        drawWeaponBarrel(ctx, 5, -3, 16, 6, '#5a2890', '#9148e0', '#fff7ff');
         ctx.restore();
         break;
-      case 'artillery':
-        drawTankTracks(ctx, -18, 12, -12, 24, 5, '#30142a', '#6e295f');
-        drawArmorPanel(ctx, -15, -10, 30, 20, this.color, '#6e295f', 4);
-        drawArmorPanel(ctx, -10, -6, 20, 12, '#ff9ad8', '#ffd8f0', 3);
-        ctx.strokeStyle = 'rgba(255,216,240,0.24)';
-        ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.stroke();
-        drawTechCore(ctx, 0, -1, 4.3, '#fff0fb', accent);
+      }
+      case 'artillery': {
+        // === SIEGE PLATFORM ===
+        drawTankTracks(ctx, -20, 14, -14, 28, 6, '#1a0a22', '#4a2070');
+        const aBodyGrad = ctx.createLinearGradient(-16, -10, 16, -10);
+        aBodyGrad.addColorStop(0, '#8a2060'); aBodyGrad.addColorStop(0.5, '#d84090'); aBodyGrad.addColorStop(1, '#8a2060');
+        ctx.fillStyle = aBodyGrad;
+        ctx.beginPath();
+        ctx.moveTo(8, -12); ctx.lineTo(-16, -5); ctx.lineTo(-16, 5); ctx.lineTo(8, 12); ctx.closePath();
+        ctx.fill(); ctx.strokeStyle = '#ff60b0'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#6a1850';
+        ctx.beginPath(); ctx.moveTo(-16, -5); ctx.lineTo(-24, -14); ctx.lineTo(-16, -2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-16, 5); ctx.lineTo(-24, 14); ctx.lineTo(-16, 2); ctx.fill();
+        for (let r = 0; r < 3; r++) {
+          ctx.strokeStyle = 'rgba(255,160,210,' + (0.5 - r * 0.14) + ')';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.arc(-6, 0, 6 + r * 3, -Math.PI * 0.35, Math.PI * 0.35); ctx.stroke();
+        }
+        drawTechCore(ctx, 2, -1, 4.5, '#fff0fa', accent);
         ctx.save(); ctx.rotate(this.turretAngle);
-        drawWeaponBarrel(ctx, 5, -2.5, 17, 5, this.turretColor, '#6e295f', '#fff0fb');
-        ctx.fillStyle = '#ffd2f1';
-        ctx.beginPath(); ctx.arc(17, 0, 3, 0, Math.PI * 2); ctx.fill();
+        drawWeaponBarrel(ctx, 5, -2, 19, 4, '#8a2060', '#ff60b0', '#fff0fa');
+        ctx.fillStyle = '#ffd0f0'; ctx.beginPath(); ctx.arc(19, 0, 3.5, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
         break;
+      }
       case 'scout':
-      default:
-        drawTankTracks(ctx, -17, 11, -11, 22, 5, '#331111', '#7a2b2b');
-        drawArmorPanel(ctx, -14, -9, 28, 18, this.color, '#812a2a', 4);
-        drawArmorPanel(ctx, -9, -6, 18, 12, '#ff8f8f', '#ffd4d4', 3);
-        drawTechCore(ctx, 0, 0, 4.1, '#ffe5e5', accent);
+      default: {
+        // === LIGHT RECON ===
+        drawTankTracks(ctx, -14, 9, -10, 20, 4, '#1a0808', '#5a1818');
+        const sBodyGrad = ctx.createLinearGradient(-12, -8, 12, -8);
+        sBodyGrad.addColorStop(0, '#b82828'); sBodyGrad.addColorStop(0.5, '#e84040'); sBodyGrad.addColorStop(1, '#b82828');
+        ctx.fillStyle = sBodyGrad;
+        ctx.beginPath();
+        ctx.moveTo(16, 0); ctx.lineTo(0, -10); ctx.lineTo(-12, -3); ctx.lineTo(-12, 3); ctx.lineTo(0, 10); ctx.closePath();
+        ctx.fill(); ctx.strokeStyle = '#ff5040'; ctx.lineWidth = 1.8; ctx.stroke();
+        ctx.strokeStyle = '#ff7060'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(2, -10); ctx.lineTo(2, -16); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,100,80,0.7)';
+        ctx.beginPath(); ctx.arc(2, -16, 2.5, 0, Math.PI * 2); ctx.fill();
+        const scanPulse = Math.sin(t * 4 + this.x * 0.03) * 0.3 + 0.7;
+        ctx.strokeStyle = 'rgba(255,100,80,' + (scanPulse * 0.4).toFixed(2) + ')';
+        ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(2, -16, 5 + Math.sin(t * 3) * 1, 0, Math.PI * 2); ctx.stroke();
+        drawTechCore(ctx, 1, 0, 4.2, '#ffe0e0', accent);
         ctx.save(); ctx.rotate(this.turretAngle);
-        drawWeaponBarrel(ctx, 4, -2.4, 12, 4.8, this.turretColor, '#812a2a', '#fff0f0');
+        drawWeaponBarrel(ctx, 4, -1.8, 11, 3.6, '#b82828', '#ff5040', '#fff0f0');
         ctx.restore();
         break;
+      }
     }
 
     if (this.hp < this.maxHp) {
