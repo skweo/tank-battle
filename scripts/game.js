@@ -7572,62 +7572,224 @@ class BossEnemy extends EliteEnemy {
     ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
     // === TYPE-SPECIFIC BODY ===
     if (bname === '巨兽坦克') {
-      // === BEHEMOTH — wrecking ball ===
-      ctx.fillStyle='#200808';ctx.beginPath();ctx.moveTo(30,-26);ctx.lineTo(-28,-14);ctx.lineTo(-36,-2);ctx.lineTo(-36,12);ctx.lineTo(-28,24);ctx.lineTo(30,28);ctx.lineTo(38,10);ctx.lineTo(38,-14);ctx.closePath();ctx.fill();
-      ctx.strokeStyle=accent;ctx.lineWidth=4.5;ctx.stroke();
-      ctx.fillStyle='#501818';for(let a=-20;a<30;a+=10){ctx.fillRect(a,-18+Math.abs(a)*0.1,7,36-Math.abs(a)*0.35);}
-      // Forward battering wedge
-      ctx.fillStyle='#601010';ctx.beginPath();ctx.moveTo(32,-10);ctx.lineTo(44,-4);ctx.lineTo(44,4);ctx.lineTo(32,10);ctx.closePath();ctx.fill();ctx.strokeStyle=accent;ctx.lineWidth=3;ctx.stroke();
-      // Angry core
-      drawArmorPanel(ctx,-10,-7,20,14,'rgba(0,0,0,0.9)',accent,3);
-      ctx.fillStyle=accent;ctx.globalAlpha=eyePulse;ctx.beginPath();ctx.arc(0,0,6,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-2,-2,2,0,Math.PI*2);ctx.fill();
-      ctx.save();ctx.rotate(this.turretAngle);drawWeaponBarrel(ctx,6,-6,22,12,'#400',accent,'#fff');ctx.restore();
+      // === BEHEMOTH — triple-cannon siege breaker ===
+      // Heavy chassis
+      const bChGrad = ctx.createLinearGradient(-36, -28, 36, -28);
+      bChGrad.addColorStop(0,'#1a0606');bChGrad.addColorStop(0.3,'#3a1010');bChGrad.addColorStop(0.5,'#4a1818');bChGrad.addColorStop(0.7,'#3a1010');bChGrad.addColorStop(1,'#1a0606');
+      ctx.fillStyle=bChGrad;
+      ctx.beginPath();ctx.moveTo(30,-28);ctx.lineTo(-28,-16);ctx.lineTo(-38,-2);ctx.lineTo(-38,14);ctx.lineTo(-28,26);ctx.lineTo(30,30);ctx.lineTo(40,12);ctx.lineTo(40,-14);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#ff4040';ctx.lineWidth=5;ctx.stroke();
+      // Vertical armor slabs
+      ctx.fillStyle='#501818';
+      for(let a=-22;a<32;a+=9){ctx.fillRect(a,-22+Math.abs(a)*0.1,8,42-Math.abs(a)*0.4);}
+      // Forward siege ram
+      ctx.fillStyle='#601010';ctx.beginPath();ctx.moveTo(34,-12);ctx.lineTo(48,-6);ctx.lineTo(48,6);ctx.lineTo(34,12);ctx.closePath();ctx.fill();
+      ctx.strokeStyle=accent;ctx.lineWidth=3.5;ctx.stroke();
+      // Ram impact marks
+      ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=0.8;
+      for(let r=0;r<3;r++){ctx.beginPath();ctx.moveTo(38+r*3,-10+r);ctx.lineTo(48,-6);ctx.lineTo(38+r*3,10-r);ctx.stroke();}
+      // Angry red core
+      drawArmorPanel(ctx,-10,-8,20,16,'rgba(0,0,0,0.92)',accent,4);
+      ctx.fillStyle=accent;ctx.globalAlpha=eyePulse*0.9;ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-2,-2,2.5,0,Math.PI*2);ctx.fill();
+      // TRIPLE CANNONS
+      ctx.save();ctx.rotate(this.turretAngle);
+      // Center main cannon — huge
+      drawWeaponBarrel(ctx,6,-7,24,14,'#400','#ff4040','#fff');
+      // Left secondary — smaller, angled out
+      ctx.save();ctx.translate(5,0);ctx.rotate(-0.22);
+      drawWeaponBarrel(ctx,2,-3.5,16,7,'#300','#cc3030','#ffe0e0');
+      ctx.restore();
+      // Right secondary — smaller, angled out
+      ctx.save();ctx.translate(5,0);ctx.rotate(0.22);
+      drawWeaponBarrel(ctx,2,-3.5,16,7,'#300','#cc3030','#ffe0e0');
+      ctx.restore();
+      ctx.restore();
     } else if (bname === '幻影坦克') {
-      // === PHANTOM — ghost blade ===
+      // === PHANTOM — multi-port ghost blade ===
+      // Afterimage ghosts
       for(let g=1;g<=3;g++){ctx.strokeStyle='rgba(100,140,255,'+(0.12-g*0.03)+')';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(26-g*6,0);ctx.lineTo(10,-14);ctx.lineTo(-18,-6);ctx.lineTo(-24+g*3,0);ctx.lineTo(-18,6);ctx.lineTo(10,14);ctx.closePath();ctx.stroke();}
+      // Sleek angular hull
       ctx.fillStyle='#0a1030';ctx.beginPath();ctx.moveTo(28,0);ctx.lineTo(10,-16);ctx.lineTo(-20,-8);ctx.lineTo(-26,0);ctx.lineTo(-20,8);ctx.lineTo(10,16);ctx.closePath();ctx.fill();
       ctx.strokeStyle=accent;ctx.lineWidth=2.5;ctx.stroke();
+      // Internal conduits
       for(let s=0;s<4;s++){ctx.strokeStyle='rgba(136,170,255,'+(0.2+s*0.06)+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-18+s*5,-8);ctx.lineTo(4+s*4,0);ctx.lineTo(-18+s*5,8);ctx.stroke();}
       drawTechCore(ctx,4,0,6,'#ddeeff',accent);
-      ctx.save();ctx.rotate(this.turretAngle);drawWeaponBarrel(ctx,5,-2,26,4.5,'#0a1030',accent,'#fff');ctx.restore();
+      // Multiple small emission ports instead of single barrel
+      for(let p=0;p<4;p++){
+        const pa=(p-1.5)*0.25;const px=6+Math.cos(pa)*10;const py=Math.sin(pa)*10;
+        ctx.fillStyle=accent;ctx.globalAlpha=0.5+Math.sin(brt*2+p)*0.3;
+        ctx.beginPath();ctx.arc(px,py,2.5,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=0.6;ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+      // Telegraph ground markers for teleport/clone
+      if(this.telegraphTimer>0&&this.attackState==='telegraph'){
+        ctx.fillStyle='rgba(100,160,255,0.2)';
+        ctx.beginPath();ctx.arc(this.telegraphX-this.x,this.telegraphY-this.y,16+Math.sin(brt*4)*3,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='rgba(136,180,255,0.5)';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.arc(this.telegraphX-this.x,this.telegraphY-this.y,16+Math.sin(brt*4)*3,0,Math.PI*2);ctx.stroke();
+      }
     } else if (bname === '要塞坦克') {
-      // === FORTRESS — mobile bunker ===
+      // === FORTRESS — bunker + shield satellites ===
       ctx.fillStyle='#1a1008';ctx.fillRect(-34,-20,68,40);ctx.strokeStyle='#640';ctx.lineWidth=4;ctx.strokeRect(-34,-20,68,40);
       ctx.fillStyle='#3a2810';ctx.fillRect(-30,-16,60,32);
+      // 5 turrets
       for(let t=-24;t<=24;t+=16){ctx.fillStyle=this.turretColor;ctx.beginPath();ctx.arc(t,4,12,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#640';ctx.lineWidth=2.5;ctx.stroke();ctx.fillStyle=accent;ctx.beginPath();ctx.arc(t,4,4.5,0,Math.PI*2);ctx.fill();}
+      // Armor slats
       ctx.fillStyle='rgba(0,0,0,0.5)';for(let d=0;d<8;d++){ctx.fillRect(-32+d*9,-14,5,28);}
       drawTechCore(ctx,0,-4,7,'#ffe8cc',accent);
       ctx.save();ctx.rotate(this.turretAngle);drawWeaponBarrel(ctx,5,-4,24,8,'#2a1808',accent,'#fff8e0');ctx.restore();
+      // Floating shield satellites (2 orbiting)
+      const satCount = 2 + this.currentPhase;
+      for(let s=0;s<satCount;s++){
+        const sa=brt*0.8+s*Math.PI*2/satCount;
+        const sr=32+s*4;const sx=Math.cos(sa)*sr, sy=Math.sin(sa)*sr;
+        // Hex shield plate
+        ctx.save();ctx.translate(sx,sy);ctx.rotate(sa+Math.PI*0.5);
+        const satAlpha=0.5+Math.sin(brt*2+s)*0.2;
+        ctx.strokeStyle=accent;ctx.globalAlpha=satAlpha;ctx.lineWidth=2;
+        traceHexCell(ctx,7,3);ctx.stroke();
+        ctx.fillStyle='rgba(160,140,80,'+(satAlpha*0.3)+')';
+        traceHexCell(ctx,6,3);ctx.fill();
+        // Connector line to fortress
+        ctx.strokeStyle='rgba(200,180,100,0.15)';ctx.lineWidth=0.8;ctx.globalAlpha=0.3;
+        ctx.beginPath();ctx.moveTo(-sx,-sy);ctx.lineTo(0,0);ctx.stroke();
+        ctx.restore();
+      }
+      ctx.globalAlpha=1;
     } else if (bname === '虚空坦克') {
-      // === VOID — gravity well ===
+      // === VOID — gravity well (P1: barrel, P2: core burst) ===
       for(let r=3;r>=0;r--){ctx.strokeStyle='rgba(160,100,240,'+(0.08+r*0.08)+')';ctx.lineWidth=1.2+r*0.6;ctx.beginPath();ctx.arc(0,0,22+r*7,brt*0.6+r,brt*0.6+r+Math.PI*1.4);ctx.stroke();}
       ctx.fillStyle='#0a0418';ctx.beginPath();ctx.moveTo(20,-24);ctx.lineTo(-24,-10);ctx.lineTo(-30,0);ctx.lineTo(-24,10);ctx.lineTo(20,24);ctx.closePath();ctx.fill();
       ctx.strokeStyle='#6040a0';ctx.lineWidth=2.5;ctx.stroke();
-      const vGrad=ctx.createRadialGradient(0,0,2,0,0,18);vGrad.addColorStop(0,'#fff');vGrad.addColorStop(0.2,accent);vGrad.addColorStop(0.5,'#1a0438');vGrad.addColorStop(1,'#000');
-      ctx.fillStyle=vGrad;ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.fill();
+      // Prominent singularity core (for P2 360° burst)
+      const vGrad=ctx.createRadialGradient(0,0,2,0,0,20);vGrad.addColorStop(0,'#fff');vGrad.addColorStop(0.15,accent);vGrad.addColorStop(0.4,'#1a0438');vGrad.addColorStop(1,'#000');
+      ctx.fillStyle=vGrad;ctx.beginPath();ctx.arc(0,0,20,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();
+      // Event horizon particles
       for(let d=0;d<5;d++){const da=d*Math.PI*2/5+brt*0.3;ctx.fillStyle=accent;ctx.globalAlpha=0.4;ctx.beginPath();ctx.arc(Math.cos(da)*26,Math.sin(da)*8,2,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
-      ctx.save();ctx.rotate(this.turretAngle);drawWeaponBarrel(ctx,4,-2.5,22,5,'#1a0438',accent,'#fff');ctx.restore();
+      // Small directional barrel (P1 only)
+      ctx.save();ctx.rotate(this.turretAngle);
+      ctx.fillStyle='#1a0438';ctx.strokeStyle=accent;ctx.lineWidth=1.5;
+      ctx.fillRect(4,-2,14,4);ctx.strokeRect(4,-2,14,4);
+      ctx.fillStyle='#fff';ctx.fillRect(16,-1.5,3,3);
+      ctx.restore();
     } else if (bname === '风暴坦克') {
-      // === STORM — tesla dynamo ===
+      // === STORM — tesla coils, no barrel ===
       ctx.fillStyle='#0a1028';ctx.beginPath();ctx.moveTo(22,-24);ctx.lineTo(-22,-12);ctx.lineTo(-28,0);ctx.lineTo(-22,12);ctx.lineTo(22,24);ctx.closePath();ctx.fill();
       ctx.strokeStyle=accent;ctx.lineWidth=2.5;ctx.stroke();
-      for(let side of[-1,1]){ctx.fillStyle='#101840';ctx.strokeStyle=accent;ctx.lineWidth=1.2;ctx.fillRect(side*20-4,-26,8,14);ctx.strokeRect(side*20-4,-26,8,14);ctx.fillStyle=accent;ctx.globalAlpha=0.6+Math.sin(brt*3+side)*0.3;ctx.beginPath();ctx.arc(side*20,-28,3.5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+      // Twin Tesla coils — primary emission points
+      for(let side of[-1,1]){
+        ctx.fillStyle='#101840';ctx.strokeStyle=accent;ctx.lineWidth=1.5;
+        ctx.fillRect(side*20-5,-28,10,16);ctx.strokeRect(side*20-5,-28,10,16);
+        // Coil winding lines
+        ctx.strokeStyle='rgba(200,240,255,0.3)';ctx.lineWidth=0.5;
+        for(let w=0;w<3;w++){ctx.beginPath();ctx.moveTo(side*20-4,-26+w*5);ctx.lineTo(side*20+4,-26+w*5);ctx.stroke();}
+        // Glowing tip
+        ctx.fillStyle=accent;ctx.globalAlpha=0.6+Math.sin(brt*3+side)*0.35;
+        ctx.beginPath();ctx.arc(side*20,-30,4.5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(side*20,-30,1.8,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=1;
+      }
+      // Arc conduits
       for(let a=0;a<4;a++){ctx.strokeStyle='rgba(80,200,255,'+(0.2+a*0.06)+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-18+a*6,-10);ctx.lineTo(-10+a*5,0);ctx.lineTo(-18+a*6,10);ctx.stroke();}
       drawTechCore(ctx,0,0,6.5,'#d0f0ff',accent);
+      // Ball lightning
       for(let s=0;s<5;s++){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc((Math.sin(brt*6+s)*18),(Math.cos(brt*5+s)*14),1.8,0,Math.PI*2);ctx.fill();}
-      ctx.save();ctx.rotate(this.turretAngle);const sGrad=ctx.createLinearGradient(6,0,24,0);sGrad.addColorStop(0,accent);sGrad.addColorStop(1,'#fff');ctx.fillStyle=sGrad;ctx.fillRect(6,-3,18,6);ctx.strokeStyle='#2050a0';ctx.lineWidth=1.5;ctx.strokeRect(6,-3,18,6);ctx.restore();
+      // Arc between coils (firing indicator)
+      if(this.attackState==='firing'){
+        ctx.strokeStyle='rgba(100,220,255,'+(0.4+Math.sin(brt*5)*0.3)+')';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(-18,-28);ctx.lineTo(-8,-20);ctx.lineTo(8,-20);ctx.lineTo(18,-28);ctx.stroke();
+      }
+    } else if (bname === '观星者坦克') {
+      // === OBSERVER — radar platform ===
+      ctx.fillStyle='#0a1a28';ctx.beginPath();ctx.moveTo(24,-18);ctx.lineTo(-24,-8);ctx.lineTo(-28,0);ctx.lineTo(-24,8);ctx.lineTo(24,18);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#4ce';ctx.lineWidth=2.5;ctx.stroke();
+      // Large rotating radar dish (replaces barrel)
+      const dishAngle=brt*0.4;
+      ctx.save();ctx.translate(-4,-8);ctx.rotate(dishAngle);
+      ctx.strokeStyle='#4ce';ctx.lineWidth=2;ctx.globalAlpha=0.5;
+      ctx.beginPath();ctx.arc(0,0,18,-Math.PI*0.55,Math.PI*0.55);ctx.stroke();
+      ctx.strokeStyle='rgba(80,200,240,0.3)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(0,0,22,-Math.PI*0.45,Math.PI*0.45);ctx.stroke();
+      ctx.beginPath();ctx.arc(0,0,14,-Math.PI*0.6,Math.PI*0.6);ctx.stroke();
+      // Feed horn
+      ctx.fillStyle='#4ce';ctx.globalAlpha=0.7;ctx.beginPath();ctx.arc(0,-18,2.5,0,Math.PI*2);ctx.fill();
+      ctx.restore();ctx.globalAlpha=1;
+      // Antenna array
+      for(let a=0;a<3;a++){ctx.strokeStyle='rgba(80,200,240,0.4)';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(-8+a*8,-16);ctx.lineTo(-8+a*8,-22);ctx.stroke();ctx.fillStyle='#4ce';ctx.beginPath();ctx.arc(-8+a*8,-22,1.5,0,Math.PI*2);ctx.fill();}
+      drawTechCore(ctx,6,2,5.5,'#e0f8ff','#4ce');
+      // Laser designator (thin line)
+      ctx.strokeStyle='rgba(80,200,240,0.3)';ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(6,2);ctx.lineTo(30,0);ctx.stroke();
+    } else if (bname === '废铁巨像') {
+      // === SCRAP COLOSSUS — asymmetric junk mech ===
+      ctx.fillStyle='#1a0e08';ctx.beginPath();ctx.moveTo(24,-24);ctx.lineTo(-28,-14);ctx.lineTo(-32,4);ctx.lineTo(-24,18);ctx.lineTo(22,26);ctx.lineTo(32,6);ctx.lineTo(32,-14);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#c84';ctx.lineWidth=3;ctx.stroke();
+      // Patchwork armor plates
+      ctx.fillStyle='#3a2010';ctx.fillRect(-16,-16,10,28);ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;ctx.strokeRect(-16,-16,10,28);
+      ctx.fillStyle='#4a2818';ctx.fillRect(4,-10,12,20);ctx.strokeRect(4,-10,12,20);
+      ctx.fillStyle='#2a1810';ctx.fillRect(-24,-10,7,22);ctx.strokeRect(-24,-10,7,22);
+      // Weld lines
+      ctx.strokeStyle='rgba(200,140,80,0.2)';ctx.lineWidth=0.8;
+      for(let w=0;w<4;w++){ctx.beginPath();ctx.moveTo(-20+w*10,-18);ctx.lineTo(-18+w*10,18);ctx.stroke();}
+      // Left: wrecking ball on chain
+      const ballAngle=Math.sin(brt*0.7)*0.4;
+      ctx.save();ctx.translate(-24,6);ctx.rotate(ballAngle);
+      ctx.strokeStyle='#886';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-18,14);ctx.stroke();
+      ctx.fillStyle='#544';ctx.strokeStyle='#c84';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(-18,14,8,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.restore();
+      // Right: cobbled barrel
+      ctx.fillStyle='#3a2010';ctx.strokeStyle='#c84';ctx.lineWidth=1.5;
+      ctx.fillRect(14,-4,16,10);ctx.strokeRect(14,-4,16,10);
+      ctx.fillStyle='#fff';ctx.fillRect(28,-3,4,8);
+      // Rusty core
+      drawArmorPanel(ctx,-6,-6,12,12,'rgba(20,8,4,0.9)','#c84',3);
+      ctx.fillStyle='#c84';ctx.globalAlpha=eyePulse*0.7;ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    } else if (bname === '雷霆执政官') {
+      // === THUNDER ARCHON — floating angel of storms ===
+      // Hovering — elevated above ground
+      ctx.fillStyle='rgba(255,220,120,0.15)';ctx.beginPath();ctx.ellipse(0,20,24,6,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.beginPath();ctx.ellipse(0,18,12,3,0,0,Math.PI*2);ctx.fill();
+      // Sleek divine body
+      ctx.fillStyle='#1a1830';ctx.beginPath();ctx.moveTo(10,-16);ctx.lineTo(-14,-8);ctx.lineTo(-16,0);ctx.lineTo(-14,8);ctx.lineTo(10,16);ctx.lineTo(18,0);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#48c';ctx.lineWidth=2.5;ctx.stroke();
+      // Gold accent trim
+      ctx.strokeStyle='rgba(255,220,100,0.3)';ctx.lineWidth=0.6;
+      ctx.beginPath();ctx.moveTo(10,-16);ctx.lineTo(10,16);ctx.stroke();
+      // Lightning wings (symmetrical)
+      for(let side of[-1,1]){
+        ctx.strokeStyle='#48c';ctx.lineWidth=1.8;ctx.globalAlpha=0.6+Math.sin(brt*2)*0.2;
+        ctx.beginPath();
+        ctx.moveTo(side*8,-10);ctx.lineTo(side*22,-28);ctx.lineTo(side*14,-14);
+        ctx.lineTo(side*28,-18);ctx.lineTo(side*16,-4);
+        ctx.lineTo(side*26,0);ctx.lineTo(side*14,4);
+        ctx.lineTo(side*24,12);ctx.lineTo(side*12,10);
+        ctx.stroke();
+        // Wing nodes
+        for(let n=0;n<5;n++){
+          const nx=side*(8+n*4), ny=-24+n*8;
+          ctx.fillStyle='#48c';ctx.beginPath();ctx.arc(nx,ny,1.5,0,Math.PI*2);ctx.fill();
+        }
+        ctx.globalAlpha=1;
+      }
+      // Halo
+      ctx.strokeStyle='#ffd27a';ctx.lineWidth=2;ctx.globalAlpha=0.5+Math.sin(brt)*0.2;
+      ctx.beginPath();ctx.arc(0,-18,14,-Math.PI*0.7,Math.PI*0.7);ctx.stroke();
+      ctx.fillStyle='#ffd27a';ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(0,-18,3,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
+      // No barrel — emission from wings/halo
     } else {
-      // === GENERIC HEAVY — other bosses ===
-      const nameMap={废铁巨像:'#845',雷霆执政官:'#48c',观星者坦克:'#4ce'};
-      const altAccent=nameMap[this.bossDef.name]||accent;
+      // Fallback for any unnamed boss
       ctx.fillStyle='#0a0614';ctx.beginPath();ctx.moveTo(26,-26);ctx.lineTo(-24,-16);ctx.lineTo(-32,0);ctx.lineTo(-24,16);ctx.lineTo(26,26);ctx.lineTo(34,8);ctx.lineTo(34,-12);ctx.closePath();ctx.fill();
-      ctx.strokeStyle=altAccent;ctx.lineWidth=3.5;ctx.stroke();
-      drawArmorPanel(ctx,-12,-8,24,16,'rgba(0,0,0,0.9)',altAccent,4);
-      ctx.fillStyle=altAccent;ctx.globalAlpha=eyePulse*0.85;ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      ctx.strokeStyle=accent;ctx.lineWidth=3.5;ctx.stroke();
+      drawArmorPanel(ctx,-12,-8,24,16,'rgba(0,0,0,0.9)',accent,4);
+      ctx.fillStyle=accent;ctx.globalAlpha=eyePulse*0.85;ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-2,-2,2.5,0,Math.PI*2);ctx.fill();
-      ctx.save();ctx.rotate(this.turretAngle);drawWeaponBarrel(ctx,6,-5,28,10,'#0a0618',altAccent,'#fff');ctx.restore();
+      ctx.save();ctx.rotate(this.turretAngle);drawWeaponBarrel(ctx,6,-5,28,10,'#0a0618',accent,'#fff');ctx.restore();
     }
     // === Phase crown (common to all bosses) ===
     for (let r = 0; r < maxPh; r++) {
