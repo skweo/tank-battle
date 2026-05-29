@@ -739,6 +739,17 @@ canvas { display: block; background: #0a0f18; }
   border: 1px solid rgba(107,125,149,0.06);
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
+#bestiary-screen .best-group-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px 4px; margin-top: 8px;
+  border-bottom: 1px solid rgba(244,152,0,0.2);
+  color: #f49800; font: bold 13px "Segoe UI","Microsoft YaHei",sans-serif;
+  letter-spacing: 2px;
+}
+#bestiary-screen .best-group-header .bst-count {
+  font-size: 11px; color: rgba(255,255,255,0.35); letter-spacing: 1px;
+}
+#bestiary-screen .best-group-header:first-child { margin-top: 0; }
 #bestiary-screen .best-row {
   display: flex; align-items: center; gap: 12px; padding: 8px 10px;
   border: 1px solid rgba(107,125,149,0.08); background: linear-gradient(135deg, rgba(12,16,24,0.78), rgba(10,18,28,0.58));

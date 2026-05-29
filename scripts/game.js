@@ -3322,7 +3322,9 @@ function renderBestiary() {
       };
     });
   }
-  grid.innerHTML = items.map(buildBestiaryRow).join('');
+  // Group items by category
+  const grouped = groupBestiaryItems(items, bestiaryTab);
+  grid.innerHTML = grouped.map(buildBestiaryRow).join('');
   renderBestiaryCanvases();
 }
 
@@ -4525,7 +4527,51 @@ function renderMoonstoneChip(amount, extra = '') {
   </span>`;
 }
 
+function groupBestiaryItems(items, tab) {
+  if (!items.length) return items;
+  const groups = [];
+  if (tab === 'items_basic') {
+    const cats = {
+      '火力强化': t => ['railgun','rapid','multishot','big_bullet','explosive','overdrive','pierce'].includes(t.powerType),
+      '生存保障': t => ['shield','repair','vampire','invisible','thorns'].includes(t.powerType),
+      '机动支援': t => ['speed','magnet','ricochet','freeze','double_score','timewarp','goldrush'].includes(t.powerType),
+    };
+    for (const [label, pred] of Object.entries(cats)) {
+      const grp = items.filter(pred);
+      if (grp.length) { groups.push({ _isHeader: true, name: label, count: grp.length }); groups.push(...grp); }
+    }
+    // Any uncategorized
+    const used = new Set(Object.values(cats).flatMap(fn => items.filter(fn).map(i => i.powerType)));
+    const rest = items.filter(i => !used.has(i.powerType));
+    if (rest.length) { groups.push({ _isHeader: true, name: '其他', count: rest.length }); groups.push(...rest); }
+    return groups;
+  }
+  if (tab === 'enemies_elite' || tab === 'enemies_boss') {
+    const factions = {};
+    for (const e of items) {
+      const f = e.faction || '未知势力';
+      if (!factions[f]) factions[f] = [];
+      factions[f].push(e);
+    }
+    for (const [fname, ents] of Object.entries(factions)) {
+      groups.push({ _isHeader: true, name: fname, count: ents.length });
+      groups.push(...ents);
+    }
+    return groups;
+  }
+  if (tab === 'items_fusion') {
+    groups.push({ _isHeader: true, name: '融合协议', count: items.length });
+    groups.push(...items);
+    return groups;
+  }
+  // No grouping for other tabs
+  return items;
+}
+
 function buildBestiaryRow(it) {
+  if (it._isHeader) {
+    return `<div class="best-group-header"><span>${escapeHtml(it.name)}</span><span class="bst-count">${it.count}</span></div>`;
+  }
   const unlocked = it.unlocked !== false;
   const threatColor = unlocked ? (it.color || '#f49800') : '#58677a';
   const name = unlocked ? it.name : (it.lockedName || '未解锁档案');
@@ -4533,12 +4579,10 @@ function buildBestiaryRow(it) {
   const lore = unlocked ? it.lore : '档案加密中。遭遇、拾取或完成对应协议后，图鉴将自动解锁记录。';
   const tag = unlocked ? it.tag : 'LOCKED';
   const subTag = unlocked ? it.subTag : '资料封存';
-  // Threat rating visualization (1-5)
   const threatLevel = unlocked ? Math.min(5, Math.ceil((it.threat || 2) / 2)) : 0;
   const threatDots = Array.from({length: 5}, (_, i) =>
     `<span class="bst-threat-dot ${i < threatLevel ? 'active' : ''}" style="${i < threatLevel ? '--dot-color:' + threatColor : ''}"></span>`
   ).join('');
-  // Faction badge if available
   const factionBadge = unlocked && it.faction ? `<span class="bst-faction-badge" style="--faction-color:${escapeHtml(it.factionColor || threatColor)}">${escapeHtml(it.faction)}</span>` : '';
   return `<div class="best-row ${unlocked ? 'unlocked' : 'locked'}" tabindex="0" style="--threat:${escapeHtml(threatColor)}">
     <div class="bst-icon">${getBestiaryVisual(it)}</div>
