@@ -3154,7 +3154,7 @@ function renderAchievements() {
       const rewardHtml = unlocked
         ? (claimed ? `<button class="ach-reward claimed" disabled>已领</button>` : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">+${reward}</button>`)
         : `<span class="ach-reward locked-reward">+${reward}</span>`;
-      html += `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'} rarity-${rarity.className}" style="--ach-accent:${escapeHtml(rarity.color)}">
+      html += `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'}" style="--ach-accent:${escapeHtml(color)}">
         <div class="ach-medal"><span class="ach-icon">${medalIcon}</span></div>
         <div class="ach-info">
           <div class="ach-topline">
