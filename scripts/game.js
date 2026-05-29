@@ -1782,6 +1782,20 @@ const achievementsDef = [
   { id: 'global_research_first', name: '协议点火', desc: '完成1次研究室全局研究协议', icon: 'G01', reward: 54 },
   { id: 'global_research_10', name: '圣城总纲', desc: '累计完成10次全局研究协议', icon: 'G10', tier: 'elite' },
   { id: 'global_research_max', name: '全域整备', desc: '任意全局研究协议达到上限', icon: 'GMAX', tier: 'mythic' },
+  { id: 'kills_500', name: '灰域屠戮者', desc: '累计消灭500个敌人', icon: 'K500', tier: 'elite' },
+  { id: 'kills_1000', name: '月面清洗令', desc: '累计消灭1000个敌人', icon: 'K1K', tier: 'mythic' },
+  { id: 'wave_35', name: '永夜哨兵', desc: '到达第35波', icon: 'W35', tier: 'mythic' },
+  { id: 'score_50000', name: '幻月铭碑', desc: '单局得分达到50000', icon: 'S500', tier: 'mythic' },
+  { id: 'tank_hard_spread', name: '扩散·执念', desc: '困难或以上使用扩散型通关第5波', icon: 'HS1', tier: 'elite' },
+  { id: 'tank_hard_sniper', name: '狙击·绝对零度', desc: '困难或以上使用狙击型通关第5波', icon: 'HS2', tier: 'elite' },
+  { id: 'tank_hard_astral', name: '星仪·轨道圣礼', desc: '困难或以上使用星仪型通关第5波', icon: 'HS3', tier: 'elite' },
+  { id: 'boss_no_hit', name: '完美回避', desc: '无伤击败任意Boss', icon: 'BNH', tier: 'elite' },
+  { id: 'boss_all_no_hit', name: '月面战神', desc: '一局内每一个Boss都无伤击败', icon: 'BNHA', tier: 'mythic' },
+  { id: 'fusion_5', name: '协议收藏家', desc: '完成5种不同的融合协议', icon: 'F5', tier: 'elite' },
+  { id: 'powerup_60', name: '战场清道夫', desc: '单局收集60个道具', icon: 'M60', tier: 'elite' },
+  { id: 'clear_easy', name: '初级战线突破', desc: '通关任意难度战线', icon: 'CLE', reward: 100 },
+  { id: 'clear_hard', name: '攻坚勋章', desc: '困难或以上难度通关', icon: 'CHD', tier: 'elite' },
+  { id: 'clear_nightmare', name: '灰域征服者', desc: '梦魇难度通关', icon: 'CNM', tier: 'mythic' },
 ];
 
 const ACHIEVEMENT_LORE = {
@@ -3104,20 +3118,29 @@ function getEnemyBulletSpeedMul() {
 function renderAchievements() {
   const grid = document.getElementById('achieve-grid');
   const groups = getAchievementGroups();
-  const groupColors = {
-    '战斗': '#ff5a4a', '生存': '#5ee870', '分数': '#ffb060',
-    '机体': '#60b0ff', '收藏': '#a080f0', '特殊': '#f6e5aa',
-  };
-  let html = '';
-  for (const [groupName, ids] of Object.entries(groups)) {
-    const groupItems = ids.map(id => achievementsDef.find(a => a.id === id)).filter(Boolean);
-    const unlockedCount = groupItems.filter(a => unlockedAchievements.has(a.id)).length;
-    const color = groupColors[groupName] || '#888';
-    html += `<div class="ach-group-header" style="--hdr-color:${color}">
-      <span style="color:${color}">&#9656; ${groupName}</span>
-      <span class="ach-count">${unlockedCount}/${groupItems.length}</span>
-    </div>`;
-    for (const a of groupItems) {
+  // Render tabs
+  const tabsEl = document.getElementById('achieve-tabs');
+  if (tabsEl) {
+    let tabsHtml = '';
+    for (const [key, cfg] of Object.entries(groups)) {
+      const activeCls = key === achievementsTab ? ' active' : '';
+      const total = cfg.ids.length;
+      const unlocked = cfg.ids.filter(id => unlockedAchievements.has(id)).length;
+      tabsHtml += `<button class="best-tab${activeCls}" data-tab="${key}" onclick="switchAchievementsTab('${key}')"><span class="best-tab-code">${unlocked}/${total}</span>${cfg.label}</button>`;
+    }
+    tabsEl.innerHTML = tabsHtml;
+  }
+  // Render current tab's items
+  const activeGroup = groups[achievementsTab];
+  if (!activeGroup) return;
+  const groupItems = activeGroup.ids.map(id => achievementsDef.find(a => a.id === id)).filter(Boolean);
+  const unlockedCount = groupItems.filter(a => unlockedAchievements.has(a.id)).length;
+  const color = activeGroup.color || '#888';
+  let html = `<div class="ach-group-header" style="--hdr-color:${color}">
+    <span style="color:${color}">&#9656; ${activeGroup.label}</span>
+    <span class="ach-count">${unlockedCount}/${groupItems.length}</span>
+  </div>`;
+  for (const a of groupItems) {
       const unlocked = unlockedAchievements.has(a.id);
       const claimed = claimedAchievementRewards.has(a.id);
       const reward = getAchievementReward(a);
@@ -3143,19 +3166,27 @@ function renderAchievements() {
         </div>
         <div class="ach-claim">${rewardHtml}</div>
       </div>`;
-    }
   }
   grid.innerHTML = html;
 }
+let achievementsTab = 'combat';
 function getAchievementGroups() {
   return {
-    '战斗': ['first_blood','sharpshooter','tank_hunter','battle_veteran','combo_20','combo_35','combo_50','elite_hunter','elite_hunter_25'],
-    '生存': ['survivor','tenacious','flawless','perfect_run','wave_15','wave_20','wave_25','speed_demon','mine_dodger','hardcore','nightmare_survivor'],
-    '分数': ['score_500','score_2000','score_5000','score_10000','score_20000'],
-    '机体': ['tank_spread_win','tank_focus_win','tank_wide_win','tank_burst_win','tank_sniper_win','tank_homing_win','tank_border_win','tank_blade_win','tank_scarlet_win','tank_astral_win'],
-    '收藏': ['powerup_collector','powerup_collector_40','fragment_500','fragment_1000','upgrade_apprentice','upgrade_master','evolution_first','evolution_six','all_tanks_unlocked','daily_clear'],
-    '特殊': ['modifier_reroll','global_research_first','boss_witness','boss_breaker'],
+    'combat': { label:'战斗', color:'#ff5a4a', ids:['first_blood','sharpshooter','tank_hunter','battle_veteran','kills_500','kills_1000','combo_20','combo_35','combo_50','combo_75','elite_hunter','elite_hunter_25','elite_hunter_40'] },
+    'survival': { label:'生存', color:'#5ee870', ids:['survivor','tenacious','flawless','perfect_run','mine_dodger','speed_demon','wave_15','wave_20','wave_25','wave_30','wave_35','hardcore','nightmare_survivor','boss_no_hit','boss_all_no_hit','untouched_combo'] },
+    'score': { label:'分数', color:'#ffb060', ids:['score_500','score_2000','score_5000','score_10000','score_20000','score_30000','score_50000'] },
+    'tank': { label:'机体', color:'#60b0ff', ids:['tank_spread_win','tank_focus_win','tank_wide_win','tank_burst_win','tank_sniper_win','tank_homing_win','tank_border_win','tank_blade_win','tank_scarlet_win','tank_astral_win','tank_hard_spread','tank_hard_sniper','tank_hard_astral'] },
+    'collection': { label:'收藏', color:'#a080f0', ids:['powerup_collector','powerup_collector_40','powerup_60','fragment_500','fragment_1000','upgrade_apprentice','upgrade_master','evolution_first','evolution_six','all_tanks_unlocked','daily_clear','fusion_first','fusion_5'] },
+    'special': { label:'特殊', color:'#f6e5aa', ids:['modifier_reroll','modifier_full_reroll','modifier_mythic','modifier_treasury','modifier_jackpot','global_research_first','global_research_10','global_research_max','boss_witness','boss_breaker','clear_easy','clear_hard','clear_nightmare'] },
   };
+}
+function switchAchievementsTab(tab) {
+  achievementsTab = tab;
+  renderAchievements();
+  // Update tab buttons
+  document.querySelectorAll('#achieve-tabs .best-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
 }
 
 function showAchievements() {
