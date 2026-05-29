@@ -2605,22 +2605,19 @@ function getWaveSpawnRate(diff) {
 
 function selectBossForWave(waveNo) {
   const bossWaveIndex = getBossWaveIndex(waveNo);
-  const isArchivePhase = bossWaveIndex >= 0 && bossWaveIndex < BOSS_TYPES.length;
 
   // Build pool: all bosses for archive, expanding pool for post-archive
-  let pool;
-  if (isArchivePhase) {
-    // Archive phase: randomly select from all bosses
-    pool = [...BOSS_TYPES];
-  } else {
-    const diffIdx = Math.max(0, DIFFICULTY_ORDER.indexOf(currentDifficulty));
-    const maxPool = Math.min(BOSS_TYPES.length, 3 + diffIdx);
-    pool = BOSS_TYPES.slice(0, maxPool);
-  }
+  let pool = [...BOSS_TYPES];
 
-  // Filter out last boss to avoid repeats
+  // Filter out last boss to avoid consecutive repeats
   if (lastBossName && pool.length > 1) {
     pool = pool.filter(b => b.name !== lastBossName);
+  }
+
+  // Clear mode: filter out already-seen bosses so each appears once
+  if (currentRunMode === 'clear' && runBossesSeen.size > 0 && pool.length > 1) {
+    const unseen = pool.filter(b => !runBossesSeen.has(b.name));
+    if (unseen.length > 0) pool = unseen;
   }
 
   // Faction variety: prefer different faction from last boss
