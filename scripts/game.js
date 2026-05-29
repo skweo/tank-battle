@@ -3159,10 +3159,11 @@ function getEnemyBulletSpeedMul() {
   return (diff.enemyBulletSpeedMul || 1) * timeMul;
 }
 
+let achievementsPage = 0;
+const ACH_PAGE_SIZE = 8;
 function renderAchievements() {
   const grid = document.getElementById('achieve-grid');
   const groups = getAchievementGroups();
-  // Render tabs
   const tabsEl = document.getElementById('achieve-tabs');
   if (tabsEl) {
     let tabsHtml = '';
@@ -3174,42 +3175,52 @@ function renderAchievements() {
     }
     tabsEl.innerHTML = tabsHtml;
   }
-  // Render current tab's items
+  // Render current tab's items (paginated)
   const activeGroup = groups[achievementsTab];
   if (!activeGroup) return;
-  const groupItems = activeGroup.ids.map(id => achievementsDef.find(a => a.id === id)).filter(Boolean);
-  const unlockedCount = groupItems.filter(a => unlockedAchievements.has(a.id)).length;
+  const allItems = activeGroup.ids.map(id => achievementsDef.find(a => a.id === id)).filter(Boolean);
+  const diffRank = t => (t === 'mythic' ? 3 : t === 'elite' ? 2 : 1);
+  allItems.sort((a, b) => {
+    const ra = diffRank(inferAchievementTier(a)); const rb = diffRank(inferAchievementTier(b));
+    if (ra !== rb) return ra - rb;
+    return (getAchievementReward(a) || 0) - (getAchievementReward(b) || 0);
+  });
+  const totalPages = Math.ceil(allItems.length / ACH_PAGE_SIZE);
+  if (achievementsPage >= totalPages) achievementsPage = Math.max(0, totalPages - 1);
+  const pageItems = allItems.slice(achievementsPage * ACH_PAGE_SIZE, (achievementsPage + 1) * ACH_PAGE_SIZE);
+  const unlockedCount = allItems.filter(a => unlockedAchievements.has(a.id)).length;
   const color = activeGroup.color || '#888';
   let html = `<div class="ach-group-header" style="--hdr-color:${color}">
     <span style="color:${color}">&#9656; ${activeGroup.label}</span>
-    <span class="ach-count">${unlockedCount}/${groupItems.length}</span>
+    <span class="ach-count">${unlockedCount}/${allItems.length}</span>
   </div>`;
-  for (const a of groupItems) {
-      const unlocked = unlockedAchievements.has(a.id);
-      const claimed = claimedAchievementRewards.has(a.id);
-      const reward = getAchievementReward(a);
-      const rarity = getAchievementRarity(a);
-      const code = getAchievementCode(a);
-      const seal = getAchievementSeal(a);
-      const medalIcon = unlocked ? renderCodeIcon(a.icon || seal, a.name) : escapeHtml(seal);
-      const tierName = rarity.label + ' · 奖励 ' + reward + ' 月光石';
-      const lore = unlocked ? (ACHIEVEMENT_LORE[a.id] || '记录完成，等待归档。') : '档案加密中。完成该成就后解锁战绩记录。';
-      const statusText = unlocked ? (claimed ? 'ARCHIVED' : '领取') : '锁定';
-      const rewardHtml = unlocked
-        ? (claimed ? `<button class="ach-reward claimed" disabled>已领</button>` : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">+${reward}</button>`)
-        : `<span class="ach-reward locked-reward">+${reward}</span>`;
-      html += `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'}" style="--ach-accent:${escapeHtml(color)}">
-        <div class="ach-medal"><span class="ach-icon">${medalIcon}</span></div>
-        <div class="ach-info">
-          <div class="ach-topline">
-            <span class="ach-code">${escapeHtml(code)}</span>
-            <span class="ach-rarity">${escapeHtml(tierName)}</span>
-          </div>
-          <div class="ach-name">${unlocked ? escapeHtml(a.name) : '???'}</div>
-          <div class="ach-desc">${unlocked ? a.desc : '完成条件隐藏'}</div>
-        </div>
-        <div class="ach-claim">${rewardHtml}</div>
-      </div>`;
+  for (const a of pageItems) {
+    const unlocked = unlockedAchievements.has(a.id); const claimed = claimedAchievementRewards.has(a.id);
+    const reward = getAchievementReward(a); const rarity = getAchievementRarity(a);
+    const code = getAchievementCode(a); const seal = getAchievementSeal(a);
+    const medalIcon = unlocked ? renderCodeIcon(a.icon || seal, a.name) : escapeHtml(seal);
+    const tierName = rarity.label + ' · 奖励 ' + reward + ' 月光石';
+    const rewardHtml = unlocked
+      ? (claimed ? `<button class="ach-reward claimed" disabled>已领</button>` : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">+${reward}</button>`)
+      : `<span class="ach-reward locked-reward">+${reward}</span>`;
+    html += `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'}" style="--ach-accent:${escapeHtml(color)}">
+      <div class="ach-medal"><span class="ach-icon">${medalIcon}</span></div>
+      <div class="ach-info">
+        <div class="ach-topline"><span class="ach-code">${escapeHtml(code)}</span><span class="ach-rarity">${escapeHtml(tierName)}</span></div>
+        <div class="ach-name">${unlocked ? escapeHtml(a.name) : '???'}</div>
+        <div class="ach-desc">${unlocked ? a.desc : '完成条件隐藏'}</div>
+      </div>
+      <div class="ach-claim">${rewardHtml}</div>
+    </div>`;
+  }
+  if (totalPages > 1) {
+    html += `<div class="ach-pager">
+      <button onclick="achievementsPage=0;renderAchievements()" ${achievementsPage===0?'disabled':''}>&#171;</button>
+      <button onclick="achievementsPage=Math.max(0,achievementsPage-1);renderAchievements()" ${achievementsPage===0?'disabled':''}>&#8249;</button>
+      <span>${achievementsPage+1} / ${totalPages}</span>
+      <button onclick="achievementsPage=Math.min(totalPages-1,achievementsPage+1);renderAchievements()" ${achievementsPage>=totalPages-1?'disabled':''}>&#8250;</button>
+      <button onclick="achievementsPage=totalPages-1;renderAchievements()" ${achievementsPage>=totalPages-1?'disabled':''}>&#187;</button>
+    </div>`;
   }
   grid.innerHTML = html;
 }
@@ -3226,6 +3237,7 @@ function getAchievementGroups() {
 }
 function switchAchievementsTab(tab) {
   achievementsTab = tab;
+  achievementsPage = 0;
   renderAchievements();
   // Update tab buttons
   document.querySelectorAll('#achieve-tabs .achieve-tab').forEach(el => {
