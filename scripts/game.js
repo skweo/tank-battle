@@ -3277,11 +3277,13 @@ function renderBestiary() {
   } else if (bestiaryTab === 'enemies_normal') {
     items = enemyTypes.map(e => {
       const profile = getEnemyVisualProfile(e.kind);
+      const faction = getFactionInfo(e.faction);
       return {
         iconType: profile.iconType, glyph: profile.glyph, color: profile.color, classLabel: profile.label,
         name: getNormalEnemyName(e.kind), desc: getNormalEnemyDescription(e.kind), tag: '普通',
-        subTag: 'HP ' + e.hp + ' · SPD ' + e.speed,
+        subTag: faction.code + ' · HP ' + e.hp + ' · SPD ' + e.speed,
         lore: BESTIARY_LORE.normals[e.kind],
+        faction: faction.name, factionColor: faction.color,
         unlocked: discoveredBestiary.normals.has(e.kind),
         lockedName: '未知普通单位',
         lockedDesc: '???',
@@ -5487,7 +5489,7 @@ class EnemyTank extends Tank {
       this.moveDir = rng() < 0.5 ? -1 : 1;
       this.moveAxis = rng() < 0.5 ? 'x' : 'y';
       this.strafeBias *= rng() < 0.72 ? 1 : -1;
-      this.preferredRange = (this.kind === 'runner' ? 118 : (this.kind === 'brute' ? 140 : (this.kind === 'artillery' ? 255 : 185))) + rng() * 46;
+      this.preferredRange = (this.kind === 'runner' ? 118 : (this.kind === 'brute' ? 140 : (this.kind === 'artillery' ? 255 : (this.kind === 'sniper' ? 320 : (this.kind === 'buffer' ? 200 : (this.kind === 'sapper' ? 150 : 185)))))) + rng() * 46;
       this.aiChangeTime = 44 + rng() * 72;
     }
 
@@ -5680,6 +5682,75 @@ class EnemyTank extends Tank {
         drawTechCore(ctx, 1, 0, 4.2, '#ffe0e0', accent);
         ctx.save(); ctx.rotate(this.turretAngle);
         drawWeaponBarrel(ctx, 4, -1.8, 11, 3.6, '#b82828', '#ff5040', '#fff0f0');
+        ctx.restore();
+        break;
+      }
+      case 'sniper': {
+        // === LONG-RANGE PRECISION ===
+        drawTankTracks(ctx, -12, 8, -8, 16, 4, '#0a1220', '#1a3050');
+        const snGrad = ctx.createLinearGradient(-10, -8, 10, -8);
+        snGrad.addColorStop(0, '#2848a0'); snGrad.addColorStop(0.5, '#5088e0'); snGrad.addColorStop(1, '#2848a0');
+        ctx.fillStyle = snGrad;
+        ctx.beginPath(); ctx.moveTo(10, -10); ctx.lineTo(-8, -4); ctx.lineTo(-8, 4); ctx.lineTo(10, 10); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#80b0ff'; ctx.lineWidth = 1.6; ctx.stroke();
+        drawTechCore(ctx, 2, 0, 3.2, '#e0eeff', accent);
+        ctx.save(); ctx.rotate(this.turretAngle);
+        drawWeaponBarrel(ctx, 3, -1.5, 22, 3, '#2848a0', '#80b0ff', '#f0f8ff');
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 0, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        break;
+      }
+      case 'sapper': {
+        // === MINE-LAYER ===
+        drawTankTracks(ctx, -14, 10, -10, 20, 4, '#1a0c04', '#4a2810');
+        const mnGrad = ctx.createLinearGradient(-10, -8, 10, -8);
+        mnGrad.addColorStop(0, '#a06020'); mnGrad.addColorStop(0.5, '#e08030'); mnGrad.addColorStop(1, '#a06020');
+        ctx.fillStyle = mnGrad;
+        ctx.beginPath(); ctx.moveTo(8, -10); ctx.lineTo(-12, -4); ctx.lineTo(-12, 4); ctx.lineTo(8, 10); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#ffa040'; ctx.lineWidth = 1.6; ctx.stroke();
+        // Mine dispenser on back
+        ctx.fillStyle = '#301008'; ctx.fillRect(-14, -6, 6, 12);
+        for (let m = 0; m < 3; m++) { ctx.fillStyle = '#ff6020'; ctx.beginPath(); ctx.arc(-11, -4 + m * 6, 2, 0, Math.PI * 2); ctx.fill(); }
+        drawTechCore(ctx, 2, 0, 3.5, '#ffe8d0', accent);
+        ctx.save(); ctx.rotate(this.turretAngle);
+        drawWeaponBarrel(ctx, 3, -1.8, 10, 3.6, '#a06020', '#ffa040', '#fff0e0');
+        ctx.restore();
+        break;
+      }
+      case 'buffer': {
+        // === BUFFER/HEALER ===
+        drawTankTracks(ctx, -15, 12, -10, 22, 5, '#0a1608', '#1a4020');
+        const spGrad = ctx.createLinearGradient(-12, -10, 12, -10);
+        spGrad.addColorStop(0, '#308030'); spGrad.addColorStop(0.5, '#60c060'); spGrad.addColorStop(1, '#308030');
+        ctx.fillStyle = spGrad;
+        ctx.beginPath(); ctx.moveTo(12, -12); ctx.lineTo(-10, -6); ctx.lineTo(-14, 6); ctx.lineTo(12, 12); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#80e080'; ctx.lineWidth = 1.6; ctx.stroke();
+        // Support aura ring
+        const auraPulse = Math.sin(t * 2 + this.x * 0.02) * 0.2 + 0.7;
+        ctx.strokeStyle = 'rgba(100,255,100,' + (auraPulse * 0.4).toFixed(2) + ')';
+        ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.stroke();
+        drawTechCore(ctx, 0, 0, 4.5, '#e0ffe0', accent);
+        ctx.save(); ctx.rotate(this.turretAngle);
+        drawWeaponBarrel(ctx, 3, -1.5, 9, 3, '#308030', '#80e080', '#f0fff0');
+        ctx.restore();
+        break;
+      }
+      case 'fissure': {
+        // === SELF-DUPLICATING ===
+        drawTankTracks(ctx, -13, 9, -9, 18, 4, '#140a20', '#381860');
+        const spGrad2 = ctx.createRadialGradient(0, 0, 2, 0, 0, 12);
+        spGrad2.addColorStop(0, '#c0a0f0'); spGrad2.addColorStop(0.5, '#6040a0'); spGrad2.addColorStop(1, '#1a0830');
+        ctx.fillStyle = spGrad2;
+        ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#c0a0f0'; ctx.lineWidth = 1.6; ctx.stroke();
+        // Internal split lines
+        ctx.strokeStyle = 'rgba(200,160,240,0.3)'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 12); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-10, -6); ctx.lineTo(10, 6); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(10, -6); ctx.lineTo(-10, 6); ctx.stroke();
+        drawTechCore(ctx, 0, 0, 3.8, '#f0e8ff', accent);
+        ctx.save(); ctx.rotate(this.turretAngle);
+        drawWeaponBarrel(ctx, 3, -1.6, 8, 3.2, '#381860', '#c0a0f0', '#f8f0ff');
         ctx.restore();
         break;
       }
@@ -6699,6 +6770,10 @@ const BESTIARY_LORE = {
     runner: '疾袭车的引擎常年过热，像一颗拒绝熄灭的心脏。它们被派去撞开阵线，也撞开幸存者的犹豫。',
     brute: '重铠车由旧矿区拖车改造而来，装甲上仍能看到矿尘。它们不懂胜利，只懂把前方压成道路。',
     artillery: '弧炮车的炮口总是微微上扬，仿佛在向碎月祈祷。炮弹落下时，祈祷才抵达地面。',
+    sniper: '观星台的远距压制单元，配备长焦光学瞄具与穿甲弹头。驾驶舱里总是安静得像档案馆。',
+    sapper: '残骸群最廉价的拒止手段。它们在身后留下地雷，像留下一个未完的省略号。',
+    buffer: '灰域教会的移动祝祷台。它不主动攻击，光环却让友军弹链更密、装甲更厚。',
+    fissure: '虚空教派的自裂兵器。击毁它只是教会它一种新的分形方式。',
   },
   elites: {
     heavy: '圣城正门的旧守卫，装甲层比墓碑还厚。它们不追击，只把战线向前推。',
@@ -10147,10 +10222,14 @@ function positionPlayerSafely(minEnemyDist) {
 
 // --- Spawn enemies ---
 const enemyTypes = [
-  { kind:'scout', color: '#d44', turret: '#f66', speed: 0.5, hp: 2, label: 'Scout' },
-  { kind:'runner', color: '#d84', turret: '#fa8', speed: 0.7, hp: 1, label: 'Fast' },
-  { kind:'brute', color: '#a4d', turret: '#c6f', speed: 0.4, hp: 3, label: 'Heavy' },
-  { kind:'artillery', color: '#d4a', turret: '#f6c', speed: 0.6, hp: 3, label: 'Elite' },
+  { kind:'scout', color: '#d44', turret: '#f66', speed: 0.5, hp: 2, label: 'Scout', faction:'observatory' },
+  { kind:'runner', color: '#d84', turret: '#fa8', speed: 0.7, hp: 1, label: 'Fast', faction:'storm_cloister' },
+  { kind:'brute', color: '#a4d', turret: '#c6f', speed: 0.4, hp: 3, label: 'Heavy', faction:'moon_arsenal' },
+  { kind:'artillery', color: '#d4a', turret: '#f6c', speed: 0.6, hp: 3, label: 'Elite', faction:'ash_church' },
+  { kind:'sniper', color: '#6af', turret: '#adf', speed: 0.38, hp: 1, label: 'Sniper', faction:'observatory' },
+  { kind:'sapper', color: '#c84', turret: '#fa6', speed: 0.55, hp: 2, label: 'Sapper', faction:'graveyard' },
+  { kind:'buffer', color: '#8e8', turret: '#bfb', speed: 0.45, hp: 3, label: 'Buffer', faction:'ash_church' },
+  { kind:'fissure', color: '#a6c', turret: '#d8f', speed: 0.5, hp: 2, label: 'Fissure', faction:'void_cult' },
 ];
 
 function spawnEnemy() {
