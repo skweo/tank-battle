@@ -5512,6 +5512,7 @@ class EnemyTank extends Tank {
   draw(ctx) {
     const accentMap = { scout:'#ff7272', runner:'#ffbf72', brute:'#ca8cff', artillery:'#ff8bd4' };
     const accent = accentMap[this.kind] || '#f49800';
+    const t = Date.now() / 300;
     ctx.save();
     ctx.shadowColor = this.frozen > 0 ? '#8cf' : accent;
     ctx.shadowBlur = this.frozen > 0 ? 10 : 7;
