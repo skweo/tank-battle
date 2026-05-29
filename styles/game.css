@@ -28,7 +28,7 @@ canvas { display: block; background: #0a0f18; }
   position: absolute; top: 0; left: 0; right: 0; z-index: 3;
   display: flex; justify-content: space-between; align-items: stretch;
   padding: 0; pointer-events: none;
-  background: linear-gradient(180deg, rgba(12,16,24,0.97) 0%, rgba(12,16,24,0.7) 70%, rgba(12,16,24,0) 100%);
+  background: linear-gradient(180deg, rgba(12,16,24,0.55) 0%, rgba(12,16,24,0.30) 70%, rgba(12,16,24,0) 100%);
   border-bottom: 1px solid rgba(244,152,0,0.12);
 }
 #ui span {

@@ -1,4 +1,137 @@
-﻿
+﻿// --- Dynamic Weather System ---
+let weatherParticles = [];
+let weatherType = 'clear';
+let weatherIntensity = 0;
+let weatherTransitionTimer = 0;
+let prevWeatherType = 'clear';
+
+function initWeather() {
+  weatherParticles = [];
+  const safeWave = Math.max(1, Number.isFinite(wave) ? wave : 1);
+  const biome = (safeWave - 1) % 8;
+  const weatherMap = { 0:'clear', 1:'rain', 2:'fog', 3:'dust', 4:'sparks', 5:'snow', 6:'ash', 7:'ion' };
+  weatherType = weatherMap[biome] || 'clear';
+  if (weatherType !== prevWeatherType && prevWeatherType !== 'clear') { weatherTransitionTimer = 90; }
+  prevWeatherType = weatherType;
+  weatherIntensity = 0.18 + safeWave * 0.012;
+  const count = weatherType === 'clear' ? 0 : (weatherType === 'fog' ? 60 : weatherType === 'dust' ? 80 : weatherType === 'ash' ? 70 : weatherType === 'snow' ? 50 : weatherType === 'ion' ? 40 : 40);
+  for (let i = 0; i < count; i++) {
+    weatherParticles.push({
+      x: rng() * W, y: rng() * H,
+      vx: weatherType === 'dust' ? (rng() - 0.5) * 2.5 : weatherType === 'ash' ? (rng() - 0.5) * 1.8 : weatherType === 'snow' ? (rng() - 0.5) * 0.8 : weatherType === 'ion' ? (rng() - 0.5) * 0.15 : (rng() - 0.5) * 0.4,
+      vy: weatherType === 'rain' ? 4 + rng() * 3 : weatherType === 'snow' ? 1.5 + rng() * 1.5 : weatherType === 'ash' ? 2 + rng() * 2 : weatherType === 'ion' ? (rng() - 0.5) * 0.6 : (weatherType === 'dust' ? (rng() - 0.5) * 2 : (rng() - 0.5) * 0.3),
+      life: rng() * 180, maxLife: 180 + rng() * 120,
+      size: weatherType === 'rain' ? 0.8 + rng() : weatherType === 'fog' ? 30 + rng() * 50 : weatherType === 'snow' ? 2 + rng() * 3 : weatherType === 'ash' ? 2 + rng() * 4 : weatherType === 'ion' ? 40 + rng() * 70 : (weatherType === 'dust' ? 1.5 + rng() * 2 : 1 + rng()),
+      alpha: weatherType === 'fog' ? 0.015 + rng() * 0.03 : weatherType === 'snow' ? 0.25 + rng() * 0.35 : weatherType === 'ash' ? 0.15 + rng() * 0.25 : weatherType === 'ion' ? 0.03 + rng() * 0.05 : (weatherType === 'dust' ? 0.12 + rng() * 0.18 : 0.2 + rng() * 0.3),
+    });
+  }
+}
+
+function updateWeather() {
+  if (weatherType === 'clear') return;
+  for (const p of weatherParticles) {
+    p.x += p.vx; p.y += p.vy; p.life--;
+    if (p.life <= 0) { p.x = rng() * W; p.y = weatherType === 'rain' ? -20 : rng() * H; p.life = p.maxLife; }
+    if (p.y > H + 40) { p.y = -20; p.x = rng() * W; }
+    if (p.x < -40) p.x = W + 40;
+    if (p.x > W + 40) p.x = -40;
+  }
+}
+
+function drawWeather(ctx) {
+  if (weatherType === 'clear') return;
+  ctx.save();
+  for (const p of weatherParticles) {
+    const fadeIn = Math.min(1, (p.maxLife - p.life) / 30);
+    const fadeOut = Math.min(1, p.life / 30);
+    const alpha = p.alpha * fadeIn * fadeOut * weatherIntensity;
+    if (weatherType === 'rain') {
+      ctx.strokeStyle = 'rgba(140,200,255,' + alpha.toFixed(2) + ')'; ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 3, p.y - 12); ctx.stroke();
+    } else if (weatherType === 'fog') {
+      const fogGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+      fogGrad.addColorStop(0, 'rgba(180,200,220,' + alpha.toFixed(3) + ')');
+      fogGrad.addColorStop(0.5, 'rgba(160,180,200,' + (alpha * 0.5).toFixed(3) + ')');
+      fogGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = fogGrad; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+    } else if (weatherType === 'dust') {
+      ctx.fillStyle = 'rgba(180,150,100,' + alpha.toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+    } else if (weatherType === 'sparks') {
+      ctx.fillStyle = 'rgba(200,180,100,' + alpha.toFixed(2) + ')';
+      ctx.shadowColor = '#fa0'; ctx.shadowBlur = 4;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 0.8, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (weatherType === 'snow') {
+      ctx.fillStyle = 'rgba(220,235,255,' + alpha.toFixed(2) + ')';
+      ctx.shadowColor = '#cce'; ctx.shadowBlur = 3;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (weatherType === 'ash') {
+      ctx.fillStyle = 'rgba(140,120,100,' + alpha.toFixed(2) + ')';
+      ctx.shadowColor = '#421'; ctx.shadowBlur = 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      if (p.size > 4) {
+        ctx.fillStyle = 'rgba(255,140,30,' + (alpha * 0.3).toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(p.x + 1, p.y + 1, p.size * 0.5, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (weatherType === 'ion') {
+      const ionGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+      ionGrad.addColorStop(0, 'rgba(100,200,255,' + alpha.toFixed(3) + ')');
+      ionGrad.addColorStop(0.4, 'rgba(150,100,255,' + (alpha * 0.6).toFixed(3) + ')');
+      ionGrad.addColorStop(0.75, 'rgba(50,200,200,' + (alpha * 0.3).toFixed(3) + ')');
+      ionGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = ionGrad;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size * 0.3, p.x * 0.003 + Date.now() * 0.0002, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawWeatherOverlay(ctx) {
+  const hasTransition = weatherTransitionTimer > 0;
+  if (weatherType === 'clear' && !hasTransition) { weatherTransitionTimer = Math.max(0, weatherTransitionTimer - 1); return; }
+  const t = Date.now() / 1000;
+  ctx.save();
+  if (weatherType === 'rain') {
+    ctx.fillStyle = 'rgba(30,60,100,' + (0.06 * weatherIntensity).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H);
+  } else if (weatherType === 'fog') {
+    const fogAlpha = 0.08 * weatherIntensity;
+    const fogGrad = ctx.createLinearGradient(0, 0, 0, H);
+    fogGrad.addColorStop(0, 'rgba(140,160,180,' + (fogAlpha*0.3).toFixed(3) + ')');
+    fogGrad.addColorStop(0.4, 'rgba(120,140,160,' + fogAlpha.toFixed(3) + ')');
+    fogGrad.addColorStop(1, 'rgba(80,100,120,' + (fogAlpha*1.5).toFixed(3) + ')');
+    ctx.fillStyle = fogGrad; ctx.fillRect(0, 0, W, H);
+  } else if (weatherType === 'dust') {
+    ctx.fillStyle = 'rgba(180,140,90,' + (0.07 * weatherIntensity).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H);
+  } else if (weatherType === 'sparks') {
+    ctx.fillStyle = 'rgba(200,170,80,' + (0.04 * weatherIntensity).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H);
+  } else if (weatherType === 'snow') {
+    ctx.fillStyle = 'rgba(200,220,240,' + (0.04 * weatherIntensity).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H);
+  } else if (weatherType === 'ash') {
+    const ashAlpha = 0.07 * weatherIntensity;
+    const ashGrad = ctx.createLinearGradient(0, 0, 0, H);
+    ashGrad.addColorStop(0, 'rgba(100,40,10,' + ashAlpha.toFixed(3) + ')');
+    ashGrad.addColorStop(0.6, 'rgba(80,30,5,' + (ashAlpha*0.6).toFixed(3) + ')');
+    ashGrad.addColorStop(1, 'rgba(40,15,0,' + ashAlpha.toFixed(3) + ')');
+    ctx.fillStyle = ashGrad; ctx.fillRect(0, 0, W, H);
+  } else if (weatherType === 'ion') {
+    const ionAlpha = 0.05 * weatherIntensity;
+    const ionGrad = ctx.createLinearGradient(0, 0, W, H);
+    ionGrad.addColorStop(0, 'rgba(40,80,160,' + ionAlpha.toFixed(3) + ')');
+    ionGrad.addColorStop(0.5, 'rgba(20,40,120,' + (ionAlpha*0.5).toFixed(3) + ')');
+    ionGrad.addColorStop(1, 'rgba(10,20,60,' + ionAlpha.toFixed(3) + ')');
+    ctx.fillStyle = ionGrad; ctx.fillRect(0, 0, W, H);
+  }
+  if (weatherTransitionTimer > 0) {
+    const transAlpha = (weatherTransitionTimer / 90) * 0.35;
+    ctx.fillStyle = 'rgba(244,152,0,' + transAlpha.toFixed(3) + ')'; ctx.fillRect(0, 0, W, H);
+    weatherTransitionTimer--;
+  }
+  ctx.restore();
+}
+
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -2499,6 +2632,7 @@ function clearDifficulty() {
 
 function startNextWave() {
   wave++;
+  initWeather();
   updateTankUnlockProgress({
     maxWave: wave,
     borderEcho: wave >= 12,
@@ -10242,6 +10376,8 @@ function draw() {
 
   // Ground
   drawGround(ctx);
+  drawWeatherOverlay(ctx);
+  drawWeather(ctx);
 
   // Obstacles
   drawObstacles(ctx);
@@ -10709,6 +10845,7 @@ function startGame(difficulty, tankType, options = {}) {
   positionPlayerSafely(220);
   resetAchievementTracking();
   renderDailyTarget();
+  initWeather();
   startNextWave();
   document.getElementById('lives').textContent = lives;
   document.getElementById('score').textContent = score;
@@ -10782,6 +10919,7 @@ function gameLoop() {
   try {
     update();
     draw();
+    updateWeather();
   } catch (err) {
     const now = Date.now();
     if (now - lastLoopErrorAt > 1000) {
