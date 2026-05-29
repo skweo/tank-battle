@@ -6389,6 +6389,49 @@ class EliteEnemy extends EnemyTank {
         }
         break;
 
+      case 'boss': {
+        const bp = Math.sin(t * 1.8 + this.uiPulse * 0.01) * 0.2 + 0.8;
+        const bossAccent = this.bossDef ? (this.bossDef.turret || glowColor) : glowColor;
+        ctx.save(); ctx.globalAlpha = 0.22 + bp * 0.12;
+        ctx.strokeStyle = bossAccent; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, 34, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+        drawArmorPanel(ctx, -22, -16, 44, 32, 'rgba(8,6,14,0.94)', 'rgba(200,180,240,0.3)', 5);
+        drawArmorPanel(ctx, -18, -12, 36, 24, body, turretC, 4);
+        ctx.fillStyle = turretC; ctx.globalAlpha = 0.55;
+        for (let c = 0; c < 3; c++) {
+          ctx.beginPath(); ctx.moveTo(-12 + c * 5, -14); ctx.lineTo(-6 + c * 5, 0); ctx.lineTo(-12 + c * 5, 14); ctx.closePath(); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(6 + c * 5, -14); ctx.lineTo(12 + c * 5, 0); ctx.lineTo(6 + c * 5, 14); ctx.closePath(); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        const maxPhase = (this.bossDef && this.bossDef.phases) ? this.bossDef.phases.length : 1;
+        for (let r = 0; r < maxPhase; r++) {
+          ctx.strokeStyle = r <= this.currentPhase ? bossAccent : 'rgba(255,255,255,0.08)';
+          ctx.lineWidth = r <= this.currentPhase ? 2 : 1;
+          ctx.globalAlpha = r <= this.currentPhase ? (0.5 + r * 0.2) : 0.2;
+          ctx.beginPath(); ctx.arc(0, 0, 22 + r * 5, -Math.PI * 0.25, Math.PI * 0.25); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        drawTechCore(ctx, 0, 0, 7.2, '#fff0ff', bossAccent);
+        for (let d = 0; d < 3 + this.currentPhase; d++) {
+          ctx.fillStyle = bossAccent; ctx.globalAlpha = 0.3 + d * 0.22;
+          const da = (d / (3 + this.currentPhase)) * Math.PI * 2 + t * 0.4;
+          ctx.save(); ctx.translate(Math.cos(da) * 22, Math.sin(da) * 22);
+          ctx.rotate(da + Math.PI * 0.25); ctx.fillRect(-2.5, -2.5, 5, 5); ctx.restore();
+        }
+        ctx.globalAlpha = 1;
+        ctx.save(); ctx.rotate(this.turretAngle);
+        drawWeaponBarrel(ctx, 6, -3.5, 22, 7, body, turretC, '#fff8ff');
+        for (let n = 0; n < 3; n++) { ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(10 + n * 5, 0, 1.8, 0, Math.PI * 2); ctx.fill(); }
+        ctx.restore();
+        if (this.phaseFlash > 0) {
+          ctx.globalAlpha = (this.phaseFlash / 180) * 0.5;
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        }
+        break;
+      }
+
       case 'phase':
         if (this.phaseAfterimage > 0) {
           ctx.globalAlpha = 0.18;
