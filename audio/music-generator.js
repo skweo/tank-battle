@@ -1,241 +1,193 @@
-// === Cyber-Synth Procedural Music Generator ===
-// Generates electronic BGM using Web Audio API — no external files needed
+// === Cyber-Synth Procedural Music Generator v2 ===
+// Electronic BGM — richer melodies, less drum-heavy
 
 class CyberSynth {
   constructor(ctx) {
     this.ctx = ctx;
     this.masterGain = ctx.createGain();
-    this.masterGain.gain.value = 0.08; // Low master — music is background
+    this.masterGain.gain.value = 0.06;
     this.masterGain.connect(ctx.destination);
 
-    this.currentMode = 'menu'; // menu | combat | boss
+    this.currentMode = 'menu';
     this.currentWave = 1;
-    this.scheduledNodes = [];
     this._running = false;
     this._nextBeat = 0;
-    this._bpm = 80;
+    this._bpm = 70;
     this._beat = 0;
-    this._phase = 0;
-    this._fadeTarget = 0.08;
-    this._fadeCurrent = 0.08;
+    this._fadeTarget = 0.06;
+    this._fadeCurrent = 0.06;
+    this._melodyPhase = 0;
   }
 
-  // === SOUND GENERATORS ===
+  // === OSCILLATOR HELPERS ===
 
-  _osc(type, freq, duration, gain = 0.15, dest = this.masterGain) {
+  _osc(type, freq, time, dur, gain = 0.1, filterFreq = 0) {
     const osc = this.ctx.createOscillator();
-    osc.type = type;
-    osc.frequency.value = freq;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0, this.ctx.currentTime);
-    g.gain.linearRampToValueAtTime(gain, this.ctx.currentTime + 0.01);
-    g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + duration);
-    osc.connect(g); g.connect(dest);
-    osc.start(this.ctx.currentTime);
-    osc.stop(this.ctx.currentTime + duration + 0.05);
-    return osc;
-  }
-
-  _noise(duration, gain = 0.06, dest = this.masterGain) {
-    const bufferSize = this.ctx.sampleRate * duration;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-    const src = this.ctx.createBufferSource();
-    src.buffer = buffer;
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 800 + Math.random() * 2400;
-    filter.Q.value = 1.5;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0, this.ctx.currentTime);
-    g.gain.linearRampToValueAtTime(gain, this.ctx.currentTime + 0.01);
-    g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + duration);
-    src.connect(filter); filter.connect(g); g.connect(dest);
-    src.start(this.ctx.currentTime);
-    return src;
-  }
-
-  _bass(freq, duration, gain = 0.2) {
-    const saw = this._osc('sawtooth', freq, duration, gain * 0.5);
-    const sub = this._osc('sine', freq * 0.5, duration, gain);
-  }
-
-  // === INSTRUMENTS ===
-
-  _synthPluck(freq, time, gain = 0.1) {
-    const osc = this.ctx.createOscillator();
-    osc.type = 'square';
-    osc.frequency.value = freq;
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(freq * 6, time);
-    filter.frequency.exponentialRampToValueAtTime(freq * 0.5, time + 0.12);
-    filter.Q.value = 6;
+    osc.type = type; osc.frequency.value = freq;
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0, time);
     g.gain.linearRampToValueAtTime(gain, time + 0.005);
-    g.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    osc.connect(filter); filter.connect(g); g.connect(this.masterGain);
-    osc.start(time);
-    osc.stop(time + duration + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+    let dest = g;
+    if (filterFreq > 0) {
+      const f = this.ctx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = filterFreq; f.Q.value = 2;
+      osc.connect(f); f.connect(g);
+    } else { osc.connect(g); }
+    g.connect(this.masterGain);
+    osc.start(time); osc.stop(time + dur + 0.05);
   }
 
-  _pad(freq, time, duration, gain = 0.04) {
-    const osc1 = this.ctx.createOscillator();
-    osc1.type = 'sawtooth'; osc1.frequency.value = freq;
-    const osc2 = this.ctx.createOscillator();
-    osc2.type = 'sawtooth'; osc2.frequency.value = freq * 1.007;
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 400;
-    filter.Q.value = 0.5;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(gain, time + 0.3);
-    g.gain.linearRampToValueAtTime(0, time + duration);
-    osc1.connect(filter); osc2.connect(filter); filter.connect(g); g.connect(this.masterGain);
-    osc1.start(time); osc2.start(time);
-    osc1.stop(time + duration + 0.05); osc2.stop(time + duration + 0.05);
+  _lead(freq, time, dur, gain = 0.07) {
+    // Rich lead synth — saw + square detuned
+    this._osc('sawtooth', freq, time, dur, gain * 0.6, 1200);
+    this._osc('square', freq * 1.003, time, dur, gain * 0.4, 1000);
   }
 
-  _kick(time, gain = 0.18) {
+  _bass(freq, time, dur, gain = 0.14) {
+    this._osc('sawtooth', freq, time, dur, gain * 0.5, 500);
+    this._osc('triangle', freq * 0.5, time, dur, gain * 0.8);
+  }
+
+  _pad(noteFreqs, time, dur, gain = 0.04) {
+    noteFreqs.forEach(f => {
+      this._osc('sawtooth', f, time, dur, gain * 0.4, 300);
+      this._osc('triangle', f * 1.005, time, dur, gain * 0.3, 250);
+    });
+  }
+
+  _kick(time, gain = 0.16) {
     const osc = this.ctx.createOscillator();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(150, time);
-    osc.frequency.exponentialRampToValueAtTime(40, time + 0.12);
+    osc.frequency.exponentialRampToValueAtTime(35, time + 0.1);
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(gain, time);
-    g.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.13);
     osc.connect(g); g.connect(this.masterGain);
-    osc.start(time); osc.stop(time + 0.16);
+    osc.start(time); osc.stop(time + 0.15);
   }
 
-  _hat(time, gain = 0.04) {
-    this._noise(0.05, gain);
-    // Fix noise timing by scheduling it manually via an offset
-    const bufferSize = Math.floor(this.ctx.sampleRate * 0.05);
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-    const src = this.ctx.createBufferSource();
-    src.buffer = buffer;
+  _snare(time, gain = 0.04) {
+    this._osc('triangle', 180, time, 0.07, gain * 0.6);
+    const buf = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.04), this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
     const hp = this.ctx.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 6000;
+    hp.type = 'highpass'; hp.frequency.value = 5000;
     const g = this.ctx.createGain();
-    g.gain.setValueAtTime(gain, time);
+    g.gain.setValueAtTime(gain * 1.2, time);
     g.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
     src.connect(hp); hp.connect(g); g.connect(this.masterGain);
     src.start(time);
   }
 
-  _snare(time, gain = 0.06) {
-    const osc = this.ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(200, time);
-    osc.frequency.exponentialRampToValueAtTime(80, time + 0.08);
+  _hat(time, gain = 0.025) {
+    const buf = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.03), this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    const hp = this.ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 8000;
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(gain, time);
-    g.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-    osc.connect(g); g.connect(this.masterGain);
-    osc.start(time); osc.stop(time + 0.11);
-    this._noise(0.06, gain * 1.2);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.025);
+    src.connect(hp); hp.connect(g); g.connect(this.masterGain);
+    src.start(time);
   }
 
-  // === MUSICAL PATTERNS ===
-
-  _note(n, octave = 0) {
-    // Convert scale degree to frequency (C minor scale)
-    const base = [261.63, 293.66, 311.13, 349.23, 392.00, 415.30, 466.16];
-    const idx = (n % 7 + 7) % 7;
-    const oct = Math.floor(n / 7) + octave;
-    return base[idx] * Math.pow(2, oct);
+  // === SCALE SYSTEM (C Phrygian — dark electronic) ===
+  _n(n, oct = 0) {
+    const base = [261.63, 277.18, 311.13, 349.23, 392.00, 415.30, 466.16];
+    const idx = ((n % 7) + 7) % 7;
+    const octShift = Math.floor(n / 7) + oct;
+    return base[idx] * Math.pow(2, octShift);
   }
 
-  // === MENU MUSIC — ambient, mysterious ===
-  _playMenuBeat(n) {
+  // === MENU — atmospheric cyber ambient ===
+  _menuBeat(n) {
     const t = this.ctx.currentTime;
-    const beatLen = 60 / 70; // 70 BPM for menu
-
-    // Slow pad chords — change every 8 beats
-    if (n % 8 === 0) {
-      const chordRoot = [0, -2, 3, 1][(n / 8) % 4];
-      this._pad(this._note(chordRoot, 0), t, beatLen * 8, 0.05);
-      this._pad(this._note(chordRoot + 2, -1), t, beatLen * 8, 0.035);
-      this._pad(this._note(chordRoot + 4, -1), t, beatLen * 8, 0.03);
-    }
-
-    // Gentle pluck arpeggio — every 2 beats
-    if (n % 2 === 0) {
-      const arp = [0, 4, 7, 11, 7, 4][(n / 2) % 6];
-      this._synthPluck(this._note(arp, 0), t, 0.6, 0.03);
-    }
-
-    // Occasional bass rumble
+    // Evolving pad — every 16 beats
     if (n % 16 === 0) {
-      this._kick(t, 0.08);
+      const root = [0, -2, -4, 2][(n / 16) % 4];
+      this._pad([this._n(root, -1), this._n(root + 2, -1), this._n(root + 4, -1), this._n(root + 6, -1)], t, 60/70 * 16, 0.04);
+    }
+    // Gentle melody — every 4 beats
+    if (n % 4 === 0) {
+      const mel = [0, 3, 5, 7, 5, 3, 0, -1, 0, 2, 3, 2, 0, -1, -3, -1][(n / 4) % 16];
+      this._lead(this._n(mel, 0), t, 1.8, 0.025);
+    }
+    // Subtle bass pulse — every 8 beats
+    if (n % 8 === 0) {
+      this._bass(this._n(0, -2), t, 2.5, 0.06);
     }
   }
 
-  // === COMBAT MUSIC — driving, tense ===
-  _playCombatBeat(n) {
+  // === COMBAT — driving synthwave ===
+  _combatBeat(n) {
+    const t = this.ctx.currentTime;
+    const bp = 60 / this._bpm;
+    // Drums — lighter than before
+    if (n % 4 === 0) this._kick(t, 0.12);
+    if (n % 4 === 2) this._snare(t, 0.04);
+    if (n % 2 === 1) this._hat(t, 0.02);
+
+    // Grooving bass — 8-beat pattern
+    const bassPat = [0, 0, 0, 0, -2, -2, -2, -2, 3, 3, 3, 3, -4, -4, -4, -4];
+    if (n % 2 === 0) this._bass(this._n(bassPat[n % 16], -2), t, bp * 1.6, 0.1);
+
+    // Lead melody — 8-beat phrase
+    const leadMel = [0, 2, 3, 5, 7, 5, 3, 2, 0, 3, 5, 7, 10, 7, 5, 3];
+    if (n % 2 === 0) this._lead(this._n(leadMel[n % 16], 0), t, 0.7, 0.03);
+
+    // Arp counter-melody — 4-beat cycle
+    if (n % 1 === 0) {
+      const arp = [7, 11, 14, 11, 7, 4, 7, 4, 5, 10, 12, 10, 5, 2, 3, 2];
+      this._osc('square', this._n(arp[n % 16], 0), t + bp * 0.25, 0.3, 0.018, 2000);
+    }
+
+    // Pad swell — every 16 beats
+    if (n % 16 === 0) {
+      const chord = [0, 2, 4, 6];
+      this._pad(chord.map(c => this._n(c, -1)), t, bp * 16, 0.025);
+    }
+  }
+
+  // === BOSS — intense cyber onslaught ===
+  _bossBeat(n) {
     const t = this.ctx.currentTime;
     const bp = 60 / this._bpm;
 
-    // Kick — four on the floor
+    // Drums — driving but not overwhelming
     if (n % 2 === 0) this._kick(t, 0.15);
-    // Snare — backbeat
-    if (n % 4 === 2) this._snare(t, 0.05);
-    // Hi-hat — offbeat
-    if (n % 1 === 0) this._hat(t + bp * 0.5, 0.025);
+    if (n % 2 === 1) this._snare(t, 0.05);
+    this._hat(t, 0.022);
+    if (n % 4 === 0) this._hat(t + bp * 0.5, 0.018);
 
-    // Bass line — root note every 2 beats
-    const bassRoot = [0, 0, -2, -2, 3, 3, -4, -4][n % 8];
-    this._bass(this._note(bassRoot, -2), bp * 1.5, 0.15);
+    // Aggressive bass — 4-beat pattern
+    const bassLine = [0, -5, -2, -3, 0, -5, -2, -3, 0, -5, 3, 0, -2, -5, -2, 0];
+    this._bass(this._n(bassLine[n % 16], -2), t, bp * 1.1, 0.16);
 
-    // Synth arp — 16th note pattern
-    const arpNotes = [0, 4, 7, 11, 14, 11, 7, 4, 0, 2, 4, 5, 7, 5, 4, 2];
-    const arpIdx = n % arpNotes.length;
-    this._synthPluck(this._note(arpNotes[arpIdx], 0), t, 0.35, 0.04);
-
-    // Rising pad — changes every 8 beats
-    if (n % 8 === 0) {
-      const chord = [0, 3, 5, 7][(n / 8) % 4];
-      this._pad(this._note(chord, -1), t, bp * 8, 0.03);
+    // Menacing lead — 4-beat phrase
+    if (n % 2 === 0) {
+      const bossMel = [0, 5, 3, 7, 0, 10, 7, 11, 0, 5, 3, 0, -2, 3, 0, -5];
+      this._lead(this._n(bossMel[n % 16], 0), t, 0.5, 0.04);
     }
-  }
 
-  // === BOSS MUSIC — aggressive, urgent ===
-  _playBossBeat(n) {
-    const t = this.ctx.currentTime;
-    const bp = 60 / this._bpm;
+    // Fast arp — every beat
+    const arp = [14, 10, 7, 3, 12, 7, 3, 0, 11, 7, 5, 2, 10, 5, 2, -2];
+    this._osc('square', this._n(arp[n % 16], 0), t + bp * 0.12, 0.2, 0.025, 2500);
 
-    // Fast kick — every beat
-    this._kick(t, 0.2);
-    // Snare — beats 2+4
-    if (n % 2 === 1) this._snare(t, 0.08);
-    // Double hi-hat
-    this._hat(t, 0.03);
-    this._hat(t + bp * 0.5, 0.03);
-
-    // Aggressive bass — every beat
-    const bassLine = [0, 0, 0, 0, -5, -5, -2, -2, 0, 0, 3, 3, -2, -2, -5, -5];
-    this._bass(this._note(bassLine[n % 16], -2), bp * 1.2, 0.22);
-
-    // Fast synth arp
-    const arp = [0, 3, 7, 10, 14, 10, 7, 3, -2, 1, 4, 8, 11, 8, 4, 1];
-    this._synthPluck(this._note(arp[n % 16], 0), t, 0.25, 0.06);
-
-    // Alarm stab — every 8 beats
+    // Alarm chord — every 8 beats
     if (n % 8 === 0) {
-      this._osc('sawtooth', this._note(0, 1), bp * 1.5, 0.06);
-      this._osc('sawtooth', this._note(7, 0), bp * 1.5, 0.04);
+      this._osc('sawtooth', this._n(0, 1), t, bp * 1.2, 0.04);
+      this._osc('sawtooth', this._n(7, 0), t + 0.02, bp * 1.2, 0.03);
     }
 
     // Dark pad
     if (n % 16 === 0) {
-      this._pad(this._note(0, -1), t, bp * 16, 0.04);
-      this._pad(this._note(7, -1), t, bp * 16, 0.03);
+      this._pad([this._n(0, -1), this._n(3, -1), this._n(7, -1)], t, bp * 16, 0.03);
     }
   }
 
@@ -244,51 +196,49 @@ class CyberSynth {
   start() {
     if (this._running) return;
     this._running = true;
+    this._nextBeat = this.ctx.currentTime;
+    this._beat = 0;
     this._scheduleLoop();
   }
 
   stop() {
     this._running = false;
-    this.masterGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
+    this.masterGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.5);
   }
 
   switchMode(mode, wave = 1) {
     this.currentMode = mode;
     this.currentWave = wave;
     if (mode === 'menu') this._bpm = 70;
-    else if (mode === 'boss') this._bpm = 85 + wave * 2;
-    else this._bpm = 78 + Math.min(wave, 20) * 1.2;
+    else if (mode === 'boss') this._bpm = 88 + wave * 1.5;
+    else this._bpm = 82 + Math.min(wave, 18) * 0.8;
+    this._nextBeat = this.ctx.currentTime + 0.1;
+    this._beat = 0;
   }
 
   _scheduleLoop() {
     if (!this._running) return;
-
     const bp = 60 / this._bpm;
-    const lookAhead = 0.15;
     const now = this.ctx.currentTime;
+    const lookAhead = 0.18;
 
-    // Schedule beats that haven't been scheduled yet
     while (this._nextBeat < now + lookAhead) {
-      const beatNum = this._beat;
-      const mode = this.currentMode;
-
-      if (mode === 'combat') this._playCombatBeat(beatNum);
-      else if (mode === 'boss') this._playBossBeat(beatNum);
-      else this._playMenuBeat(beatNum);
-
+      const n = this._beat;
+      if (this.currentMode === 'combat') this._combatBeat(n);
+      else if (this.currentMode === 'boss') this._bossBeat(n);
+      else this._menuBeat(n);
       this._nextBeat += bp;
       this._beat++;
     }
 
-    // Smooth fade
-    if (Math.abs(this._fadeCurrent - this._fadeTarget) > 0.001) {
-      this._fadeCurrent += (this._fadeTarget - this._fadeCurrent) * 0.02;
-      this.masterGain.gain.value = this._fadeCurrent;
+    if (Math.abs(this._fadeCurrent - this._fadeTarget) > 0.0005) {
+      this._fadeCurrent += (this._fadeTarget - this._fadeCurrent) * 0.03;
+      this.masterGain.gain.value = Math.max(0, this._fadeCurrent);
     }
 
-    setTimeout(() => this._scheduleLoop(), 50);
+    setTimeout(() => this._scheduleLoop(), 40);
   }
 
-  fadeIn(target = 0.08) { this._fadeTarget = target; }
-  fadeOut() { this._fadeTarget = 0.001; }
+  fadeIn(target = 0.06) { this._fadeTarget = target; }
+  fadeOut() { this._fadeTarget = 0.0001; }
 }
