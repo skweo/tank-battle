@@ -3162,9 +3162,17 @@ function getEnemyBulletSpeedMul() {
 function renderAchievements() {
   const grid = document.getElementById('achieve-grid');
   const groups = getAchievementGroups();
-  // Render tabs — temporarily hidden for debug
+  // Render tabs
   const tabsEl = document.getElementById('achieve-tabs');
-  if (tabsEl) { tabsEl.innerHTML = ''; // tabsEl.style.display = 'none';
+  if (tabsEl) {
+    let tabsHtml = '';
+    for (const [key, cfg] of Object.entries(groups)) {
+      const activeCls = key === achievementsTab ? ' active' : '';
+      const total = cfg.ids.length;
+      const unlocked = cfg.ids.filter(id => unlockedAchievements.has(id)).length;
+      tabsHtml += `<button class="achieve-tab${activeCls}" data-tab="${key}" onclick="switchAchievementsTab('${key}')">${cfg.label} <span class="achieve-tab-code">${unlocked}/${total}</span></button>`;
+    }
+    tabsEl.innerHTML = tabsHtml;
   }
   // Render current tab's items
   const activeGroup = groups[achievementsTab];
@@ -3220,7 +3228,7 @@ function switchAchievementsTab(tab) {
   achievementsTab = tab;
   renderAchievements();
   // Update tab buttons
-  document.querySelectorAll('#achieve-tabs .best-section-tab').forEach(el => {
+  document.querySelectorAll('#achieve-tabs .achieve-tab').forEach(el => {
     el.classList.toggle('active', el.dataset.tab === tab);
   });
 }
