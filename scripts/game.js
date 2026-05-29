@@ -3159,8 +3159,8 @@ function getEnemyBulletSpeedMul() {
   return (diff.enemyBulletSpeedMul || 1) * timeMul;
 }
 
-let achievementsPage = 0;
-const ACH_PAGE_SIZE = 8;
+var achievementsPage = 0;
+var ACH_PAGE_SIZE = 8;
 function renderAchievements() {
   const grid = document.getElementById('achieve-grid');
   const groups = getAchievementGroups();
