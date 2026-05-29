@@ -435,9 +435,21 @@ canvas { display: block; background: #0a0f18; }
   border: 1px solid rgba(107,125,149,0.06);
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
+#achievements-screen .ach-group-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 14px 6px; margin-top: 10px; margin-bottom: 2px;
+  border-bottom: 2px solid var(--hdr-color, rgba(244,152,0,0.3));
+  font: bold 14px "Segoe UI","Microsoft YaHei",sans-serif;
+  letter-spacing: 3px;
+}
+#achievements-screen .ach-group-header .ach-count {
+  font: 11px "Courier New",monospace; color: rgba(255,255,255,0.4);
+  background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 2px;
+}
+#achievements-screen .ach-group-header:first-child { margin-top: 0; }
 #achievements-screen .achieve-row {
-  display: grid; grid-template-columns: 68px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px;
-  min-height: 104px;
+  display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px;
+  min-height: 56px;
   border: 1px solid rgba(107,125,149,0.08); background: linear-gradient(135deg, rgba(12,16,24,0.72), rgba(6,10,15,0.88));
   clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px);
   position: relative;
@@ -469,9 +481,9 @@ canvas { display: block; background: #0a0f18; }
 #achievements-screen .ach-medal,
 #achievements-screen .ach-info,
 #achievements-screen .ach-claim { position: relative; z-index: 1; }
-#achievements-screen .ach-medal {
-  width: 58px; height: 66px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+#achievements-screen .ach-medal, #achievements-screen .ach-icon {
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
   color: var(--ach-accent, #f49800);
   background:
     radial-gradient(circle at 50% 36%, color-mix(in srgb, var(--ach-accent, #f49800) 22%, transparent), transparent 58%),

@@ -3103,39 +3103,59 @@ function getEnemyBulletSpeedMul() {
 
 function renderAchievements() {
   const grid = document.getElementById('achieve-grid');
-  grid.innerHTML = achievementsDef.map(a => {
-    const unlocked = unlockedAchievements.has(a.id);
-    const claimed = claimedAchievementRewards.has(a.id);
-    const reward = getAchievementReward(a);
-    const rarity = getAchievementRarity(a);
-    const code = getAchievementCode(a);
-    const seal = getAchievementSeal(a);
-    const medalIcon = unlocked ? renderCodeIcon(a.icon || seal, a.name) : escapeHtml(seal);
-    const tierName = rarity.label + ' · 奖励 ' + reward + ' 月光石';
-    const lore = unlocked ? (ACHIEVEMENT_LORE[a.id] || '该战绩尚未完成解密。记录员只留下一个空白编号，等待新的驾驶员补全。') : '档案加密中。完成该成就后，机装研究室才会开放战绩记录。';
-    const statusText = unlocked ? (claimed ? 'ARCHIVED' : 'CLAIM READY') : 'ENCRYPTED';
-    const rewardHtml = unlocked
-      ? (claimed
-        ? `<button class="ach-reward claimed" disabled>已领取</button>`
-        : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">领取 +${reward}</button>`)
-      : `<span class="ach-reward locked-reward">+${reward}</span>`;
-    return `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'} rarity-${rarity.className}" tabindex="0" style="--ach-accent:${escapeHtml(rarity.color)}">
-      <div class="ach-medal" aria-label="${escapeHtml(code)}">
-        <span class="ach-medal-code">${escapeHtml(code)}</span>
-        <span class="ach-medal-seal">${medalIcon}</span>
-      </div>
-      <div class="ach-info">
-        <div class="ach-topline">
-          <span class="ach-code">${escapeHtml(code)}</span>
-          <span class="ach-rarity">${escapeHtml(tierName)}</span>
-          <span class="ach-status">${escapeHtml(statusText)}</span>
-        </div>
-        <div class="ach-name">${unlocked ? escapeHtml(a.name) : '未解锁战绩'}</div>
-        <div class="ach-desc">${unlocked ? a.desc : '???'}</div>
-        <div class="ach-lore"><span>战绩档案</span>${escapeHtml(lore)}</div>
-      </div>
-      <div class="ach-claim">${rewardHtml}</div>
+  const groups = getAchievementGroups();
+  const groupColors = {
+    '战斗': '#ff5a4a', '生存': '#5ee870', '分数': '#ffb060',
+    '机体': '#60b0ff', '收藏': '#a080f0', '特殊': '#f6e5aa',
+  };
+  let html = '';
+  for (const [groupName, ids] of Object.entries(groups)) {
+    const groupItems = ids.map(id => achievementsDef.find(a => a.id === id)).filter(Boolean);
+    const unlockedCount = groupItems.filter(a => unlockedAchievements.has(a.id)).length;
+    const color = groupColors[groupName] || '#888';
+    html += `<div class="ach-group-header" style="--hdr-color:${color}">
+      <span style="color:${color}">&#9656; ${groupName}</span>
+      <span class="ach-count">${unlockedCount}/${groupItems.length}</span>
     </div>`;
+    for (const a of groupItems) {
+      const unlocked = unlockedAchievements.has(a.id);
+      const claimed = claimedAchievementRewards.has(a.id);
+      const reward = getAchievementReward(a);
+      const rarity = getAchievementRarity(a);
+      const code = getAchievementCode(a);
+      const seal = getAchievementSeal(a);
+      const medalIcon = unlocked ? renderCodeIcon(a.icon || seal, a.name) : escapeHtml(seal);
+      const tierName = rarity.label + ' · 奖励 ' + reward + ' 月光石';
+      const lore = unlocked ? (ACHIEVEMENT_LORE[a.id] || '记录完成，等待归档。') : '档案加密中。完成该成就后解锁战绩记录。';
+      const statusText = unlocked ? (claimed ? 'ARCHIVED' : '领取') : '锁定';
+      const rewardHtml = unlocked
+        ? (claimed ? `<button class="ach-reward claimed" disabled>已领</button>` : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">+${reward}</button>`)
+        : `<span class="ach-reward locked-reward">+${reward}</span>`;
+      html += `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'} rarity-${rarity.className}" style="--ach-accent:${escapeHtml(rarity.color)}">
+        <div class="ach-medal"><span class="ach-icon">${medalIcon}</span></div>
+        <div class="ach-info">
+          <div class="ach-topline">
+            <span class="ach-code">${escapeHtml(code)}</span>
+            <span class="ach-rarity">${escapeHtml(tierName)}</span>
+          </div>
+          <div class="ach-name">${unlocked ? escapeHtml(a.name) : '???'}</div>
+          <div class="ach-desc">${unlocked ? a.desc : '完成条件隐藏'}</div>
+        </div>
+        <div class="ach-claim">${rewardHtml}</div>
+      </div>`;
+    }
+  }
+  grid.innerHTML = html;
+}
+function getAchievementGroups() {
+  return {
+    '战斗': ['first_blood','sharpshooter','tank_hunter','battle_veteran','combo_20','combo_35','combo_50','elite_hunter','elite_hunter_25'],
+    '生存': ['survivor','tenacious','flawless','perfect_run','wave_15','wave_20','wave_25','speed_demon','mine_dodger','hardcore','nightmare_survivor'],
+    '分数': ['score_500','score_2000','score_5000','score_10000','score_20000'],
+    '机体': ['tank_spread_win','tank_focus_win','tank_wide_win','tank_burst_win','tank_sniper_win','tank_homing_win','tank_border_win','tank_blade_win','tank_scarlet_win','tank_astral_win'],
+    '收藏': ['powerup_collector','powerup_collector_40','fragment_500','fragment_1000','upgrade_apprentice','upgrade_master','evolution_first','evolution_six','all_tanks_unlocked','daily_clear'],
+    '特殊': ['modifier_reroll','global_research_first','boss_witness','boss_breaker'],
+  };
   }).join('');
 }
 
