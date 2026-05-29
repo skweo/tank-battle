@@ -7413,104 +7413,87 @@ class BossEnemy extends EliteEnemy {
       ctx.stroke();
     }
 
-    // Type-specific visual
-    const btype = this.bossDef.name;
-    if (btype === '巨兽坦克') {
-      // Heavy armored chassis
-      ctx.fillStyle = '#1a1a1a'; ctx.fillRect(-28,-18,10,36); ctx.fillRect(18,-18,10,36);
-      ctx.fillStyle = this.color; ctx.fillRect(-24,-14,48,28);
-      ctx.strokeStyle = '#400'; ctx.lineWidth = 4; ctx.strokeRect(-24,-14,48,28);
-      ctx.fillStyle = '#a44'; ctx.fillRect(-20,-10,40,20);
-      // Armor plates
-      for (let x = -22; x <= 16; x += 12) {
-        ctx.fillStyle = '#522'; ctx.fillRect(x, -10, 8, 20);
-        ctx.strokeStyle = '#300'; ctx.lineWidth = 1; ctx.strokeRect(x, -10, 8, 20);
+    // === UNIFIED FORTRESS BOSS VISUAL ===
+    const brt = Date.now() / 250;
+    // Ground shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(0, 38, 40, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.ellipse(0, 36, 26, 5, 0, 0, Math.PI * 2); ctx.fill();
+    // Massive tracks
+    drawTankTracks(ctx, -36, 28, -24, 48, 10, '#06020c', '#1a0c30');
+    for (const side of [-1, 1]) {
+      const tx = side * 28;
+      ctx.fillStyle = '#080310'; ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.6;
+      ctx.fillRect(tx, 22, 10, 34);
+      for (let s = 0; s < 7; s++) { ctx.beginPath(); ctx.moveTo(tx, 24 + s * 5); ctx.lineTo(tx + 10, 24 + s * 5); ctx.stroke(); }
+      for (let w = 0; w < 5; w++) { ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.beginPath(); ctx.arc(tx + 5, 26 + w * 6, 4, 0, Math.PI * 2); ctx.fill(); }
+    }
+    // Sloped outer bastions
+    for (const side of [-1, 1]) {
+      const bx = side * 30;
+      ctx.fillStyle = '#060210'; ctx.strokeStyle = accent; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(bx + side * 10, -30); ctx.lineTo(bx, -16); ctx.lineTo(bx - side * 4, -6);
+      ctx.lineTo(bx - side * 4, 16); ctx.lineTo(bx, 26); ctx.lineTo(bx + side * 10, 30); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      for (let w = 0; w < 3; w++) {
+        ctx.fillRect(bx - side * 2 - 2, -12 + w * 12, 8, 4);
+        ctx.fillStyle = accent; ctx.globalAlpha = 0.3 + w * 0.15 + Math.sin(brt + w) * 0.2;
+        ctx.fillRect(bx - side * 2, -11 + w * 12, 6, 2); ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(0,0,0,0.7)';
       }
-      ctx.fillStyle = this.turretColor; ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#400'; ctx.lineWidth = 3; ctx.stroke();
-      ctx.save(); ctx.rotate(this.turretAngle);
-      ctx.fillStyle = this.turretColor; ctx.fillRect(7,-6,22,12);
-      ctx.strokeStyle = '#400'; ctx.lineWidth = 2; ctx.strokeRect(7,-6,22,12);
-      ctx.restore();
-    } else if (btype === '幻影坦克') {
-      // Sleek stealth shape
-      ctx.fillStyle = this.color; ctx.beginPath();
-      ctx.moveTo(26,0); ctx.lineTo(10,-14); ctx.lineTo(-16,-6);
-      ctx.lineTo(-20,0); ctx.lineTo(-16,6); ctx.lineTo(10,14); ctx.closePath();
-      ctx.fill(); ctx.strokeStyle = '#226'; ctx.lineWidth = 3; ctx.stroke();
-      ctx.fillStyle = '#6af'; ctx.beginPath(); ctx.arc(2,0,10,0,Math.PI*2); ctx.fill();
-      ctx.save(); ctx.rotate(this.turretAngle);
-      ctx.fillStyle = this.turretColor; ctx.fillRect(5,-3,18,6);
-      ctx.strokeStyle = '#226'; ctx.lineWidth = 2; ctx.strokeRect(5,-3,18,6);
-      ctx.restore();
-      // Afterimage effect
-      ctx.globalAlpha = 0.15;
-      for (let i=1;i<=3;i++) {
-        ctx.strokeStyle = '#88f'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(26-i*8,0); ctx.lineTo(10,-14); ctx.lineTo(-16,-6);
-        ctx.lineTo(-20,0); ctx.lineTo(-16,6); ctx.lineTo(10,14); ctx.closePath(); ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-    } else if (btype === '要塞坦克') {
-      // Bunker-style static fortress
-      ctx.fillStyle = '#1a1a1a'; ctx.fillRect(-26,-18,52,36);
-      ctx.fillStyle = this.color; ctx.fillRect(-24,-16,48,32);
-      ctx.strokeStyle = '#430'; ctx.lineWidth = 4; ctx.strokeRect(-24,-16,48,32);
-      // Multiple turrets
-      for (let tx = -16; tx <= 16; tx += 16) {
-        ctx.fillStyle = this.turretColor; ctx.beginPath(); ctx.arc(tx,2,10,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#430'; ctx.lineWidth = 2; ctx.stroke();
-      }
-      ctx.fillStyle = this.turretColor; ctx.beginPath(); ctx.arc(0,-2,12,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#430'; ctx.lineWidth = 3; ctx.stroke();
-      ctx.save(); ctx.rotate(this.turretAngle);
-      ctx.fillStyle = this.turretColor; ctx.fillRect(5,-4,16,8);
-      ctx.strokeStyle = '#430'; ctx.lineWidth = 2; ctx.strokeRect(5,-4,16,8);
-      ctx.restore();
-    } else if (btype === '虚空坦克') {
-      // Dark matter / gravity well design
-      const vGrad = ctx.createRadialGradient(0,0,4,0,0,22);
-      vGrad.addColorStop(0,'#a4f'); vGrad.addColorStop(0.5,this.color); vGrad.addColorStop(1,'#000');
-      ctx.fillStyle = vGrad; ctx.beginPath(); ctx.arc(0,0,22,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#a4f'; ctx.lineWidth = 3; ctx.stroke();
-      // Inner core
-      ctx.fillStyle = '#fff'; ctx.shadowColor = '#a4f'; ctx.shadowBlur = 12 * bpulse;
-      ctx.beginPath(); ctx.arc(0,0,6,0,Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 8;
-      ctx.save(); ctx.rotate(this.turretAngle);
-      ctx.fillStyle = this.turretColor; ctx.fillRect(5,-3,14,6);
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(5,-3,14,6);
-      ctx.restore();
-      // Gravity ring
-      ctx.strokeStyle = '#a4f'; ctx.globalAlpha = 0.2; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(0,0,28,0,Math.PI*2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(0,0,34,-Math.sin(t)*1.5,-Math.sin(t)*1.5+Math.PI*1.2); ctx.stroke();
-      ctx.globalAlpha = 1;
-    } else if (btype === '风暴坦克') {
-      // Lightning/storm theme
-      ctx.fillStyle = '#1a1a2a'; ctx.fillRect(-22,-16,8,32); ctx.fillRect(14,-16,8,32);
-      ctx.fillStyle = this.color; ctx.fillRect(-20,-14,40,28);
-      ctx.strokeStyle = '#039'; ctx.lineWidth = 3; ctx.strokeRect(-20,-14,40,28);
-      // Lightning arc effects
-      ctx.fillStyle = '#6cf'; ctx.fillRect(-16,-10,32,20);
-      ctx.strokeStyle = '#4ff'; ctx.lineWidth = 1; ctx.globalAlpha = 0.4;
-      for (let l=0;l<4;l++) {
-        ctx.beginPath(); ctx.moveTo(-12+l*8,-12); ctx.lineTo(-8+l*7,-2); ctx.lineTo(-4+l*8,8); ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = this.turretColor; ctx.beginPath(); ctx.arc(0,0,11,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#039'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.save(); ctx.rotate(this.turretAngle);
-      const sGrad = ctx.createLinearGradient(6,0,20,0);
-      sGrad.addColorStop(0,'#4ff'); sGrad.addColorStop(1,'#fff');
-      ctx.fillStyle = sGrad; ctx.fillRect(6,-3,14,6);
-      ctx.strokeStyle = '#039'; ctx.lineWidth = 2; ctx.strokeRect(6,-3,14,6);
-      ctx.restore();
-      // Electric sparks
-      ctx.fillStyle = '#4ff'; ctx.shadowColor = '#4ff'; ctx.shadowBlur = 6;
-      for (let s=0;s<3;s++) {
-        ctx.beginPath(); ctx.arc((rng()-0.5)*40,(rng()-0.5)*30,1.5,0,Math.PI*2); ctx.fill();
-      }
+    }
+    // Angular main chassis
+    const chGrad = ctx.createLinearGradient(-34, -30, 34, -30);
+    chGrad.addColorStop(0, '#080310'); chGrad.addColorStop(0.2, '#100820'); chGrad.addColorStop(0.5, '#1a1035'); chGrad.addColorStop(0.8, '#100820'); chGrad.addColorStop(1, '#080310');
+    ctx.fillStyle = chGrad;
+    ctx.beginPath(); ctx.moveTo(26, -30); ctx.lineTo(-22, -22); ctx.lineTo(-34, -10); ctx.lineTo(-38, 4);
+    ctx.lineTo(-34, 18); ctx.lineTo(-22, 24); ctx.lineTo(26, 30); ctx.lineTo(34, 14); ctx.lineTo(36, 0); ctx.lineTo(34, -18); ctx.closePath();
+    ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 3.5; ctx.stroke();
+    ctx.strokeStyle = accent; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(26, -30); ctx.lineTo(26, 30); ctx.stroke();
+    // Panel seams
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
+    for (let sx = -24; sx < 26; sx += 9) { ctx.beginPath(); ctx.moveTo(sx, -24 + Math.abs(sx) * 0.2); ctx.lineTo(sx, 24 - Math.abs(sx) * 0.15); ctx.stroke(); }
+    for (let sy = -18; sy < 22; sy += 8) { ctx.beginPath(); ctx.moveTo(-30 + Math.abs(sy) * 0.5, sy); ctx.lineTo(30 - Math.abs(sy) * 0.3, sy); ctx.stroke(); }
+    // Central command node
+    drawArmorPanel(ctx, -14, -10, 28, 20, 'rgba(0,0,0,0.88)', accent, 4);
+    drawArmorPanel(ctx, -10, -6, 20, 12, 'rgba(4,2,10,0.9)', 'rgba(255,255,255,0.1)', 2);
+    const eyePulse = Math.sin(brt) * 0.25 + 0.75;
+    for (let e = 0; e < 3; e++) {
+      ctx.fillStyle = accent; ctx.globalAlpha = eyePulse * (0.5 + e * 0.2);
+      ctx.beginPath(); ctx.ellipse(-5 + e * 6, -1, 3.5, 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(-5 + e * 6, -1, 1.5, 1, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    for (let t = 0; t < 5; t++) { ctx.fillStyle = t < 3 + this.currentPhase ? accent : 'rgba(255,255,255,0.06)'; ctx.globalAlpha = t < 3 + this.currentPhase ? (0.5 + t * 0.1) : 0.2; ctx.fillRect(-12 + t * 5, 9, 3, 2); } ctx.globalAlpha = 1;
+    // Rear power unit
+    drawArmorPanel(ctx, -34, -6, 10, 14, '#080310', accent, 2);
+    for (let v = 0; v < 3; v++) { ctx.fillStyle = accent; ctx.globalAlpha = 0.5 + Math.sin(brt * 2 + v) * 0.3; ctx.fillRect(-32, -3 + v * 5, 6, 2); } ctx.globalAlpha = 1;
+    const exhGrad = ctx.createRadialGradient(-38, 4, 0, -38, 4, 10);
+    exhGrad.addColorStop(0, 'rgba(255,255,255,0.6)'); exhGrad.addColorStop(0.3, accent); exhGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = exhGrad; ctx.beginPath(); ctx.arc(-38, 4, 10, 0, Math.PI * 2); ctx.fill();
+    // Phase crown
+    const maxPh = (this.bossDef && this.bossDef.phases) ? this.bossDef.phases.length : 1;
+    for (let r = 0; r < maxPh; r++) {
+      const active = r <= this.currentPhase;
+      ctx.strokeStyle = active ? accent : 'rgba(255,255,255,0.03)'; ctx.lineWidth = active ? 3 : 1.5;
+      ctx.globalAlpha = active ? (0.65 + r * 0.15) : 0.1;
+      ctx.beginPath(); ctx.arc(0, -10, 30 + r * 8, -Math.PI * 0.6, Math.PI * 0.6); ctx.stroke();
+      if (active) { for (let n = 0; n < 3; n++) { const na = -Math.PI * 0.45 + n * Math.PI * 0.45; ctx.fillStyle = accent; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(Math.cos(na) * (30 + r * 8), -10 + Math.sin(na) * (30 + r * 8), 2.5, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1; }
+    }
+    ctx.globalAlpha = 1;
+    // Siege cannon
+    ctx.save(); ctx.rotate(this.turretAngle);
+    drawArmorPanel(ctx, 6, -8, 14, 16, '#060210', accent, 4);
+    drawWeaponBarrel(ctx, 8, -5, 34, 10, '#0a0618', accent, '#ffffff');
+    for (let c = 0; c < 3; c++) { ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.globalAlpha = 0.5 + Math.sin(brt * 1.5 + c) * 0.25; ctx.beginPath(); ctx.arc(14 + c * 8, 0, 5.5, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.beginPath(); ctx.arc(14 + c * 8, 0, 3, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff'; ctx.fillRect(36, -5, 6, 10);
+    ctx.fillStyle = accent; ctx.globalAlpha = 0.4 + Math.sin(brt) * 0.3; ctx.beginPath(); ctx.arc(43, 0, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(43, 0, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.restore();
+    // Top auxiliary pods
+    for (let m = 0; m < 3; m++) {
+      const mx = -10 + m * 10;
+      drawArmorPanel(ctx, mx - 4, -34, 8, 12, '#080310', accent, 2);
+      ctx.fillStyle = accent; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(mx, -34, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     }
 
     ctx.shadowBlur = 0;
