@@ -10896,6 +10896,8 @@ function restartGame() {
   clearInputState();
   resetRunState();
   hideRunOverlays(true);
+  // Restart menu BGM
+  if (musicSys) { musicSys.switchMode('menu'); musicSys.fadeIn(0.18); }
   currentRunMode = 'clear';
   selectedRunMode = 'clear';
   isDailyChallenge = false;
