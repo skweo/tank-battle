@@ -2605,16 +2605,37 @@ function getWaveSpawnRate(diff) {
 
 function selectBossForWave(waveNo) {
   const bossWaveIndex = getBossWaveIndex(waveNo);
-  if (bossWaveIndex < BOSS_TYPES.length) return BOSS_TYPES[bossWaveIndex];
-  const diffIdx = Math.max(0, DIFFICULTY_ORDER.indexOf(currentDifficulty));
-  const maxPool = Math.min(BOSS_TYPES.length, 3 + diffIdx);
-  let pool = BOSS_TYPES.slice(0, maxPool);
-  if (lastBossName && pool.length > 1) pool = pool.filter(b => b.name !== lastBossName);
+  const isArchivePhase = bossWaveIndex >= 0 && bossWaveIndex < BOSS_TYPES.length;
+
+  // Build pool: all bosses for archive, expanding pool for post-archive
+  let pool;
+  if (isArchivePhase) {
+    // Archive phase: randomly select from all bosses
+    pool = [...BOSS_TYPES];
+  } else {
+    const diffIdx = Math.max(0, DIFFICULTY_ORDER.indexOf(currentDifficulty));
+    const maxPool = Math.min(BOSS_TYPES.length, 3 + diffIdx);
+    pool = BOSS_TYPES.slice(0, maxPool);
+  }
+
+  // Filter out last boss to avoid repeats
+  if (lastBossName && pool.length > 1) {
+    pool = pool.filter(b => b.name !== lastBossName);
+  }
+
+  // Faction variety: prefer different faction from last boss
   const lastBoss = BOSS_TYPES.find(b => b.name === lastBossName);
   if (lastBoss && pool.length > 1) {
     const factionShift = pool.filter(b => b.faction !== lastBoss.faction);
     if (factionShift.length > 0) pool = factionShift;
   }
+
+  // Tier-S bosses (要塞, 雷霆执政官) don't appear in first 3 boss waves
+  const HARD_BOSSES = ['要塞坦克', '雷霆执政官'];
+  if (bossWaveIndex < 3 && pool.length > HARD_BOSSES.length) {
+    pool = pool.filter(b => !HARD_BOSSES.includes(b.name));
+  }
+
   return pool[Math.floor(rng() * pool.length)] || BOSS_TYPES[0];
 }
 
