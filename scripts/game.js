@@ -3159,8 +3159,6 @@ function getEnemyBulletSpeedMul() {
   return (diff.enemyBulletSpeedMul || 1) * timeMul;
 }
 
-var achievementsPage = 0;
-var ACH_PAGE_SIZE = 8;
 function renderAchievements() {
   const grid = document.getElementById('achieve-grid');
   const groups = getAchievementGroups();
@@ -3175,7 +3173,6 @@ function renderAchievements() {
     }
     tabsEl.innerHTML = tabsHtml;
   }
-  // Render current tab's items (paginated)
   const activeGroup = groups[achievementsTab];
   if (!activeGroup) return;
   const allItems = activeGroup.ids.map(id => achievementsDef.find(a => a.id === id)).filter(Boolean);
@@ -3185,16 +3182,13 @@ function renderAchievements() {
     if (ra !== rb) return ra - rb;
     return (getAchievementReward(a) || 0) - (getAchievementReward(b) || 0);
   });
-  const totalPages = Math.ceil(allItems.length / ACH_PAGE_SIZE);
-  if (achievementsPage >= totalPages) achievementsPage = Math.max(0, totalPages - 1);
-  const pageItems = allItems.slice(achievementsPage * ACH_PAGE_SIZE, (achievementsPage + 1) * ACH_PAGE_SIZE);
   const unlockedCount = allItems.filter(a => unlockedAchievements.has(a.id)).length;
   const color = activeGroup.color || '#888';
   let html = `<div class="ach-group-header" style="--hdr-color:${color}">
     <span style="color:${color}">&#9656; ${activeGroup.label}</span>
     <span class="ach-count">${unlockedCount}/${allItems.length}</span>
   </div>`;
-  for (const a of pageItems) {
+  for (const a of allItems) {
     const unlocked = unlockedAchievements.has(a.id); const claimed = claimedAchievementRewards.has(a.id);
     const reward = getAchievementReward(a); const rarity = getAchievementRarity(a);
     const code = getAchievementCode(a); const seal = getAchievementSeal(a);
@@ -3211,15 +3205,6 @@ function renderAchievements() {
         <div class="ach-desc">${unlocked ? a.desc : '完成条件隐藏'}</div>
       </div>
       <div class="ach-claim">${rewardHtml}</div>
-    </div>`;
-  }
-  if (totalPages > 1) {
-    html += `<div class="ach-pager">
-      <button onclick="achievementsPage=0;renderAchievements()" ${achievementsPage===0?'disabled':''}>&#171;</button>
-      <button onclick="achievementsPage=Math.max(0,achievementsPage-1);renderAchievements()" ${achievementsPage===0?'disabled':''}>&#8249;</button>
-      <span>${achievementsPage+1} / ${totalPages}</span>
-      <button onclick="achievementsPage=Math.min(totalPages-1,achievementsPage+1);renderAchievements()" ${achievementsPage>=totalPages-1?'disabled':''}>&#8250;</button>
-      <button onclick="achievementsPage=totalPages-1;renderAchievements()" ${achievementsPage>=totalPages-1?'disabled':''}>&#187;</button>
     </div>`;
   }
   grid.innerHTML = html;
