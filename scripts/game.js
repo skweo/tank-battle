@@ -10528,6 +10528,8 @@ function draw() {
   ctx.shadowBlur = 0;
   ctx.shadowColor = 'transparent';
   ctx.lineWidth = 1;
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'alphabetic';
   ctx.clearRect(0, 0, W, H);
 
   // Screen shake
@@ -10638,7 +10640,10 @@ function draw() {
     }
   }
 
-  // Player
+  // Player (safety reset to prevent state leak from enemy drawing)
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = 'transparent';
   if (player.alive) player.draw(ctx);
 
   // Particles
