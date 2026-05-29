@@ -5583,7 +5583,7 @@ class EnemyTank extends Tank {
     }
   }
   draw(ctx) {
-    const accentMap = { scout:'#ff7272', runner:'#ffbf72', brute:'#ca8cff', artillery:'#ff8bd4' };
+    const accentMap = { scout:'#68b8e8', runner:'#48a8f0', brute:'#e84848', artillery:'#d0a040', sniper:'#50a8d8', sapper:'#e08040', buffer:'#90c860', fissure:'#9880e0' };
     const accent = accentMap[this.kind] || '#f49800';
     const t = Date.now() / 300;
     ctx.save();
@@ -10384,14 +10384,20 @@ function positionPlayerSafely(minEnemyDist) {
 
 // --- Spawn enemies ---
 const enemyTypes = [
-  { kind:'scout', color: '#d44', turret: '#f66', speed: 0.5, hp: 2, label: 'Scout', faction:'observatory' },
-  { kind:'runner', color: '#d84', turret: '#fa8', speed: 0.7, hp: 1, label: 'Fast', faction:'storm_cloister' },
-  { kind:'brute', color: '#a4d', turret: '#c6f', speed: 0.4, hp: 3, label: 'Heavy', faction:'moon_arsenal' },
-  { kind:'artillery', color: '#d4a', turret: '#f6c', speed: 0.6, hp: 3, label: 'Elite', faction:'ash_church' },
-  { kind:'sniper', color: '#6af', turret: '#adf', speed: 0.38, hp: 1, label: 'Sniper', faction:'observatory' },
-  { kind:'sapper', color: '#c84', turret: '#fa6', speed: 0.55, hp: 2, label: 'Sapper', faction:'graveyard' },
-  { kind:'buffer', color: '#8e8', turret: '#bfb', speed: 0.45, hp: 3, label: 'Buffer', faction:'ash_church' },
-  { kind:'fissure', color: '#a6c', turret: '#d8f', speed: 0.5, hp: 2, label: 'Fissure', faction:'void_cult' },
+  // observatory: steel blue, precise
+  { kind:'scout',    color: '#183050', turret: '#68b8e8', speed: 0.5,  hp: 2, label: 'Scout',     faction:'observatory' },
+  { kind:'sniper',   color: '#142840', turret: '#50a8d8', speed: 0.38, hp: 1, label: 'Sniper',    faction:'observatory' },
+  // storm_cloister: electric blue, fast
+  { kind:'runner',   color: '#183060', turret: '#48a8f0', speed: 0.7,  hp: 1, label: 'Fast',      faction:'storm_cloister' },
+  // moon_arsenal: dark red, heavy military
+  { kind:'brute',    color: '#501818', turret: '#d84848', speed: 0.4,  hp: 3, label: 'Heavy',     faction:'moon_arsenal' },
+  // ash_church: brown-gold, faithful
+  { kind:'artillery',color: '#4a2810', turret: '#d0a040', speed: 0.6,  hp: 3, label: 'Elite',     faction:'ash_church' },
+  { kind:'buffer',   color: '#3a2810', turret: '#90c860', speed: 0.45, hp: 3, label: 'Buffer',    faction:'ash_church' },
+  // graveyard: rust brown, scavenged
+  { kind:'sapper',   color: '#4a2010', turret: '#e08040', speed: 0.55, hp: 2, label: 'Sapper',    faction:'graveyard' },
+  // void_cult: deep purple, alien
+  { kind:'fissure',  color: '#2a1040', turret: '#9880e0', speed: 0.5,  hp: 2, label: 'Fissure',   faction:'void_cult' },
 ];
 
 function spawnEnemy() {
