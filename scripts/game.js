@@ -876,6 +876,23 @@ function stopMusic() {
 
 // --- Daily Challenge ---
 function rng() { return seededRandom ? seededRandom() : Math.random(); }
+function rotateTurretToward(current, target, maxSpeed) {
+  let diff = target - current;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  if (Math.abs(diff) < maxSpeed) return target;
+  return current + Math.sign(diff) * maxSpeed;
+}
+// Turret rotation speeds (radians per frame)
+const TURRET_SPEED_FACTION = {
+  observatory: 0.14, storm_cloister: 0.11, void_cult: 0.09,
+  moon_arsenal: 0.07, ash_church: 0.06, graveyard: 0.04,
+};
+const TURRET_SPEED_PLAYER = {
+  sniper: 0.18, scarlet: 0.18, homing: 0.15, astral: 0.15,
+  focus: 0.13, blade: 0.13, spread: 0.11, burst: 0.11,
+  wide: 0.08, border: 0.08,
+};
 function getDailySeed() {
   const d = new Date();
   const dateStr = d.getFullYear() + '-' + (d.getMonth()+1).toString().padStart(2,'0') + '-' + d.getDate().toString().padStart(2,'0');
@@ -4896,8 +4913,10 @@ class PlayerTank extends Tank {
     if (newX > margin && newX < W - margin && !tankCollidesObstacle(newX, this.y, hb, hb)) this.x = newX;
     if (newY > margin && newY < H - margin && !tankCollidesObstacle(this.x, newY, hb, hb)) this.y = newY;
 
-    // Turret aims at mouse
-    this.turretAngle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+    // Turret aims at mouse with rotation speed
+    const targetAngle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+    const pSpeed = TURRET_SPEED_PLAYER[this.tankType] || 0.12;
+    this.turretAngle = rotateTurretToward(this.turretAngle, targetAngle, pSpeed);
 
     if (!wantsToShoot && this.ammo < this.magSize && this.reloadTimer <= 0) {
       this.startReload(true);
@@ -5500,6 +5519,7 @@ class EnemyTank extends Tank {
     this.armor = false;
     this.isElite = false;
     this.kind = kind || 'scout';
+    this.faction = enemyTypes.find(t => t.kind === this.kind)?.faction || 'moon_arsenal';
   }
   update() {
     if (!this.alive) return;
@@ -5533,7 +5553,9 @@ class EnemyTank extends Tank {
     const playerSpeed = getEffectiveSpeed();
     const predictedX = player.x + playerInput.x * playerSpeed * leadFrames;
     const predictedY = player.y + playerInput.y * playerSpeed * leadFrames;
-    this.turretAngle = Math.atan2(predictedY - this.y, predictedX - this.x);
+    const targetAngle = Math.atan2(predictedY - this.y, predictedX - this.x);
+    const eSpeed = TURRET_SPEED_FACTION[this.faction] || 0.08;
+    this.turretAngle = rotateTurretToward(this.turretAngle, targetAngle, eSpeed);
     const lineOfSight = hasLineOfSight(this.x, this.y, predictedX, predictedY);
     if (lineOfSight) this.lostSightTimer = 0;
     else this.lostSightTimer++;
@@ -7014,7 +7036,10 @@ class BossEnemy extends EliteEnemy {
     const dy = player.y - this.y;
     const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
     if (this.attackState !== 'firing') {
-      this.turretAngle = Math.atan2(dy, dx);
+      const bTarget = Math.atan2(dy, dx);
+      const bFaction = this.bossDef?.faction;
+      const bSpeed = (TURRET_SPEED_FACTION[bFaction] || 0.09) * 1.3;
+      this.turretAngle = rotateTurretToward(this.turretAngle, bTarget, bSpeed);
     }
 
     let phase = this.bossDef.phases[Math.max(0, this.currentPhase)] || this.bossDef.phases[0];
