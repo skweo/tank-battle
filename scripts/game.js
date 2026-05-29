@@ -4552,6 +4552,15 @@ function renderMoonstoneChip(amount, extra = '') {
 
 function groupBestiaryItems(items, tab) {
   if (!items.length) return items;
+  const tierOrder = { relic:3, advanced:2, basic:1 };
+  const sortFn = (a, b) => {
+    // Sort by tier (relic > advanced > basic), then by name
+    const ta = tierOrder[a.tier] || 0;
+    const tb = tierOrder[b.tier] || 0;
+    if (ta !== tb) return tb - ta;
+    return (a.name || '').localeCompare(b.name || '');
+  };
+
   const groups = [];
   if (tab === 'items_basic') {
     const cats = {
@@ -4560,23 +4569,26 @@ function groupBestiaryItems(items, tab) {
       '机动支援': t => ['speed','magnet','ricochet','freeze','double_score','timewarp','goldrush'].includes(t.powerType),
     };
     for (const [label, pred] of Object.entries(cats)) {
-      const grp = items.filter(pred);
+      const grp = items.filter(pred).sort(sortFn);
       if (grp.length) { groups.push({ _isHeader: true, name: label, count: grp.length }); groups.push(...grp); }
     }
-    // Any uncategorized
     const used = new Set(Object.values(cats).flatMap(fn => items.filter(fn).map(i => i.powerType)));
-    const rest = items.filter(i => !used.has(i.powerType));
+    const rest = items.filter(i => !used.has(i.powerType)).sort(sortFn);
     if (rest.length) { groups.push({ _isHeader: true, name: '其他', count: rest.length }); groups.push(...rest); }
     return groups;
   }
-  if (tab === 'enemies_elite' || tab === 'enemies_boss') {
+  if (tab === 'enemies_elite' || tab === 'enemies_boss' || tab === 'enemies_normal') {
     const factions = {};
     for (const e of items) {
       const f = e.faction || '未知势力';
       if (!factions[f]) factions[f] = [];
       factions[f].push(e);
     }
-    for (const [fname, ents] of Object.entries(factions)) {
+    // Sort factions by count descending
+    const sortedFactions = Object.entries(factions).sort((a, b) => b[1].length - a[1].length);
+    for (const [fname, ents] of sortedFactions) {
+      // Sort within faction: by threat/HP descending
+      ents.sort((a, b) => (b.threat || b.hp || 0) - (a.threat || a.hp || 0));
       groups.push({ _isHeader: true, name: fname, count: ents.length });
       groups.push(...ents);
     }
@@ -4587,7 +4599,6 @@ function groupBestiaryItems(items, tab) {
     groups.push(...items);
     return groups;
   }
-  // No grouping for other tabs
   return items;
 }
 
