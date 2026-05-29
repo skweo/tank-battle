@@ -6292,101 +6292,176 @@ class EliteEnemy extends EnemyTank {
       case 'boss': {
         const bossAccent = this.bossDef ? (this.bossDef.turret || glowColor) : glowColor;
         const brt = Date.now() / 250;
-        // === HEAVY TRACKS — grounded, unstoppable ===
-        drawTankTracks(ctx, -28, 22, -20, 40, 8, '#0a0410', '#281840');
-        // Track armor skirts
-        ctx.fillStyle = '#0c0618'; ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 0.8;
-        ctx.fillRect(-30, 18, 8, 28); ctx.fillRect(22, 18, 8, 28);
-        for (let s = 0; s < 5; s++) {
-          ctx.beginPath(); ctx.moveTo(-30, 20 + s * 6); ctx.lineTo(-22, 20 + s * 6); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(22, 20 + s * 6); ctx.lineTo(30, 20 + s * 6); ctx.stroke();
-        }
-        // === MAIN CHASSIS — brutal angular slab ===
-        ctx.fillStyle = '#080412'; ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(22, -22); ctx.lineTo(-26, -14); ctx.lineTo(-30, 2); ctx.lineTo(-26, 14);
-        ctx.lineTo(22, 22); ctx.lineTo(28, 8); ctx.lineTo(28, -8); ctx.closePath();
-        ctx.fill(); ctx.stroke();
-        // Armor seam lines
-        ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.6;
-        for (let sx = -18; sx < 22; sx += 8) {
-          ctx.beginPath(); ctx.moveTo(sx, -16 + Math.abs(sx) * 0.12); ctx.lineTo(sx, 16 - Math.abs(sx) * 0.12); ctx.stroke();
-        }
-        // === REACTIVE ARMOR CAGE (left/right) ===
-        for (const side of [-1, 1]) {
-          ctx.fillStyle = '#0a0414'; ctx.strokeStyle = bossAccent; ctx.lineWidth = 2;
-          drawArmorPanel(ctx, side * 26 - 9, -18, 18, 30, '#0a0414', bossAccent, 3);
-          ctx.fillStyle = 'rgba(0,0,0,0.6)';
-          for (let r = 0; r < 4; r++) {
-            ctx.fillRect(side * 26 - 5, -14 + r * 8, 8, 4);
-          }
-          // Exposed power conduits
-          ctx.strokeStyle = bossAccent; ctx.lineWidth = 0.8;
-          ctx.globalAlpha = 0.6 + Math.sin(brt + side) * 0.3;
-          for (let v = 0; v < 3; v++) {
-            ctx.beginPath(); ctx.moveTo(side * 26 + 2, -12 + v * 10); ctx.lineTo(side * 26 + 2, -8 + v * 10); ctx.stroke();
-          }
-          ctx.globalAlpha = 1;
-        }
-        // === CENTRAL CORE — glowing "eye" of the beast ===
-        drawArmorPanel(ctx, -10, -8, 20, 16, 'rgba(0,0,0,0.85)', bossAccent, 3);
-        // Menacing slit eye
-        const eyePulse = Math.sin(brt) * 0.3 + 0.7;
-        ctx.fillStyle = bossAccent;
-        ctx.globalAlpha = eyePulse;
-        ctx.beginPath(); ctx.ellipse(0, 0, 6, 3.5, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.ellipse(0, 0, 2, 1.5, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
-        // === PHASE CROWN — arcs above chassis ===
         const maxPh = (this.bossDef && this.bossDef.phases) ? this.bossDef.phases.length : 1;
+        // === GROUND SHADOW — massive ===
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath(); ctx.ellipse(0, 36, 38, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.beginPath(); ctx.ellipse(0, 34, 24, 4, 0, 0, Math.PI * 2); ctx.fill();
+        // === MASSIVE TRACKS ===
+        drawTankTracks(ctx, -34, 26, -22, 44, 10, '#06020c', '#1a0c30');
+        // Track plates with mechanical detail
+        for (const side of [-1, 1]) {
+          const tx = side * 26;
+          ctx.fillStyle = '#080310'; ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.6;
+          ctx.fillRect(tx, 20, 10, 32);
+          for (let s = 0; s < 7; s++) {
+            ctx.beginPath(); ctx.moveTo(tx, 22 + s * 5); ctx.lineTo(tx + 10, 22 + s * 5); ctx.stroke();
+          }
+          // Track wheel nodes
+          for (let w = 0; w < 5; w++) {
+            ctx.fillStyle = 'rgba(255,255,255,0.06)';
+            ctx.beginPath(); ctx.arc(tx + 5, 24 + w * 6, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.arc(tx + 5, 24 + w * 6, 4.5, 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+        // === OUTER BASTION ARMOR (widest layer) ===
+        for (const side of [-1, 1]) {
+          const bx = side * 28;
+          // Sloped outer armor
+          ctx.fillStyle = '#060210'; ctx.strokeStyle = bossAccent; ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(bx + side * 10, -28); ctx.lineTo(bx, -14); ctx.lineTo(bx - side * 4, -4);
+          ctx.lineTo(bx - side * 4, 14); ctx.lineTo(bx, 24); ctx.lineTo(bx + side * 10, 28);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          // Weapon slots in bastion
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          for (let w = 0; w < 3; w++) {
+            ctx.fillRect(bx - side * 2 - 2, -10 + w * 12, 8, 4);
+            ctx.fillStyle = bossAccent;
+            ctx.globalAlpha = 0.3 + w * 0.15 + Math.sin(brt + w) * 0.2;
+            ctx.fillRect(bx - side * 2, -9 + w * 12, 6, 2);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          }
+        }
+        // === ANGULAR MAIN CHASSIS ===
+        const chGrad = ctx.createLinearGradient(-32, -28, 32, -28);
+        chGrad.addColorStop(0, '#080310'); chGrad.addColorStop(0.2, '#100820'); chGrad.addColorStop(0.5, '#1a1035'); chGrad.addColorStop(0.8, '#100820'); chGrad.addColorStop(1, '#080310');
+        ctx.fillStyle = chGrad;
+        ctx.beginPath();
+        ctx.moveTo(24, -28); ctx.lineTo(-20, -20); ctx.lineTo(-32, -8); ctx.lineTo(-36, 4);
+        ctx.lineTo(-32, 16); ctx.lineTo(-20, 22); ctx.lineTo(24, 28);
+        ctx.lineTo(32, 12); ctx.lineTo(34, 0); ctx.lineTo(32, -16); ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 3.5; ctx.stroke();
+        ctx.strokeStyle = bossAccent; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(24, -28); ctx.lineTo(24, 28); ctx.stroke();
+        // === ARMOR PANELING (decorative seams) ===
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
+        for (let sx = -22; sx < 24; sx += 9) {
+          const topY = -22 + Math.abs(sx) * 0.2;
+          const botY = 22 - Math.abs(sx) * 0.15;
+          ctx.beginPath(); ctx.moveTo(sx, topY); ctx.lineTo(sx, botY); ctx.stroke();
+        }
+        // Horizontal seam bands
+        for (let sy = -16; sy < 20; sy += 8) {
+          ctx.beginPath(); ctx.moveTo(-28 + Math.abs(sy) * 0.5, sy); ctx.lineTo(28 - Math.abs(sy) * 0.3, sy); ctx.stroke();
+        }
+        // === CENTRAL COMMAND NODE ===
+        drawArmorPanel(ctx, -14, -10, 28, 20, 'rgba(0,0,0,0.88)', bossAccent, 4);
+        // Inner tech frame
+        drawArmorPanel(ctx, -10, -6, 20, 12, 'rgba(4,2,10,0.9)', 'rgba(255,255,255,0.1)', 2);
+        // Multi-lens optic array
+        const eyePulse = Math.sin(brt) * 0.25 + 0.75;
+        for (let e = 0; e < 3; e++) {
+          const ex = -5 + e * 6;
+          ctx.fillStyle = bossAccent;
+          ctx.globalAlpha = eyePulse * (0.5 + e * 0.2);
+          ctx.beginPath(); ctx.ellipse(ex, -1, 3.5, 2, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.ellipse(ex, -1, 1.5, 1, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        // Threat rating indicator bars
+        for (let t = 0; t < 5; t++) {
+          ctx.fillStyle = t < 3 + this.currentPhase ? bossAccent : 'rgba(255,255,255,0.06)';
+          ctx.globalAlpha = t < 3 + this.currentPhase ? (0.5 + t * 0.1) : 0.2;
+          ctx.fillRect(-12 + t * 5, 9, 3, 2);
+        }
+        ctx.globalAlpha = 1;
+        // === POWER GENERATOR UNIT (rear) ===
+        ctx.fillStyle = '#080310'; ctx.strokeStyle = bossAccent; ctx.lineWidth = 1.5;
+        drawArmorPanel(ctx, -32, -6, 10, 14, '#080310', bossAccent, 2);
+        for (let v = 0; v < 3; v++) {
+          ctx.fillStyle = bossAccent;
+          ctx.globalAlpha = 0.5 + Math.sin(brt * 2 + v) * 0.3;
+          ctx.fillRect(-30, -3 + v * 5, 6, 2);
+        }
+        ctx.globalAlpha = 1;
+        // === PHASE CROWN (orbital arcs) ===
         for (let r = 0; r < maxPh; r++) {
           const active = r <= this.currentPhase;
-          ctx.strokeStyle = active ? bossAccent : 'rgba(255,255,255,0.04)';
-          ctx.lineWidth = active ? 2.5 : 1;
-          ctx.globalAlpha = active ? (0.6 + r * 0.2) : 0.12;
-          ctx.beginPath(); ctx.arc(0, -4, 24 + r * 6, -Math.PI * 0.55, Math.PI * 0.55); ctx.stroke();
+          ctx.strokeStyle = active ? bossAccent : 'rgba(255,255,255,0.03)';
+          ctx.lineWidth = active ? 3 : 1.5;
+          ctx.globalAlpha = active ? (0.65 + r * 0.15) : 0.1;
+          ctx.beginPath(); ctx.arc(0, -8, 28 + r * 8, -Math.PI * 0.6, Math.PI * 0.6); ctx.stroke();
+          if (active) {
+            // Crown node dots
+            for (let n = 0; n < 3; n++) {
+              const na = -Math.PI * 0.45 + n * Math.PI * 0.45;
+              ctx.fillStyle = bossAccent; ctx.globalAlpha = 0.8;
+              ctx.beginPath(); ctx.arc(Math.cos(na) * (28 + r * 8), -8 + Math.sin(na) * (28 + r * 8), 2.5, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+          }
         }
         ctx.globalAlpha = 1;
-        // === MAIN CANNON — oversized ===
+        // === MAIN SIEGE CANNON ===
         ctx.save(); ctx.rotate(this.turretAngle);
-        drawArmorPanel(ctx, 5, -7, 12, 14, '#0a0414', bossAccent, 3);
-        drawWeaponBarrel(ctx, 7, -4, 28, 8, '#0c0618', bossAccent, '#ffffff');
-        // Barrel reinforcement rings
-        for (let c = 0; c < 4; c++) {
-          ctx.strokeStyle = bossAccent; ctx.lineWidth = 1.2;
-          ctx.globalAlpha = 0.5 + Math.sin(brt + c) * 0.3;
-          ctx.beginPath(); ctx.arc(12 + c * 5, 0, 3.5, 0, Math.PI * 2); ctx.stroke();
+        // Cannon housing
+        drawArmorPanel(ctx, 6, -8, 14, 16, '#060210', bossAccent, 4);
+        // Heavy barrel
+        drawWeaponBarrel(ctx, 8, -5, 32, 10, '#0a0618', bossAccent, '#ffffff');
+        // Triple reinforcement collar
+        for (let c = 0; c < 3; c++) {
+          const cx = 13 + c * 8;
+          ctx.strokeStyle = bossAccent; ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.5 + Math.sin(brt * 1.5 + c) * 0.25;
+          ctx.beginPath(); ctx.arc(cx, 0, 5.5, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.15)';
+          ctx.beginPath(); ctx.arc(cx, 0, 3, 0, Math.PI * 2); ctx.fill();
         }
         ctx.globalAlpha = 1;
-        // Muzzle energy
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(30, -3, 5, 6);
+        // Muzzle brake
+        ctx.fillStyle = '#fff'; ctx.fillRect(34, -5, 6, 10);
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+        for (let mb = 0; mb < 2; mb++) { ctx.beginPath(); ctx.moveTo(34, -4 + mb * 6); ctx.lineTo(40, -4 + mb * 6); ctx.stroke(); }
+        // Barrel energy glow
         ctx.fillStyle = bossAccent;
-        ctx.globalAlpha = 0.5 + Math.sin(brt) * 0.3;
-        ctx.beginPath(); ctx.arc(35, 0, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.4 + Math.sin(brt) * 0.3;
+        ctx.beginPath(); ctx.arc(41, 0, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(41, 0, 1.5, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
         ctx.restore();
-        // === MORTAR PODS (top) ===
-        for (let m = 0; m < 2; m++) {
-          const mx = -8 + m * 18;
-          ctx.fillStyle = '#0a0414'; ctx.strokeStyle = bossAccent; ctx.lineWidth = 1;
-          ctx.fillRect(mx - 3, -24, 6, 10); ctx.strokeRect(mx - 3, -24, 6, 10);
-          ctx.fillStyle = bossAccent;
-          ctx.beginPath(); ctx.arc(mx, -24, 2, 0, Math.PI * 2); ctx.fill();
+        // === TOP AUXILIARY WEAPONS ===
+        for (let m = 0; m < 3; m++) {
+          const mx = -10 + m * 10;
+          ctx.fillStyle = '#080310'; ctx.strokeStyle = bossAccent; ctx.lineWidth = 1.2;
+          drawArmorPanel(ctx, mx - 4, -32, 8, 12, '#080310', bossAccent, 2);
+          ctx.fillStyle = bossAccent; ctx.globalAlpha = 0.7;
+          ctx.beginPath(); ctx.arc(mx, -32, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+          // Launch tube glow
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.beginPath(); ctx.arc(mx, -34, 1.5, 0, Math.PI * 2); ctx.fill();
         }
-        // === PHASE TRANSITION ===
+        // === REAR EXHAUST ===
+        const exhGrad = ctx.createRadialGradient(-36, 4, 0, -36, 4, 10);
+        exhGrad.addColorStop(0, 'rgba(255,255,255,0.6)'); exhGrad.addColorStop(0.3, bossAccent);
+        exhGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = exhGrad;
+        ctx.beginPath(); ctx.arc(-36, 4, 10, 0, Math.PI * 2); ctx.fill();
+        // === PHASE TRANSITION BLAST ===
         if (this.phaseFlash > 0) {
           const pf = this.phaseFlash / 180;
-          ctx.globalAlpha = pf * 0.6;
-          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = bossAccent; ctx.lineWidth = 5;
-          ctx.beginPath(); ctx.arc(0, 0, 44, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = pf * 0.7; ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(0, 0, 48, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = bossAccent; ctx.lineWidth = 6;
+          ctx.beginPath(); ctx.arc(0, 0, 52, 0, Math.PI * 2); ctx.stroke();
           ctx.globalAlpha = 1;
         }
-        // === THREAT SHADOW ===
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
-        ctx.beginPath(); ctx.ellipse(0, 24, 28, 6, 0, 0, Math.PI * 2); ctx.fill();
         break;
       }
 
