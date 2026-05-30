@@ -10486,8 +10486,18 @@ function drawObstacles(ctx) {
   }
   for (const obs of obstacles) {
     if (obs.type === 'wall') {
+      // Concrete wall — brick seam pattern
       ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
       ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.6;
+      for (let by = obs.y + 6; by < obs.y + obs.h; by += 10) {
+        ctx.beginPath(); ctx.moveTo(obs.x + 2, by); ctx.lineTo(obs.x + obs.w - 2, by); ctx.stroke();
+        // Staggered vertical seams
+        const offset = (Math.floor((by - obs.y) / 10) % 2) * 15;
+        for (let bx = obs.x + offset + 10; bx < obs.x + obs.w; bx += 30) {
+          ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by + 10); ctx.stroke();
+        }
+      }
       ctx.strokeStyle = '#555'; ctx.lineWidth = 0.5;
       for (let gx = obs.x + 5; gx < obs.x + obs.w; gx += 6) {
         ctx.beginPath(); ctx.moveTo(gx, obs.y); ctx.lineTo(gx, obs.y + obs.h); ctx.stroke();
@@ -10537,6 +10547,16 @@ function drawObstacles(ctx) {
       ctx.beginPath(); ctx.moveTo(obs.x, obs.y); ctx.lineTo(obs.x + obs.w, obs.y + obs.h); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(obs.x + obs.w, obs.y); ctx.lineTo(obs.x, obs.y + obs.h); ctx.stroke();
       ctx.fillStyle = '#aa8a5a'; ctx.fillRect(obs.x + obs.w/2 - 4, obs.y + obs.h/2 - 4, 8, 8);
+    } else if (obs.type === 'metal') {
+      // Industrial steel plate — rivets + hazard stripe
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2.5; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.fillStyle = 'rgba(255,180,0,0.3)'; ctx.fillRect(obs.x + 2, obs.y + obs.h/2 - 2, obs.w - 4, 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      for (let r = 0; r < 3; r++) {
+        const rx = obs.x + 6 + r * (obs.w / 3); const ry = obs.y + 6 + r * (obs.h / 3);
+        ctx.beginPath(); ctx.arc(rx, ry, 2, 0, Math.PI*2); ctx.fill();
+      }
     } else if (obs.type === 'crystal') {
       ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1.8;
       ctx.beginPath();
