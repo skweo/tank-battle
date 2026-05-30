@@ -3585,6 +3585,42 @@ function spawnDamageNumber(x, y, value, type) {
 
 // --- Particles ---
 const particles = [];
+let ambientParticleTimer = 0;
+function spawnAmbientParticles() {
+  ambientParticleTimer++;
+  if (ambientParticleTimer < 18) return;
+  ambientParticleTimer = 0;
+  // Limit total ambient particles
+  const ambientCount = particles.filter(p => p._ambient).length;
+  if (ambientCount >= 20) return;
+  // Biome-based ambient particles
+  const safeWave = Math.max(1, Number.isFinite(wave) ? wave : 1);
+  const biome = (safeWave - 1) % 8;
+  const biomeColors = {
+    0: ['rgba(200,180,150,0.4)', 'rgba(180,160,140,0.3)'], // clear: dust motes
+    1: ['rgba(140,180,220,0.5)', 'rgba(160,200,240,0.35)'], // rain: water spray
+    2: ['rgba(160,180,200,0.3)', 'rgba(180,190,210,0.2)'], // fog: mist
+    3: ['rgba(200,160,100,0.4)', 'rgba(180,140,80,0.35)'], // dust: sand
+    4: ['rgba(255,200,100,0.5)', 'rgba(200,160,80,0.4)'], // sparks: embers
+    5: ['rgba(220,235,255,0.45)', 'rgba(200,220,240,0.35)'], // snow: flakes
+    6: ['rgba(200,120,60,0.4)', 'rgba(160,80,40,0.35)'], // ash: cinders
+    7: ['rgba(100,180,240,0.35)', 'rgba(140,200,255,0.25)'], // ion: glow
+  };
+  const colors = biomeColors[biome] || biomeColors[0];
+  const p = new Particle(
+    20 + rng() * (W - 40),
+    20 + rng() * (H - 40),
+    colors[Math.floor(rng() * colors.length)],
+    0.3 + rng() * 0.6
+  );
+  p.radius = 1 + rng() * 2.5;
+  p.decay = 0.003 + rng() * 0.008;
+  p._ambient = true;
+  p.vx = (rng() - 0.5) * 0.4;
+  p.vy = -0.2 - rng() * 0.6;
+  particles.push(p);
+}
+
 class Particle {
   constructor(x, y, color, speed) {
     this.x = x; this.y = y;
@@ -11347,6 +11383,8 @@ function update() {
     comboTimer--;
     if (comboTimer <= 0) comboCount = 0;
   }
+  // Ambient battlefield particles
+  if (gameRunning) spawnAmbientParticles();
 
   // Wave notification timer
   if (waveNotificationTimer > 0) {
