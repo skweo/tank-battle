@@ -12619,30 +12619,33 @@ function updateGamepadInput() {
     if (gp && gp.connected) {
       const dz = (v) => Math.abs(v) < 0.06 ? 0 : v; // Lower deadzone for precision
       gamepadState.connected = true;
-      // Smart axis mapping: left stick=axes[0,1], right stick=best matching pair
+      // Smart stick detection: left=axes[0,1], find right stick by scanning all axes
       const ax = gp.axes;
+      const clamp = (v) => Math.max(-1, Math.min(1, v)); // Clamp to valid range
       gamepadState.leftX = dz(ax[0] || 0);
       gamepadState.leftY = dz(ax[1] || 0);
-      // Try standard right stick first (axes[2,3]), then scan all remaining pairs
-      let rMag2_3 = Math.abs(ax[2]||0) + Math.abs(ax[3]||0);
-      if (gp.mapping === 'standard' || rMag2_3 > 0.1 || ax.length <= 4) {
-        gamepadState.rightX = dz(ax[2] || 0);
-        gamepadState.rightY = dz(ax[3] || 0);
-      } else {
-        // Non-standard/UCOM: scan all axis pairs for the right stick
-        let bestMag = 0, bestX = 0, bestY = 0;
-        for (let i = 2; i < Math.min(ax.length, 10) - 1; i++) {
-          const mag = Math.abs(ax[i]||0) + Math.abs(ax[i+1]||0);
-          if (mag > bestMag) { bestMag = mag; bestX = dz(ax[i]||0); bestY = dz(ax[i+1]||0); }
-        }
-        if (bestMag > 0.1) {
-          gamepadState.rightX = bestX;
-          gamepadState.rightY = bestY;
-        } else {
-          gamepadState.rightX = dz(ax[2] || 0);
-          gamepadState.rightY = dz(ax[3] || 0);
+      // For right stick: find the best responsive axis pair
+      // First check standard axes[2]=RX. Then find RY among remaining axes.
+      const rx = clamp(ax[2] || 0);
+      // Try axes[3] first, but only if it's in valid range [-1.2, 1.2]
+      let ry = 0, ryIdx = -1;
+      if (ax.length > 3 && Math.abs(ax[3]||0) < 1.2) {
+        ry = clamp(ax[3] || 0); ryIdx = 3;
+      }
+      // If axes[3] is invalid (e.g., 3.29 = trigger on UCOM), scan for right stick Y
+      if (ryIdx < 0) {
+        // Skip axes 0-2, find the axis that responds to stick movement
+        // Right stick Y should move between -1 and 1 when user moves stick
+        for (let i = 3; i < Math.min(ax.length, 10); i++) {
+          const v = ax[i] || 0;
+          if (Math.abs(v) < 1.2 && (ryIdx < 0 || Math.abs(v) > Math.abs(ry))) {
+            ry = clamp(v); ryIdx = i;
+          }
         }
       }
+      gamepadState.rightX = dz(rx);
+      gamepadState.rightY = dz(ry);
+      gamepadState._ryIdx = ryIdx; // Debug: which axis is being used for RY
       gamepadState.shoot = (gp.buttons[7] && gp.buttons[7].value > 0.2) || (gp.buttons[0] && gp.buttons[0].pressed);
       found = true;
       break;
@@ -12932,7 +12935,8 @@ function update() {
     const p2hp = player2.alive ? Math.max(0, player2.hp) : 0;
     const rx = gamepadState.rightX.toFixed(2), ry = gamepadState.rightY.toFixed(2);
     const aimMode = (Math.abs(gamepadState.rightX) > 0.05 || Math.abs(gamepadState.rightY) > 0.05) ? 'RS手动' : '自动';
-    p2ui.textContent = 'P2 HP:' + p2hp + '/' + player2.maxHp + '  RS:(' + rx + ',' + ry + ') ' + aimMode;
+    const ryIdx = gamepadState._ryIdx >= 0 ? ' a[' + gamepadState._ryIdx + ']' : '';
+    p2ui.textContent = 'P2 HP:' + p2hp + '/' + player2.maxHp + '  RS:(' + rx + ',' + ry + ')' + ryIdx + ' ' + aimMode;
     p2ui.style.display = 'block';
   } else {
     const p2ui = document.getElementById('p2-ui');
