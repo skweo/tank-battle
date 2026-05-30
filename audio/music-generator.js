@@ -223,10 +223,9 @@ class CyberSynth {
   // ============================================
   _combatPulse(n) {
     const t = this.ctx.currentTime, bp = 60 / this._bpm;
-    // Song structure: A(0-95) B(96-191) C(192-255) = 256 beats (~3.5min)
-    const section = Math.floor(n / 96) % 3; // 0=A, 1=B, 2=C
-    const sn = n % 96; // beat within section
-    const active = sn < 80 || section === 2; // Last 16 beats of A/B are a sparse transition
+    // Song structure: A(0-63) B(64-127) C(128-191) = 192 beats (~2.5min)
+    const section = Math.floor(n / 64) % 3; // 0=A, 1=B, 2=C
+    const sn = n % 64;
     // === DRUMS (vary by section) ===
     if (sn % 4 === 0) this._kick(t, section > 0 ? 0.14 : 0.10);
     if (sn % 4 === 2) this._snare(t, section > 0 ? 0.045 : 0.035);
@@ -259,19 +258,11 @@ class CyberSynth {
       this._vox(this._n(section===0?0:3, 0), t+bp*0.2, bp*6, 0.025);
     }
     // === PAD ===
-    if (sn % 48 === 0) {
+    if (sn % 32 === 0) {
       const cp = section === 0 ? [0,2,4,6] : section === 1 ? [0,3,5,7] : [-2,0,2,4];
-      this._pad(cp.map(c => this._n(c, -1)), t, bp * 48, 0.022);
+      this._pad(cp.map(c => this._n(c, -1)), t, bp * 32, 0.022);
     }
-    // === STRING SWELL (section transitions, every 96 beats) ===
-    if (sn === 0 && section > 0) this._string(this._n(0, -1), t, bp*16, 0.03);
-    // === SPARSE TRANSITION (last 16 beats of A/B) ===
-    if (!active && section < 2) {
-      // Drop drums except kick, keep only pad + bell
-      if (sn % 16 === 0) this._bell(this._n([0,7,10][(sn/16)%3], 0), t+bp*0.3, 4, 0.025);
-      if (sn % 32 === 0) this._string(this._n(-2, -1), t, bp*16, 0.028);
-      return;
-    }
+    if (sn === 0 && section > 0) this._string(this._n(0, -1), t, bp*12, 0.03);
   }
 
   _combatChase(n) {
