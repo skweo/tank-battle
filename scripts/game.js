@@ -2127,6 +2127,13 @@ const achievementsDef = [
   { id: 'first_try_clear', name: '初见杀', desc: '首次使用新解锁坦克即通关第5波', icon: 'FTC', tier: 'elite' },
   { id: 'perfect_daily', name: '完美日课', desc: '每日挑战中达成所有隐藏条件', icon: 'PDY', tier: 'mythic' },
   { id: 'research_max_all', name: '全域解锁', desc: '全部全局研究协议达到上限', icon: 'RMA', tier: 'mythic' },
+  { id: 'dual_first', name: '初次双打', desc: '完成一局双人模式', icon: 'DF1', tier: 'standard' },
+  { id: 'dual_clear', name: '双打传说', desc: '双人模式通关(任意难度)', icon: 'DCL', tier: 'elite' },
+  { id: 'dual_perfect', name: '完美配合', desc: '双人模式下两位玩家全程未阵亡通关', icon: 'DPF', tier: 'mythic' },
+  { id: 'dual_3boss', name: '双人BossRush', desc: '双人模式单局击败3个以上Boss', icon: 'D3B', tier: 'elite' },
+  { id: 'auto_clear', name: '自动制御', desc: '开启自动索敌模式通关(任意难度)', icon: 'ATC', tier: 'standard' },
+  { id: 'auto_hard', name: '极致托管', desc: '自动索敌模式下通关困难或更高', icon: 'AHD', tier: 'elite' },
+  { id: 'dual_auto_hard', name: '双人托管', desc: '双人+自动索敌模式下通关困难', icon: 'DAH', tier: 'mythic' },
 ];
 
 const ACHIEVEMENT_LORE = {
@@ -2190,7 +2197,14 @@ const ACHIEVEMENT_LORE = {
   modifier_jackpot: '四联同调被列为罕见神迹，机装研究室却坚持称其为统计异常。无论名字如何，四张卡同时落锁时，战场会安静半拍。',
   global_research_first: '第一条全局协议被点亮时，研究室没有鼓掌。所有人都知道，从这一刻开始，机体不再只是某一台机体。',
   global_research_10: '十条协议叠成圣城总纲，像一部写给钢铁的律法。驾驶员只读到第一页，就听见整座研究室开始低声运转。',
-  global_research_max: '任意协议抵达上限后，终端会短暂显示“全域整备”。那不是完成通知，而是一句更大的命令正在加载。',
+  global_research_max: '任意协议抵达上限后，终端会短暂显示”全域整备”。那不是完成通知，而是一句更大的命令正在加载。',
+  dual_first: '两台机体首次并肩驶出格纳库时，友军识别码比平时亮了半拍。残骸群没有为第二个敌人预留战术——短暂而美好的不对称。',
+  dual_clear: '双人通关后屏幕没播放胜利动画。终端只印了一行小字：编队仍保持同步，两名驾驶员请从两侧依次离舱。',
+  dual_perfect: '从出击到返航，两台机体的装甲都未被打穿。那一天的灰域像被事先清场，连地雷都安静得像在致敬。',
+  dual_3boss: '三名Boss在双人火力下先后解体。事后报告里只写了一句：灰域不再尝试以数量压制，因为两台机体已经组成了最小的包围圈。',
+  auto_clear: '战斗日志标注了一条注释：本场所有瞄准判定由火控辅助接管，驾驶员仅执行规避动作。研究室把这条数据存进了下一代量产机的参考基线。',
+  auto_hard: '火控辅助在困难波次中撑过了全场的弹幕密度，证明自动索敌并非妥协——而是另一条通往胜利的路径。',
+  dual_auto_hard: '双方均将瞄准权移交给火控辅助时，屏幕上的提示仅有一句：两位请专注于行走。这就是最低入局门槛，也是最高配合形式。',
 };
 
 const ACHIEVEMENT_TIERS = {
@@ -2783,6 +2797,14 @@ function checkAchievements() {
     if (!sessionMinesTriggered) unlockAchievement('mine_dodger');
     if (sessionStartTime > 0 && (Date.now() - sessionStartTime) / 1000 < 180) unlockAchievement('speed_demon');
   }
+  // Dual mode & auto-aim achievements
+  if (isDualMode && wave >= 1) unlockAchievement('dual_first');
+  if (isDualMode && difficultyCleared) unlockAchievement('dual_clear');
+  if (isDualMode && !sessionGotHit && player.alive && (!player2 || player2.alive) && difficultyCleared) unlockAchievement('dual_perfect');
+  if (isDualMode && runBossesSeen.size >= 3) unlockAchievement('dual_3boss');
+  if (autoAimEnabled && difficultyCleared) unlockAchievement('auto_clear');
+  if (autoAimEnabled && difficultyCleared && (currentDifficulty === 'hard' || currentDifficulty === 'extreme' || currentDifficulty === 'nightmare')) unlockAchievement('auto_hard');
+  if (isDualMode && autoAimEnabled && difficultyCleared && (currentDifficulty === 'hard' || currentDifficulty === 'extreme')) unlockAchievement('dual_auto_hard');
   checkDifficultyUnlock();
 }
 
@@ -3552,7 +3574,7 @@ function getAchievementGroups() {
     'score': { label:'分数', color:'#ffb060', ids:['score_500','score_2000','score_5000','score_10000','score_20000','score_30000','score_50000','score_100k','score_200k'] },
     'tank': { label:'机体', color:'#60b0ff', ids:['tank_spread_win','tank_focus_win','tank_wide_win','tank_burst_win','tank_sniper_win','tank_homing_win','tank_border_win','tank_blade_win','tank_scarlet_win','tank_astral_win','tank_hard_spread','tank_hard_sniper','tank_hard_astral','all_tank_hard','all_tank_evo','first_try_clear'] },
     'collection': { label:'收藏', color:'#a080f0', ids:['powerup_collector','powerup_collector_40','powerup_60','rich_run','poverty_run','fragment_500','fragment_1000','moonstone_2000','moonstone_5000','upgrade_apprentice','upgrade_master','evolution_first','evolution_six','evolve_twice','all_tanks_unlocked','daily_clear','daily_10','perfect_daily','fusion_first','fusion_5','fusion_all','lab_max_tank','chest_10','chest_20'] },
-    'special': { label:'特殊', color:'#f6e5aa', ids:['modifier_reroll','modifier_full_reroll','modifier_mythic','modifier_treasury','modifier_jackpot','modifier_10_stack','modifier_20_stack','global_research_first','global_research_10','global_research_max','research_max_all','boss_witness','boss_breaker','boss_5_run','boss_8_run','clear_easy','clear_hard','clear_nightmare','clear_all_diff'] },
+    'special': { label:'特殊', color:'#f6e5aa', ids:['modifier_reroll','modifier_full_reroll','modifier_mythic','modifier_treasury','modifier_jackpot','modifier_10_stack','modifier_20_stack','global_research_first','global_research_10','global_research_max','research_max_all','boss_witness','boss_breaker','boss_5_run','boss_8_run','clear_easy','clear_hard','clear_nightmare','clear_all_diff','dual_first','dual_clear','dual_perfect','dual_3boss','auto_clear','auto_hard','dual_auto_hard'] },
   };
 }
 function switchAchievementsTab(tab) {
