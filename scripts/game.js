@@ -9738,7 +9738,7 @@ let leaderboardData = {};
 let leaderboardMode = 'clear';
 let leaderboardTab = 'easy';
 let coreFragments = 0;
-let unlockedTanks = new Set(['spread']);
+let unlockedTanks = new Set(['spread', 'focus']);
 let tankUnlockProgress = { maxWave: 0, maxEliteKills: 0, bossKills: 0, dailyClears: 0, borderEcho: false };
 let tankUpgrades = {};   // { spread: {hp:0,dmg:0,spd:0,special:0}, ... }
 let globalResearch = {};
@@ -10284,7 +10284,7 @@ function loadProgression() {
     coreFragments = parseInt(localStorage.getItem(FRAGMENT_KEY)) || 0;
     const ul = localStorage.getItem(TANK_UNLOCK_KEY);
     if (ul) unlockedTanks = new Set(JSON.parse(ul));
-    else unlockedTanks = new Set(['spread']);
+    else unlockedTanks = new Set(['spread', 'focus']);
     const tp = localStorage.getItem(TANK_UNLOCK_PROGRESS_KEY);
     tankUnlockProgress = normalizeTankUnlockProgress(tp ? JSON.parse(tp) : {});
     const ug = localStorage.getItem(TANK_UPGRADE_KEY);
@@ -10318,7 +10318,7 @@ function saveProgression() {
 }
 function resetProgression() {
   coreFragments = 0;
-  unlockedTanks = new Set(['spread']);
+  unlockedTanks = new Set(['spread', 'focus']);
   tankUnlockProgress = getDefaultTankUnlockProgress();
   tankUpgrades = {};
   globalResearch = normalizeGlobalResearch({});
