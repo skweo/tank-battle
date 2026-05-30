@@ -5703,6 +5703,14 @@ class PlayerTank extends Tank {
     }
 
     drawTankEvolutionOverlay(ctx, evoLevel, tankType, turretC);
+    // P1/P2 label for dual mode
+    if (isDualMode) {
+      const isP2 = this.inputSource === 'gamepad';
+      ctx.fillStyle = isP2 ? 'rgba(255,136,0,0.85)' : 'rgba(255,255,255,0.75)';
+      ctx.font = 'bold 10px "Courier New",monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(isP2 ? 'P2' : 'P1', 0, this.hitboxSize ? this.hitboxSize/2 + 10 : 28);
+    }
     ctx.restore();
   }
   hit(source) {
