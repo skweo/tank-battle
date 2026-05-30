@@ -7135,6 +7135,12 @@ const BOSS_TYPES = [
       { name:'陷阱阵列', hpPct:1.0, attack:'trap_deploy', shootDelay:55, burstShots:1, burstRest:180, telegraph:42, recover:138, bulletCount:0, bulletSpeed:0, pressure:0.8, cue:'TRAP ARRAY', hint:'注意地面，踩中陷阱会减速和受伤' },
       { name:'雷区狂暴', hpPct:0.5, attack:'trap_frenzy', shootDelay:38, burstShots:1, burstRest:140, telegraph:32, recover:108, bulletCount:0, bulletSpeed:0, pressure:1.1, cue:'MINE FRENZY', hint:'追踪雷+密集地雷阵，小心移动' },
     ]},
+  { name:'镜像体', color:'#333', turret:'#999', speed:0.50, hp:120, icon:'MIR', faction:'void_cult',
+    desc:'复制型Boss，模仿玩家武器弹幕',
+    phases:[
+      { name:'完美镜像', hpPct:1.0, attack:'mirror_copy', shootDelay:44, burstShots:3, burstRest:140, telegraph:40, recover:110, bulletCount:6, bulletSpeed:2.5, pressure:1.0, cue:'MIRROR COPY', hint:'换不同坦克可打破镜像规律' },
+      { name:'强化镜像', hpPct:0.5, attack:'mirror_enhance', shootDelay:34, burstShots:3, burstRest:120, telegraph:34, recover:90, bulletCount:8, bulletSpeed:3.0, pressure:1.25, cue:'ENHANCE', hint:'弹幕速度+20%，弹丸增大' },
+    ]},
 
 ];
 
@@ -7515,9 +7521,13 @@ class BossEnemy extends EliteEnemy {
       moveX += dx/dist * 0.8; moveY += dy/dist * 0.8;
       if (dist < 80) moveX += -dy/dist * strafeDir * 0.3;
     } else if (this.bossDef.name === '陷阱师') {
-      // Slow evasive — keeps distance while laying traps
       if (dist < 160) { moveX -= dx/dist * 0.3; moveY -= dy/dist * 0.3; }
       else if (dist > 280) { moveX += dx/dist * 0.25; moveY += dy/dist * 0.25; }
+      moveX += -dy/dist * strafeDir * 0.5; moveY += dx/dist * strafeDir * 0.5;
+    } else if (this.bossDef.name === '镜像体') {
+      // Mirrors player's movement — keeps medium range
+      if (dist < 150) { moveX -= dx/dist * 0.5; moveY -= dy/dist * 0.5; }
+      else if (dist > 250) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
       moveX += -dy/dist * strafeDir * 0.5; moveY += dx/dist * strafeDir * 0.5;
     } else if (this.bossDef.name === '缝合巨兽') {
       moveX += dx/dist * 0.5 + (rng() - 0.5) * 0.15;
@@ -8070,6 +8080,29 @@ class BossEnemy extends EliteEnemy {
         spawnExplosion(tx, ty, 8, '#c84', '#da0');
       }
       if (rng() < 0.3) this.deployMines(2, 120);
+    } else if (phase.attack === 'mirror_copy') {
+      // === MIRROR SHELL P1: Copy player's weapon pattern ===
+      const pt = player && player._tankDef ? player._tankDef.tankType : 'spread';
+      const mirrorCfg = { spread:{c:3, a:0.12}, focus:{c:1, a:0}, wide:{c:5, a:0.15}, burst:{c:7, a:0.2}, sniper:{c:1, a:0}, homing:{c:2, a:0.08} };
+      const cfg = mirrorCfg[pt] || mirrorCfg.spread;
+      for (let i = 0; i < cfg.c; i++) {
+        const a = this.turretAngle + (i - (cfg.c-1)/2) * cfg.a;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#999', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 2.5; enemyBullets.push(b);
+      }
+      // Flash to show mirroring
+      spawnExplosion(this.x, this.y, 6, '#fff', '#888');
+    } else if (phase.attack === 'mirror_enhance') {
+      // === MIRROR SHELL P2: Enhanced copy — faster + bigger ===
+      const pt = player && player._tankDef ? player._tankDef.tankType : 'spread';
+      const mirrorCfg = { spread:{c:3, a:0.12}, focus:{c:1, a:0}, wide:{c:5, a:0.15}, burst:{c:7, a:0.2}, sniper:{c:1, a:0}, homing:{c:2, a:0.08} };
+      const cfg = mirrorCfg[pt] || mirrorCfg.spread;
+      for (let i = 0; i < cfg.c + 2; i++) {
+        const a = this.turretAngle + (i - (cfg.c+1)/2) * cfg.a;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#bbb', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 3.5; enemyBullets.push(b);
+      }
+      spawnExplosion(this.x, this.y, 10, '#fff', '#aaa');
     } else if (phase.attack === 'trap_frenzy') {
       // === TRAPPER P2: Dense minefield + homing mines ===
       this.deployMines(5 + this.currentPhase * 2, 200);
@@ -8559,6 +8592,24 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '镜像体') {
+      // === MIRROR SHELL — liquid metal, reflects player ===
+      const playerColor = player ? (player._tankDef ? player._tankDef.color : '#d44') : '#d44';
+      const mirrorGrad = ctx.createLinearGradient(-18, -12, 18, -12);
+      mirrorGrad.addColorStop(0, playerColor); mirrorGrad.addColorStop(0.3, '#888');
+      mirrorGrad.addColorStop(0.5, '#fff'); mirrorGrad.addColorStop(0.7, '#888');
+      mirrorGrad.addColorStop(1, playerColor);
+      ctx.fillStyle = mirrorGrad;
+      ctx.beginPath(); ctx.moveTo(20, 0); ctx.lineTo(6, -14); ctx.lineTo(-14, -6);
+      ctx.lineTo(-16, 0); ctx.lineTo(-14, 6); ctx.lineTo(6, 14); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2.5; ctx.stroke();
+      // Mirror surface highlights
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.beginPath(); ctx.arc(4, -4, 6, 0, Math.PI*2); ctx.fill();
+      drawTechCore(ctx, 2, 0, 4.5, '#fff', '#ccc');
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 3, -2, 12, 4, '#555', '#bbb', '#fff');
+      ctx.restore();
     } else if (bname === '陷阱师') {
       // === TRAPPER — hexagon carrier with mine payload ===
       ctx.fillStyle = '#3a2010'; ctx.strokeStyle = '#c84'; ctx.lineWidth = 2.5;
