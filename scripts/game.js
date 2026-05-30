@@ -7117,6 +7117,12 @@ const BOSS_TYPES = [
       { name:'影舞', hpPct:1.0, attack:'shuriken_fan', shootDelay:34, burstShots:3, burstRest:112, telegraph:36, recover:98, bulletCount:5, bulletSpeed:2.8, pressure:0.95, cue:'SHADOW DANCE', hint:'手里剑扇形三发，横移即可规避' },
       { name:'瞬杀连舞', hpPct:0.45, attack:'teleport_flurry', shootDelay:22, burstShots:3, burstRest:140, telegraph:42, recover:114, bulletCount:12, bulletSpeed:3.2, pressure:1.3, cue:'FLURRY STRIKE', hint:'连续瞬移背刺，注意360°手里剑环' },
     ]},
+  { name:'圣龛织者', color:'#864', turret:'#fd0', speed:0.10, hp:200, icon:'WEV', faction:'ash_church',
+    desc:'纯召唤Boss，不攻击但不断召唤精英护卫',
+    phases:[
+      { name:'织网召唤', hpPct:1.0, attack:'weave_summon', shootDelay:60, burstShots:1, burstRest:200, telegraph:40, recover:160, bulletCount:0, bulletSpeed:0, pressure:0.7, cue:'WEAVE PATTERN', hint:'先清小兵，再打Boss' },
+      { name:'加速编织', hpPct:0.45, attack:'weave_frenzy', shootDelay:36, burstShots:1, burstRest:140, telegraph:30, recover:110, bulletCount:0, bulletSpeed:0, pressure:0.9, cue:'FRENZY WEAVE', hint:'小兵带追踪弹，尽快清除' },
+    ]},
 
 ];
 
@@ -7488,11 +7494,12 @@ class BossEnemy extends EliteEnemy {
       else if (dist > 240) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
       moveX += -dy/dist * strafeDir * 0.6 * side; moveY += dx/dist * strafeDir * 0.6 * side;
     } else if (this.bossDef.name === '迅影') {
-      // Hyper-aggressive — circles player at close range
-      moveX += -dy/dist * strafeDir * 0.9;
-      moveY += dx/dist * strafeDir * 0.9;
+      moveX += -dy/dist * strafeDir * 0.9; moveY += dx/dist * strafeDir * 0.9;
       if (dist > 200) { moveX += dx/dist * 0.6; moveY += dy/dist * 0.6; }
       else if (dist < 60) { moveX -= dx/dist * 0.3; moveY -= dy/dist * 0.3; }
+    } else if (this.bossDef.name === '圣龛织者') {
+      // Almost stationary — barely moves, lets summons do the work
+      if (dist < 100) { moveX -= dx/dist * 0.15; moveY -= dy/dist * 0.15; }
     } else if (this.bossDef.name === '缝合巨兽') {
       moveX += dx/dist * 0.5 + (rng() - 0.5) * 0.15;
       moveY += dy/dist * 0.5 + (rng() - 0.5) * 0.15;
@@ -8003,8 +8010,40 @@ class BossEnemy extends EliteEnemy {
       if (player && rng() < 0.5) {
         spawnExplosion(this.x + (rng()-0.5)*40, this.y + (rng()-0.5)*40, 15, '#888', '#aaa');
       }
+    } else if (phase.attack === 'weave_summon') {
+      // === WEAVER: Summon 3-5 elite escorts ===
+      const count = 3 + Math.floor(rng() * 3);
+      for (let i = 0; i < count; i++) {
+        if (enemies.length < 25) {
+          const idx = Math.floor(rng() * Math.min(4, eliteTypes.length));
+          const etype = eliteTypes[idx];
+          const sx = this.x + (rng() - 0.5) * 100, sy = this.y + (rng() - 0.5) * 80;
+          const elite = new EliteEnemy(Math.max(40, Math.min(W-40, sx)), Math.max(40, Math.min(H-40, sy)), etype);
+          elite.hp = Math.floor(elite.hp * 0.8);
+          elite.maxHp = elite.hp;
+          enemies.push(elite);
+          spawnExplosion(sx, sy, 8, '#fd0', '#fff');
+        }
+      }
+      spawnExplosion(this.x, this.y, 16, '#fd0', '#ff0');
+    } else if (phase.attack === 'weave_frenzy') {
+      // === WEAVER P2: Faster summon + tracking elites ===
+      const count = 4 + Math.floor(rng() * 3);
+      for (let i = 0; i < count; i++) {
+        if (enemies.length < 30) {
+          const idx = Math.floor(rng() * Math.min(6, eliteTypes.length));
+          const etype = eliteTypes[idx];
+          const sx = this.x + (rng() - 0.5) * 120, sy = this.y + (rng() - 0.5) * 100;
+          const elite = new EliteEnemy(Math.max(40, Math.min(W-40, sx)), Math.max(40, Math.min(H-40, sy)), etype);
+          elite.shootDelay = Math.max(30, elite.shootDelay * 0.6);
+          enemies.push(elite);
+          spawnExplosion(sx, sy, 8, '#fd0', '#ff0');
+        }
+      }
+      // Vulnerable after minions cleared
+      const hasMinions = enemies.some(e => e !== this && e.alive && e.isElite);
+      if (!hasMinions) this.recoverVulnerable = true;
     } else if (phase.attack === 'teleport_flurry') {
-      // === SWIFT SHADOW P2: Teleport + 360 shuriken ring ===
       const safePoint = this.findTeleportPoint(this.currentPhase > 0 ? 150 : 120);
       if (safePoint) {
         spawnExplosion(this.x, this.y, 12, '#4ff', '#8ff');
@@ -8445,6 +8484,33 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '圣龛织者') {
+      // === SANCTUM WEAVER — wide loom platform + golden threads ===
+      ctx.fillStyle = '#3a2810'; ctx.strokeStyle = '#c90'; ctx.lineWidth = 3;
+      ctx.fillRect(-30, -14, 60, 28); ctx.strokeRect(-30, -14, 60, 28);
+      // 3 spinning spindles on top
+      for (let s = 0; s < 3; s++) {
+        const sx = -10 + s * 10;
+        ctx.save(); ctx.translate(sx, -16);
+        ctx.rotate(brt * 1.5 + s);
+        ctx.fillStyle = '#fd0'; ctx.strokeStyle = '#c90'; ctx.lineWidth = 1.2;
+        ctx.fillRect(-3, -8, 6, 16); ctx.strokeRect(-3, -8, 6, 16);
+        ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(0, -8, 2, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+      // Golden threads hanging down
+      for (let t = 0; t < 8; t++) {
+        const tx = -22 + t * 6;
+        ctx.strokeStyle = 'rgba(255,220,0,' + (0.15 + Math.sin(brt+t)*0.08) + ')';
+        ctx.lineWidth = 0.6; ctx.setLineDash([2, 6]);
+        ctx.beginPath(); ctx.moveTo(tx, -14); ctx.lineTo(tx + Math.sin(brt+t)*3, 18); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      drawTechCore(ctx, 0, 2, 6, '#fff8d0', '#fd0');
+      // Small barrel — rarely used
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 3, -2, 8, 4, '#5a4020', '#c90', '#fff8e0');
+      ctx.restore();
     } else if (bname === '迅影') {
       // === SWIFT SHADOW — slim diamond + energy shuriken wings ===
       const swiftBody = ctx.createLinearGradient(-16, -10, 16, -10);
