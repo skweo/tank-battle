@@ -10408,7 +10408,7 @@ function refreshObstacles() {
     if (attempts >= 10) continue;
     const obs = { x: ox, y: oy, w: ow, h: oh, type: obsKey,
       passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke };
-    if (def.explosive) obs.hp = 2;
+    if (def.explosive) { obs.explosive = true; obs.hp = 2; }
     if (def.ricochet) obs.ricochet = true;
     if (def.destructible) obs.hp = 1;
     if (def.spark) obs.spark = true;
@@ -10444,7 +10444,7 @@ function generateObstacles(countOverride) {
     });
     if (blockedMain) continue;
     const obs = { x: ox, y: oy, w: ow, h: oh, type: obsType, passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke };
-    if (def.explosive) obs.hp = 2;
+    if (def.explosive) { obs.explosive = true; obs.hp = 2; }
     if (def.ricochet) obs.ricochet = true;
     if (def.conceal) obs.conceal = true;
     if (def.destructible) obs.hp = 1;
@@ -10468,7 +10468,7 @@ function generateObstacles(countOverride) {
         });
         if (blockedCluster) continue;
         const cobs = { x: cx, y: cy, w: cw, h: ch, type: ctype, passable: cd.passable, slow: cd.slow, color: cd.color, stroke: cd.stroke };
-        if (cd.explosive) cobs.hp = 2;
+        if (cd.explosive) { cobs.explosive = true; cobs.hp = 2; }
         if (cd.ricochet) cobs.ricochet = true;
         if (cd.destructible) cobs.hp = 1;
         obstacles.push(cobs);
