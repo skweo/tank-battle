@@ -2919,6 +2919,13 @@ function showWaveNotification(text, sub) {
   if (text.includes('清除')) sfxWaveClear();
 }
 
+function getClosestPlayerTo(x, y) {
+  if (!player || !player.alive) return player2 && player2.alive ? player2 : player;
+  if (!isDualMode || !player2 || !player2.alive) return player;
+  const d1 = (player.x - x)*(player.x - x) + (player.y - y)*(player.y - y);
+  const d2 = (player2.x - x)*(player2.x - x) + (player2.y - y)*(player2.y - y);
+  return d1 < d2 ? player : player2;
+}
 function getDualModeEnemyMul() {
   return isDualMode ? 1.5 : 1.0;
 }
@@ -5129,10 +5136,16 @@ class Bullet {
           const hd = Math.sqrt(hdx * hdx + hdy * hdy);
           if (hd < nearestDist) { nearestDist = hd; targetObj = enemy; }
         }
-      } else if (player && player.alive && buffs.invisible <= 0) {
-        const hdx = player.x - this.x, hdy = player.y - this.y;
-        const hd = Math.sqrt(hdx * hdx + hdy * hdy);
-        if (hd < nearestDist) targetObj = player;
+      } else {
+        // Enemy bullet: track closest player (P1 or P2 in dual mode)
+        const targets = [];
+        if (player && player.alive && buffs.invisible <= 0) targets.push(player);
+        if (isDualMode && player2 && player2.alive && buffs.invisible <= 0) targets.push(player2);
+        for (const p of targets) {
+          const hdx = p.x - this.x, hdy = p.y - this.y;
+          const hd = Math.sqrt(hdx * hdx + hdy * hdy);
+          if (hd < nearestDist) { nearestDist = hd; targetObj = p; }
+        }
       }
       if (targetObj) {
         const target = Math.atan2(targetObj.y - this.y, targetObj.x - this.x);
@@ -6038,17 +6051,18 @@ class EnemyTank extends Tank {
     const fai = factionAI[this.faction] || factionAI.moon_arsenal;
     this.preferredRange = fai.prefRange + rng() * 50;
 
-    // Chase player
-    const dx = player.x - this.x;
-    const dy = player.y - this.y;
+    // Chase closest player
+    const targetPlayer = getClosestPlayerTo(this.x, this.y);
+    const dx = targetPlayer.x - this.x;
+    const dy = targetPlayer.y - this.y;
     const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
 
-    // Turret aim at player
+    // Turret aim at closest player
     const leadFrames = fai.lead + (this.kind === 'artillery' ? 6 : (this.kind === 'sniper' ? 10 : 0));
     const playerInput = getPlayerInputVector();
     const playerSpeed = getEffectiveSpeed();
-    const predictedX = player.x + playerInput.x * playerSpeed * leadFrames;
-    const predictedY = player.y + playerInput.y * playerSpeed * leadFrames;
+    const predictedX = targetPlayer.x + playerInput.x * playerSpeed * leadFrames;
+    const predictedY = targetPlayer.y + playerInput.y * playerSpeed * leadFrames;
     const targetAngle = Math.atan2(predictedY - this.y, predictedX - this.x);
     const eSpeed = TURRET_SPEED_FACTION[this.faction] || 0.08;
     this.turretAngle = rotateTurretToward(this.turretAngle, targetAngle, eSpeed);
@@ -12605,26 +12619,29 @@ function updateGamepadInput() {
     if (gp && gp.connected) {
       const dz = (v) => Math.abs(v) < 0.06 ? 0 : v; // Lower deadzone for precision
       gamepadState.connected = true;
-      // Standard mapping: axes[0,1]=left stick, axes[2,3]=right stick
-      // PlayStation/other: right stick may be at axes[2,5] or axes[3,4]
+      // Smart axis mapping: left stick=axes[0,1], right stick=best matching pair
       const ax = gp.axes;
-      if (gp.mapping === 'standard' || ax.length <= 4) {
-        gamepadState.leftX = dz(ax[0] || 0);
-        gamepadState.leftY = dz(ax[1] || 0);
+      gamepadState.leftX = dz(ax[0] || 0);
+      gamepadState.leftY = dz(ax[1] || 0);
+      // Try standard right stick first (axes[2,3]), then scan all remaining pairs
+      let rMag2_3 = Math.abs(ax[2]||0) + Math.abs(ax[3]||0);
+      if (gp.mapping === 'standard' || rMag2_3 > 0.1 || ax.length <= 4) {
         gamepadState.rightX = dz(ax[2] || 0);
         gamepadState.rightY = dz(ax[3] || 0);
       } else {
-        // Non-standard: check all axes and use the two largest-magnitude pairs after left stick
-        gamepadState.leftX = dz(ax[0] || 0);
-        gamepadState.leftY = dz(ax[1] || 0);
-        // Find right stick among remaining axes
-        let bestR = 0, bestRX = 0, bestRY = 0;
-        for (let i = 2; i < ax.length - 1; i += 2) {
+        // Non-standard/UCOM: scan all axis pairs for the right stick
+        let bestMag = 0, bestX = 0, bestY = 0;
+        for (let i = 2; i < Math.min(ax.length, 10) - 1; i++) {
           const mag = Math.abs(ax[i]||0) + Math.abs(ax[i+1]||0);
-          if (mag > bestR) { bestR = mag; bestRX = dz(ax[i]||0); bestRY = dz(ax[i+1]||0); }
+          if (mag > bestMag) { bestMag = mag; bestX = dz(ax[i]||0); bestY = dz(ax[i+1]||0); }
         }
-        gamepadState.rightX = bestRX;
-        gamepadState.rightY = bestRY;
+        if (bestMag > 0.1) {
+          gamepadState.rightX = bestX;
+          gamepadState.rightY = bestY;
+        } else {
+          gamepadState.rightX = dz(ax[2] || 0);
+          gamepadState.rightY = dz(ax[3] || 0);
+        }
       }
       gamepadState.shoot = (gp.buttons[7] && gp.buttons[7].value > 0.2) || (gp.buttons[0] && gp.buttons[0].pressed);
       found = true;
@@ -12913,7 +12930,9 @@ function update() {
       document.getElementById('game-container').appendChild(p2ui);
     }
     const p2hp = player2.alive ? Math.max(0, player2.hp) : 0;
-    p2ui.textContent = 'P2  HP:' + p2hp + '/' + player2.maxHp + '  \u{1F3AE}';
+    const rx = gamepadState.rightX.toFixed(2), ry = gamepadState.rightY.toFixed(2);
+    const aimMode = (Math.abs(gamepadState.rightX) > 0.05 || Math.abs(gamepadState.rightY) > 0.05) ? 'RS手动' : '自动';
+    p2ui.textContent = 'P2 HP:' + p2hp + '/' + player2.maxHp + '  RS:(' + rx + ',' + ry + ') ' + aimMode;
     p2ui.style.display = 'block';
   } else {
     const p2ui = document.getElementById('p2-ui');
