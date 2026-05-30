@@ -165,9 +165,10 @@ class CyberSynth {
     const section = Math.floor(n / 48) % 2; // A/B sections, 48 beats each = 96 beat cycle
     const sn = n % 48;
     // Pad — changes per section
-    if (sn === 0) {
+    // Pad enters gradually — not on beat 0
+    if (sn === 8) {
       const chordRoot = section === 0 ? 0 : -4;
-      this._pad([this._n(chordRoot,-1),this._n(chordRoot+2,-1),this._n(chordRoot+4,-1),this._n(chordRoot+6,-1),this._n(chordRoot,0)], t, bp*48, 0.045);
+      this._pad([this._n(chordRoot,-1),this._n(chordRoot+2,-1),this._n(chordRoot+4,-1),this._n(chordRoot+6,-1),this._n(chordRoot,0)], t, bp*40, 0.04);
     }
     // Sub pad
     if (sn % 24 === 0) {
@@ -197,9 +198,9 @@ class CyberSynth {
 
   _menuVoid(n) {
     const t = this.ctx.currentTime, bp = 60 / 65; // Slower, more spacious
-    // Deep cathedral pad — ever-present, hollow
-    if (n % 32 === 0) {
-      this._pad([this._n(-4,-2),this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*32, 0.06);
+    // Deep cathedral pad — enters after bell
+    if (n % 32 === 4) {
+      this._pad([this._n(-4,-2),this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*28, 0.055);
     }
     if (n % 16 === 0) this._pad([this._n(-7,-2),this._n(-2,-1),this._n(0,-1)], t+bp*0.6, bp*16, 0.03);
     // Cello-like strings — slow, mournful melody
@@ -248,9 +249,9 @@ class CyberSynth {
     const themeB = [7,10,12,14, 10,7,5,3, 7,10,14,17, 14,10,7,5, 7,10,12,14, 17,14,10,7, 5,3,0,5, 7,10,12,14, 10,7,5,3, 0,-2,3,5, 7,10,14,17, 14,10,7,5, 7,3,0,-2, -5,-2,3,7, 10,7,3,0, -2,-5,0,3];
 
     if (section === 0) {
-      // A: Quiet opening — bell alone, then slowly builds
-      if (sn === 0) {
-        this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*64, 0.04);
+      // A: Quiet opening — bell alone first, pad enters later
+      if (sn === 12) {
+        this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*52, 0.04);
         this._string(this._n(0, -1), t, bp*24, 0.035);
       }
       if (sn % 4 === 0) this._bell(this._n(theme[(sn/4)%64], 0), t, 2.8, 0.04);
