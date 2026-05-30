@@ -10997,7 +10997,7 @@ function spawnEnemy() {
     return true;
   }
 
-  const maxIdx = Math.min(3, Math.floor((wave + level) / 4));
+  const maxIdx = Math.min(enemyTypes.length - 1, Math.floor((wave + level) / 3));
   const idx = Math.floor(rng() * (maxIdx + 1));
   const type = enemyTypes[idx];
   const hp = Math.max(5, type.hp + 4 + Math.floor(wave / 2.4) + Math.floor(level / 3) + diff.enemyHpBonus);
