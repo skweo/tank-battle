@@ -2763,34 +2763,26 @@ function startNextWave() {
   if (isBossWaveNumber(wave)) {
     isBossWave = true;
     startBossMusic();
-    const bossSupportCount = getBossSupportCount(wave);
-    waveEnemiesTotal = 1 + bossSupportCount;
-    waveEnemiesRemaining = 1 + bossSupportCount;
-    waveEnemiesToSpawn = bossSupportCount;
-    wavePause = 0;
     const bossDef = selectBossForWave(wave);
     lastBossName = bossDef.name;
     runBossesSeen.add(bossDef.name);
     const bossSpawn = findSafeTankSpawn({
-      w: 54,
-      h: 54,
-      minPlayerDist: 210,
+      w: 54, h: 54, minPlayerDist: 210,
       preferred: [
-        { x: W / 2, y: H / 3 },
-        { x: W / 2, y: H * 0.26 },
-        { x: W * 0.33, y: H * 0.28 },
-        { x: W * 0.67, y: H * 0.28 },
+        { x: W/2, y: H/3 }, { x: W/2, y: H*0.26 },
+        { x: W*0.33, y: H*0.28 }, { x: W*0.67, y: H*0.28 },
       ],
     });
-    bossRef = new BossEnemy(bossSpawn.x, bossSpawn.y, bossDef);
-    recordBossEncounter(bossDef, bossRef);
-    enemies.push(bossRef);
-    sfxBossIntro();
-    for (let i = 0; i < bossSupportCount; i++) {
-      if (spawnEnemy()) waveEnemiesToSpawn = Math.max(0, waveEnemiesToSpawn - 1);
-    }
-    spawnTimer = 0;
-    showWaveNotification('BOSS: ' + bossDef.name, '第 ' + wave + ' 波 - 首领已进入战场');
+    const bossSupportCount = getBossSupportCount(wave);
+    waveEnemiesTotal = 1 + bossSupportCount;
+    waveEnemiesRemaining = 1 + bossSupportCount;
+    waveEnemiesToSpawn = bossSupportCount;
+    wavePause = 0; spawnTimer = 0;
+    // Trigger warning phase (2 seconds)
+    bossWarningTimer = 120;
+    bossWarningDef = bossDef;
+    bossWarningSpawn = bossSpawn;
+    showWaveNotification('WARNING', bossDef.name + ' 即将进入战场');
     return;
   }
 
@@ -6838,6 +6830,9 @@ class EliteEnemy extends EnemyTank {
 // --- Boss System ---
 let isBossWave = false;
 let bossRef = null;
+let bossWarningTimer = 0;
+let bossWarningDef = null;
+let bossWarningSpawn = null;
 
 const BOSS_TYPES = [
   { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.34, hp:150, icon:'BST', faction:'moon_arsenal',
@@ -10984,6 +10979,53 @@ function update() {
   runFrameCount++;
   updateRunReportPeaks();
 
+  // Boss warning countdown
+  if (bossWarningTimer > 0) {
+    bossWarningTimer--;
+    // Screen shake during warning
+    if (bossWarningTimer < 60 && bossWarningTimer % 8 === 0) triggerShake(3, 3);
+    if (bossWarningTimer === 60) triggerShake(8, 6);
+    if (bossWarningTimer <= 0 && bossWarningDef && bossWarningSpawn) {
+      // Spawn the boss
+      const bd = bossWarningDef;
+      const bs = bossWarningSpawn;
+      bossRef = new BossEnemy(bs.x, bs.y, bd);
+      recordBossEncounter(bd, bossRef);
+      enemies.push(bossRef);
+      sfxBossIntro();
+      // Boss entrance effects
+      const bn = bossRef.bossDef.name;
+      if (bn === '巨兽坦克') {
+        triggerShake(16, 12);
+        spawnExplosion(bs.x, bs.y, 60, '#f80', '#ff0');
+      } else if (bn === '幻影坦克') {
+        for (let i = 0; i < 5; i++) {
+          spawnExplosion(bs.x + (rng()-0.5)*80, bs.y + (rng()-0.5)*60, 10, '#88f', '#ccf');
+        }
+      } else if (bn === '雷霆执政官') {
+        spawnExplosion(bs.x, bs.y - 40, 30, '#ff0', '#fff');
+        for (let i = 0; i < 4; i++) {
+          spawnExplosion(bs.x + (i-1.5)*30, bs.y, 12, '#6ff', '#fff');
+        }
+      } else if (bn === '虚空坦克') {
+        spawnExplosion(bs.x, bs.y, 40, '#a4f', '#fff');
+        triggerShake(10, 10);
+      } else if (bn === '废铁巨像') {
+        triggerShake(14, 10);
+        spawnExplosion(bs.x, bs.y, 50, '#c84', '#964');
+      } else {
+        spawnExplosion(bs.x, bs.y, 35, '#fff', '#ff0');
+        triggerShake(8, 6);
+      }
+      // Spawn support enemies
+      for (let i = 0; i < getBossSupportCount(wave); i++) {
+        if (spawnEnemy()) waveEnemiesToSpawn = Math.max(0, waveEnemiesToSpawn - 1);
+      }
+      bossWarningDef = null; bossWarningSpawn = null;
+    }
+    return; // Don't update game during warning
+  }
+
   // Update player
   player.update();
   if (!player.alive && !gameOverFlag) {
@@ -11313,6 +11355,34 @@ function draw() {
     gradient.addColorStop(1, 'rgba(80,0,0,' + (alpha * 0.6) + ')');
     ctx.fillStyle = gradient;
     ctx.fillRect(-20, -20, W + 40, H + 40);
+  }
+
+  // Boss warning overlay
+  if (bossWarningTimer > 0 && bossWarningDef) {
+    const warnProgress = 1 - (bossWarningTimer / 120);
+    // Red vignette
+    const vignetteGrad = ctx.createRadialGradient(W/2, H/2, W*0.35, W/2, H/2, W*0.7);
+    vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    vignetteGrad.addColorStop(0.5, 'rgba(80,0,0,' + (warnProgress * 0.3) + ')');
+    vignetteGrad.addColorStop(1, 'rgba(40,0,0,' + (warnProgress * 0.6) + ')');
+    ctx.fillStyle = vignetteGrad;
+    ctx.fillRect(0, 0, W, H);
+    // WARNING text
+    if (bossWarningTimer < 100) {
+      const textAlpha = Math.min(1, (100 - bossWarningTimer) / 30);
+      ctx.save(); ctx.globalAlpha = textAlpha;
+      ctx.fillStyle = '#000'; ctx.font = 'bold 52px "Segoe UI","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('WARNING', W/2 + 3, H*0.35 + 3);
+      ctx.fillStyle = '#ff2020';
+      ctx.shadowColor = '#f00'; ctx.shadowBlur = 20;
+      ctx.fillText('WARNING', W/2, H*0.35);
+      ctx.shadowBlur = 0;
+      // Boss name subtitle
+      ctx.fillStyle = '#ff6060'; ctx.font = 'bold 20px "Courier New",monospace';
+      ctx.fillText(bossWarningDef.name, W/2, H*0.35 + 40);
+      ctx.globalAlpha = 1; ctx.restore();
+    }
   }
 
   // Crosshair
