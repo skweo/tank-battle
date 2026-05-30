@@ -4,7 +4,7 @@
 class CyberSynth {
   constructor(ctx) {
     this.ctx = ctx;
-    this.masterGain = ctx.createGain(); this.masterGain.gain.value = 0.35;
+    this.masterGain = ctx.createGain(); this.masterGain.gain.value = 0.45;
     this.masterGain.connect(ctx.destination);
     // Cathedral reverb — Hollow Knight style space
     this.preVerb = ctx.createGain(); this.preVerb.gain.value = 0.45;
@@ -24,7 +24,7 @@ class CyberSynth {
     this._activeTrack = 'menu_crystal';
     this.currentMode = 'menu'; this.currentWave = 1;
     this._running = false; this._nextBeat = 0; this._bpm = 70; this._beat = 0;
-    this._fadeTarget = 0.35; this._fadeCurrent = 0.28;
+    this._fadeTarget = 0.45; this._fadeCurrent = 0.38;
     this.intensity = 0.5;
   }
 
@@ -365,9 +365,9 @@ class CyberSynth {
 
   switchMode(mode, wave = 1) {
     this.currentMode = mode; this.currentWave = wave;
-    if (mode === 'menu') { this._activeTrack = this._menuTracks[Math.floor(Math.random() * this._menuTracks.length)]; this._bpm = 70; this._fadeTarget = 0.35; }
-    else if (mode === 'boss') { this._activeTrack = this._bossTracks[Math.floor(Math.random() * this._bossTracks.length)]; this._bpm = 90 + wave * 1.5; this._fadeTarget = 0.38; }
-    else { this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)]; this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.32; }
+    if (mode === 'menu') { this._activeTrack = this._menuTracks[Math.floor(Math.random() * this._menuTracks.length)]; this._bpm = 70; this._fadeTarget = 0.45; }
+    else if (mode === 'boss') { this._activeTrack = this._bossTracks[Math.floor(Math.random() * this._bossTracks.length)]; this._bpm = 90 + wave * 1.5; this._fadeTarget = 0.48; }
+    else { this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)]; this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.42; }
     this._nextBeat = this.ctx.currentTime + 0.1; this._beat = 0; this.intensity = 0.5;
   }
   setIntensity(v) {
