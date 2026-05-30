@@ -223,8 +223,10 @@ class CyberSynth {
   // ============================================
   _combatPulse(n) {
     const t = this.ctx.currentTime, bp = 60 / this._bpm;
-    const section = Math.floor(n / 72) % 3; // A(0-71) B(72-143) C(144-215)
+    const section = Math.floor(n / 72) % 3;
     const sn = n % 72;
+    // YMO-style swing — subtle micro-offset for human feel
+    const swing = (off) => t + off * bp * 0.08;
 
     // === SECTION A: Ambient intro — no drums, bell + vox ===
     if (section === 0) {
@@ -244,26 +246,28 @@ class CyberSynth {
     }
 
     if (section === 1) {
-      // Minimal drums — only sparse kick + occasional snare
-      if (sn === 0 || sn === 24 || sn === 48) this._kick(t, 0.14);
-      if (sn === 12 || sn === 36 || sn === 60) this._kick(t, 0.10);
-      if (sn === 18 || sn === 42) this._snare(t, 0.04);
-      // No hats — they create the anxiety
-      // Bass — slow, deep, breathing
-      const bB = [0, -2, 3, -4, 0, -2, -5, 3];
-      if (sn % 9 === 0) this._bass(this._n(bB[(sn/9)%8], -2), t, bp*2, 0.12);
-      // Lead melody — sparse, emotional
-      if (sn % 12 === 0 || sn % 12 === 6) {
-        const melB = [0,3,5,7,10,7,5,3, 7,5,3,0,-2,3,5,7, 0,-2,0,3,5,3,2,0, 7,10,12,14,17,14,10,7];
-        this._lead(this._n(melB[(sn/6)%16], 0), t, 0.45, 0.038);
+      // YMO-style groove — drums with swing offset
+      if (sn === 0 || sn === 24 || sn === 48) this._kick(swing(0), 0.14);
+      if (sn === 12 || sn === 36 || sn === 60) this._kick(swing(0.5), 0.10);
+      if (sn === 18 || sn === 42) this._snare(swing(0), 0.04);
+      // Bass — melodic, not just root
+      const bB = [0, -2, 3, -4, 0, -2, -5, 3, 0, -2, 0, 3, -2, -5, 3, 0];
+      if (sn % 4 === 0) this._bass(this._n(bB[(sn/4)%16], -2), t, bp*1.5, 0.11);
+      // === CALL & RESPONSE: lead ↔ bell ===
+      if (sn % 12 === 0) {
+        // Lead "calls"
+        const melB = [0,3,5,7,10,7,5,3, 7,5,3,0,-2,3,5,7];
+        this._lead(this._n(melB[(sn/12)%8], 0), t, 0.45, 0.038);
       }
-      // Soft bell accents instead of arp
-      if (sn % 16 === 0) this._bell(this._n([0,3,7,10][(sn/16)%4], 0), t+bp*0.2, 2, 0.025);
-      // Chords — wide, spaced
+      if (sn % 12 === 6) {
+        // Bell "responds"
+        this._bell(this._n([7,10,12,10,7,3,0,3][(sn/12)%8], 0), swing(0.3), 2, 0.028);
+      }
+      // Vox — another voice in the conversation
+      if (sn % 24 === 12) this._vox(this._n([0,7,10][(sn/24)%3], 0), swing(0.2), bp*10, 0.025);
+      // Chords
       if (sn === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*12, 0.022);
       if (sn === 36) this._chord([this._n(-2,-1),this._n(0,-1),this._n(5,-1)], t, bp*8, 0.02);
-      // Vox — floating
-      if (sn % 24 === 12) this._vox(this._n([0,7,10][(sn/24)%3], 0), t+bp*0.2, bp*10, 0.025);
       if (sn === 0) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*72, 0.025);
       return;
     }
