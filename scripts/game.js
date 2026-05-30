@@ -12625,34 +12625,34 @@ function updateGamepadInput() {
     if (gp && gp.connected) {
       const dz = (v) => Math.abs(v) < 0.06 ? 0 : v; // Lower deadzone for precision
       gamepadState.connected = true;
-      // Smart stick detection: left=axes[0,1], find right stick by scanning all axes
+      // Smart stick detection: left=axes[0,1], find right stick by activity
       const ax = gp.axes;
-      const clamp = (v) => Math.max(-1, Math.min(1, v)); // Clamp to valid range
+      const clamp = (v) => Math.max(-1, Math.min(1, v));
       gamepadState.leftX = dz(ax[0] || 0);
       gamepadState.leftY = dz(ax[1] || 0);
-      // For right stick: find the best responsive axis pair
-      // First check standard axes[2]=RX. Then find RY among remaining axes.
-      const rx = clamp(ax[2] || 0);
-      // Try axes[3] first, but only if it's in valid range [-1.2, 1.2]
-      let ry = 0, ryIdx = -1;
-      if (ax.length > 3 && Math.abs(ax[3]||0) < 1.2) {
-        ry = clamp(ax[3] || 0); ryIdx = 3;
-      }
-      // If axes[3] is invalid (e.g., 3.29 = trigger on UCOM), scan for right stick Y
-      if (ryIdx < 0) {
-        // Skip axes 0-2, find the axis that responds to stick movement
-        // Right stick Y should move between -1 and 1 when user moves stick
-        for (let i = 3; i < Math.min(ax.length, 10); i++) {
-          const v = ax[i] || 0;
-          if (Math.abs(v) < 1.2 && (ryIdx < 0 || Math.abs(v) > Math.abs(ry))) {
-            ry = clamp(v); ryIdx = i;
-          }
+      // Find the two most active axes (excluding 0,1) — those are likely the right stick
+      let bestA = -1, bestB = -1, bestMag = 0;
+      for (let i = 2; i < Math.min(ax.length, 10); i++) {
+        const v = clamp(ax[i] || 0);
+        if (Math.abs(v) < 0.02) continue; // Skip dead axes
+        // Find the best pair: (i, i+1) or (i-1, i)
+        for (const pair of [[i, i+1], [i-1, i]]) {
+          const a = pair[0], b = pair[1];
+          if (a < 2 || b >= ax.length) continue;
+          const mag = Math.abs(clamp(ax[a]||0)) + Math.abs(clamp(ax[b]||0));
+          if (mag > bestMag && a !== b) { bestMag = mag; bestA = a; bestB = b; }
         }
       }
-      gamepadState.rightX = dz(rx);
-      gamepadState.rightY = dz(ry);
-      gamepadState._ryIdx = ryIdx; // Debug: which axis is being used for RY
-      gamepadState._allAxes = ax.slice(0, 10).map(v => clamp(v || 0)); // Store all for debug
+      if (bestA >= 2 && bestB >= 2 && bestA !== bestB) {
+        gamepadState.rightX = dz(ax[bestA] || 0);
+        gamepadState.rightY = dz(ax[bestB] || 0);
+      } else {
+        // Only one active axis found — use it as Y, X from auto-aim
+        const single = bestA >= 2 ? dz(ax[bestA]||0) : 0;
+        gamepadState.rightX = 0;
+        gamepadState.rightY = single || dz(ax[2]||0); // Fallback to axes[2] as vertical
+      }
+      gamepadState._allAxes = ax.slice(0, 10).map(v => clamp(v || 0));
       gamepadState.shoot = (gp.buttons[7] && gp.buttons[7].value > 0.2) || (gp.buttons[0] && gp.buttons[0].pressed);
       found = true;
       break;
