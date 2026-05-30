@@ -1692,23 +1692,43 @@ function renderCodeIcon(code, title, tankType) {
 
 let dualModePending = false;
 let dualP1Tank = null;
+let dualP2Tank = null;
+let dualSelectingFor = 'p1'; // 'p1' or 'p2' — which player is currently choosing
 function toggleDualMode() {
   dualModePending = !dualModePending;
-  dualP1Tank = null;
+  dualP1Tank = null; dualP2Tank = null; dualSelectingFor = 'p1';
   const btn = document.getElementById('dual-mode-btn');
   if (btn) btn.classList.toggle('dual-active', dualModePending);
 }
-function showTankSelect(difficulty, forPlayer2) {
-  currentDifficulty = difficulty;
-  if (dualModePending && forPlayer2) {
-    document.getElementById('tank-select-screen').querySelector('h2').textContent = '\u{1F3AE} P2 手柄 选择机体';
-  } else if (dualModePending) {
-    document.getElementById('tank-select-screen').querySelector('h2').textContent = '\u{1F5B1}️ P1 键鼠 选择机体';
+function selectTankForDual(key) {
+  if (dualSelectingFor === 'p1') {
+    dualP1Tank = (dualP1Tank === key) ? null : key;
+    dualSelectingFor = 'p2';
   } else {
-    document.getElementById('tank-select-screen').querySelector('h2').textContent = '选择机体';
+    dualP2Tank = (dualP2Tank === key) ? null : key;
+    dualSelectingFor = 'p1';
   }
-  const container = document.querySelector('#tank-select-screen .tank-cards');
+  renderDualTankSelect();
+}
+function switchSelectingPlayer(player) {
+  dualSelectingFor = player;
+  renderDualTankSelect();
+}
+function renderDualTankSelect() {
   const tankKeys = ['spread','focus','wide','burst','sniper','homing','border','blade','scarlet','astral'];
+  const p1name = dualP1Tank ? (tankTypes[dualP1Tank]?.name || dualP1Tank) : '未选';
+  const p2name = dualP2Tank ? (tankTypes[dualP2Tank]?.name || dualP2Tank) : '未选';
+  const bothReady = dualP1Tank && dualP2Tank && dualP1Tank !== dualP2Tank;
+
+  // Render selection panel
+  document.getElementById('tank-select-screen').querySelector('h2').innerHTML =
+    '<span id="sel-p1" style="cursor:pointer;' + (dualSelectingFor === 'p1' ? 'color:#fff;border-bottom:2px solid #fff;' : 'color:#888;') + '" onclick="switchSelectingPlayer(\'p1\')">\u{1F5B1} P1: ' + p1name + '</span>' +
+    ' &nbsp;&nbsp; ' +
+    '<span id="sel-p2" style="cursor:pointer;' + (dualSelectingFor === 'p2' ? 'color:#f80;border-bottom:2px solid #f80;' : 'color:#888;') + '" onclick="switchSelectingPlayer(\'p2\')">\u{1F3AE} P2: ' + p2name + '</span>' +
+    (bothReady ? ' &nbsp; <span style="color:#0f0;font-size:14px;">✔ 就绪</span>' : '');
+
+  // Render tank cards
+  const container = document.querySelector('#tank-select-screen .tank-cards');
   const tankNamesExtra = ['博丽灵梦式','雾雨魔理沙式','十六夜咲夜式','芙兰朵露式','八意永琳式','东风谷早苗式','境界结社式','魂魄妖梦式','斯卡雷特式','帕秋莉式'];
   const tankDescs = ['渐进式扩散压制','单点高能输出','控场型广域封锁','爆燃溅射火力','远程点杀贯穿','持续导引追猎','间隙折射与位相弹道','高速双刃穿刺','低弹匣血枪贯穿','星仪轨道控场'];
   const tankDetails = ['均衡机体 · 依赖弹幕密度成长','机动优秀 · 依赖主炮精度成长','生存更稳 · 依赖控场扩展成长','节奏偏慢 · 依赖爆炸收益成长','脆但致命 · 依赖狙击校准成长','泛用灵活 · 依赖导引网络成长','中距离博弈 · 依赖边界折射成长','高速轻甲 · 依赖斩击角度成长','重压短弹匣 · 依赖命中汲取成长','慢速术式 · 依赖轨道控制成长'];
@@ -1718,18 +1738,15 @@ function showTankSelect(difficulty, forPlayer2) {
     const unlocked = unlockedTanks.has(key);
     if (unlocked) {
       const cadence = '弹匣 ' + t.magSize + ' / 装填 ' + (t.reloadTime / 60).toFixed(1) + 's / 冷却 ' + t.shootDelay;
-      const isP1Taken = dualModePending && dualP1Tank && dualP1Tank === key;
-      const clickHandler = dualModePending && !dualP1Tank
-        ? `dualP1Tank='${key}';showTankSelect(currentDifficulty, true)`
-        : dualModePending && isP1Taken
-          ? ''
-          : dualModePending
-            ? `startGame(currentDifficulty, dualP1Tank, {mode:selectedRunMode, dual:true, p2tank:'${key}'})`
-            : `startGame(currentDifficulty, '${key}', {mode:selectedRunMode})`;
-      const extraClass = isP1Taken ? 'p1-locked' : '';
-      return `<div class="tank-card ${key} ${extraClass}" onclick="${clickHandler}" style="${isP1Taken ? 'opacity:0.35;pointer-events:none;' : ''}">
+      const isP1 = dualP1Tank === key, isP2 = dualP2Tank === key;
+      const disabled = ((dualSelectingFor === 'p1' && isP2) || (dualSelectingFor === 'p2' && isP1));
+      const borderStyle = isP1 ? 'border:2px solid #fff;' : isP2 ? 'border:2px solid #f80;' : '';
+      const label = isP1 ? '<span style="color:#fff;">[P1]</span>' : isP2 ? '<span style="color:#f80;">[P2]</span>' : '';
+      const clickH = disabled ? '' : `selectTankForDual('${key}')`;
+      const style = disabled ? 'opacity:0.4;' : '';
+      return `<div class="tank-card ${key}" onclick="${clickH}" style="${style}${borderStyle}">
         <span class="tank-icon">${tankIcons[i]}</span>
-        <div class="tank-name">${t.name}</div>
+        <div class="tank-name">${label} ${t.name}</div>
         <div class="tank-subtitle">${tankNamesExtra[i]}</div>
         <div class="tank-desc">${tankDescs[i]}</div>
         <div class="tank-detail">${tankDetails[i]}<br>${cadence}</div>
@@ -1747,6 +1764,59 @@ function showTankSelect(difficulty, forPlayer2) {
       </div>`;
     }
   }).join('');
+
+  // Update confirm button
+  let confirmBtn = document.getElementById('dual-confirm-btn');
+  if (!confirmBtn) {
+    confirmBtn = document.createElement('button');
+    confirmBtn.id = 'dual-confirm-btn';
+    confirmBtn.style.cssText = 'margin-top:10px;padding:10px 40px;font:bold 16px "Courier New";' +
+      'background:#1a3a1a;color:#0f0;border:2px solid #0f0;border-radius:4px;cursor:pointer;';
+    confirmBtn.textContent = '开 始 战 斗';
+    document.getElementById('tank-select-screen').appendChild(confirmBtn);
+  }
+  confirmBtn.style.display = 'block';
+  confirmBtn.style.opacity = bothReady ? '1' : '0.4';
+  confirmBtn.style.cursor = bothReady ? 'pointer' : 'default';
+  confirmBtn.onclick = bothReady ? () => startGame(currentDifficulty, dualP1Tank, {mode:selectedRunMode, dual:true, p2tank:dualP2Tank}) : null;
+}
+function showTankSelect(difficulty) {
+  currentDifficulty = difficulty;
+  dualP1Tank = null; dualP2Tank = null; dualSelectingFor = 'p1';
+  if (dualModePending) {
+    renderDualTankSelect();
+  } else {
+    document.getElementById('tank-select-screen').querySelector('h2').textContent = '选择机体';
+    const container = document.querySelector('#tank-select-screen .tank-cards');
+    const tankKeys = ['spread','focus','wide','burst','sniper','homing','border','blade','scarlet','astral'];
+    const tankNamesExtra = ['博丽灵梦式','雾雨魔理沙式','十六夜咲夜式','芙兰朵露式','八意永琳式','东风谷早苗式','境界结社式','魂魄妖梦式','斯卡雷特式','帕秋莉式'];
+    const tankDescs = ['渐进式扩散压制','单点高能输出','控场型广域封锁','爆燃溅射火力','远程点杀贯穿','持续导引追猎','间隙折射与位相弹道','高速双刃穿刺','低弹匣血枪贯穿','星仪轨道控场'];
+    const tankDetails = ['均衡机体 · 依赖弹幕密度成长','机动优秀 · 依赖主炮精度成长','生存更稳 · 依赖控场扩展成长','节奏偏慢 · 依赖爆炸收益成长','脆但致命 · 依赖狙击校准成长','泛用灵活 · 依赖导引网络成长','中距离博弈 · 依赖边界折射成长','高速轻甲 · 依赖斩击角度成长','重压短弹匣 · 依赖命中汲取成长','慢速术式 · 依赖轨道控制成长'];
+    const tankIcons = tankKeys.map(getTankSelectIcon);
+    container.innerHTML = tankKeys.map((key, i) => {
+      const t = tankTypes[key];
+      const unlocked = unlockedTanks.has(key);
+      if (unlocked) {
+        const cadence = '弹匣 ' + t.magSize + ' / 装填 ' + (t.reloadTime / 60).toFixed(1) + 's / 冷却 ' + t.shootDelay;
+        return '<div class="tank-card ' + key + '" onclick="startGame(currentDifficulty, \'' + key + '\', {mode:selectedRunMode})">' +
+          '<span class="tank-icon">' + tankIcons[i] + '</span>' +
+          '<div class="tank-name">' + t.name + '</div>' +
+          '<div class="tank-subtitle">' + tankNamesExtra[i] + '</div>' +
+          '<div class="tank-desc">' + tankDescs[i] + '</div>' +
+          '<div class="tank-detail">' + tankDetails[i] + '<br>' + cadence + '</div></div>';
+      } else {
+        const cond = TANK_UNLOCK_CONDITIONS[key];
+        const unlockStatus = getTankUnlockConditionStatus(key);
+        const unlockHint = unlockStatus.met ? '条件已达成 · 点击解锁' : (cond.cost > 0 ? cond.cost + ' MS 解锁' : cond.desc);
+        return '<div class="tank-card ' + key + ' locked-card" onclick="if(tryUnlockTank(\'' + key + '\')){showTankSelect(currentDifficulty);}">' +
+          '<span class="tank-icon">LOCK</span><div class="tank-name">???</div>' +
+          '<div class="tank-subtitle">未解锁</div><div class="tank-desc">' + unlockHint + '</div>' +
+          '<div class="tank-detail">' + cond.desc + (unlockStatus.met ? ' · ' + unlockStatus.label : '') + '</div></div>';
+      }
+    }).join('');
+    const confirmBtn = document.getElementById('dual-confirm-btn');
+    if (confirmBtn) confirmBtn.style.display = 'none';
+  }
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('tank-select-screen').style.display = 'flex';
 }
