@@ -2551,6 +2551,19 @@ function resetAchievementTracking() {
 
 function onEnemyKilled(enemyOrElite) {
   const killedEnemy = typeof enemyOrElite === 'object' ? enemyOrElite : null;
+  // Gemini rage: when one twin dies, the other enrages
+  if (killedEnemy && killedEnemy.bossDef && killedEnemy.bossDef.name === '双子坦克') {
+    const twin = killedEnemy.geminiTwin;
+    if (twin && twin.alive) {
+      twin.currentPhase = 1; // Force P2 rage mode
+      twin.speed *= 2;
+      twin.shootDelay = Math.max(20, Math.floor(twin.shootDelay * 0.5));
+      twin.phaseFlash = 120;
+      spawnExplosion(twin.x, twin.y, 30, '#a4f', '#f0f');
+      triggerShake(6, 8);
+      showWaveNotification('REVENGE', '双子·狂暴 — 弹幕密度三倍');
+    }
+  }
   const isElite = killedEnemy ? !!killedEnemy.isElite : !!enemyOrElite;
   const isBossKill = !!(killedEnemy && killedEnemy.bossDef);
   const nextBossKills = (tankUnlockProgress.bossKills || 0) + (isBossKill ? 1 : 0);
@@ -7092,6 +7105,12 @@ const BOSS_TYPES = [
       { name:'碎片回收', hpPct:1.0, attack:'patchwork_swarm', shootDelay:52, burstShots:3, burstRest:148, telegraph:50, recover:126, bulletCount:12, bulletSpeed:1.5, pressure:0.88, cue:'SALVAGE SWARM', hint:'碎片不规则散射，保持移动可规避' },
       { name:'吞噬爆发', hpPct:0.5, attack:'devour_burst', shootDelay:44, burstShots:3, burstRest:172, telegraph:58, recover:152, bulletCount:16, bulletSpeed:1.85, pressure:1.22, cue:'DEVOUR BURST', hint:'吞噬尸体后释放冲击波，远离Boss中心' },
     ]},
+  { name:'双子坦克', color:'#426', turret:'#a4f', speed:0.52, hp:100, icon:'GEM', faction:'void_cult',
+    desc:'双体镜像Boss，交叉火力+狂暴',
+    phases:[
+      { name:'交叉弹幕', hpPct:1.0, attack:'gemini_cross', shootDelay:40, burstShots:3, burstRest:130, telegraph:44, recover:106, bulletCount:8, bulletSpeed:2.0, pressure:1.0, cue:'MIRROR DANCE', hint:'两体弹幕交织成网，找网眼穿行' },
+      { name:'镜像狂暴', hpPct:0.0, attack:'gemini_rage', shootDelay:28, burstShots:3, burstRest:90, telegraph:30, recover:70, bulletCount:18, bulletSpeed:2.6, pressure:1.45, cue:'RAGE AWAKENING', hint:'一体死亡后另一体狂暴，弹幕密度×3' },
+    ]},
 
 ];
 
@@ -7456,8 +7475,15 @@ class BossEnemy extends EliteEnemy {
       if (dist < 180) { moveX -= dx/dist * 0.4; moveY -= dy/dist * 0.4; }
       else if (dist > 300) { moveX += dx/dist * 0.3; moveY += dy/dist * 0.3; }
       moveX += -dy/dist * strafeDir * 0.4; moveY += dx/dist * strafeDir * 0.4;
+    } else if (this.bossDef.name === '双子坦克') {
+      // Mirror movement — one goes left, twin goes right
+      const isTwin = !!this.geminiMaster; // Twin moves opposite
+      const side = isTwin ? -1 : 1;
+      if (dist < 130) { moveX -= dx/dist * 0.4; moveY -= dy/dist * 0.4; }
+      else if (dist > 240) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
+      moveX += -dy/dist * strafeDir * 0.6 * side;
+      moveY += dx/dist * strafeDir * 0.6 * side;
     } else if (this.bossDef.name === '缝合巨兽') {
-      // Slow lurching advance — never backs off, slightly erratic
       moveX += dx/dist * 0.5 + (rng() - 0.5) * 0.15;
       moveY += dy/dist * 0.5 + (rng() - 0.5) * 0.15;
       // Absorb nearby dead enemies to heal
@@ -7914,32 +7940,54 @@ class BossEnemy extends EliteEnemy {
       }
     } else if (phase.attack === 'devour_burst') {
       // === PATCHWORK P2: Devour + shockwave burst ===
-      // Heal from nearby corpses
-      let healed = false;
-      for (const e of enemies) {
-        if (!e.alive && e !== this) {
-          const ed = Math.sqrt((this.x-e.x)**2 + (this.y-e.y)**2);
-          if (ed < 100) { this.hp = Math.min(this.maxHp, this.hp + 5); healed = true; }
-        }
-      }
-      if (healed) {
-        // Shockwave ring
-        for (let i = 0; i < 20; i++) {
-          const a = (i / 20) * Math.PI * 2;
-          const b = new Bullet(this.x, this.y, a, 2.2, '#f84', false, 2);
-          b.radius = 3.5; enemyBullets.push(b);
-        }
-        spawnExplosion(this.x, this.y, 28, '#c84', '#ff0');
-        triggerShake(8, 10);
-      }
-      // Normal scatter
+      // === GEMINI P1: Cross-fire — bullets aimed toward twin's position ===
+      const twin = this.geminiTwin || this.geminiMaster;
+      const twinX = twin ? twin.x : this.x + (Math.random() > 0.5 ? 120 : -120);
+      const twinY = twin ? twin.y : this.y + (Math.random() > 0.5 ? 80 : -80);
+      const crossAngle = Math.atan2(twinY - this.y, twinX - this.x);
       const total = phase.bulletCount + bonusBullets;
       for (let i = 0; i < total; i++) {
-        const a = this.turretAngle + (i - total/2) * 0.2;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#f84', false, this.currentPhase > 0 ? 2 : 1);
+        const a = crossAngle + (i - total/2) * 0.12;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#a4f', false, this.currentPhase > 0 ? 2 : 1);
         b.radius = 3; enemyBullets.push(b);
       }
+    } else if (phase.attack === 'gemini_rage') {
+      // === GEMINI RAGE (P2): Triple density chaotic spray ===
+      const total = phase.bulletCount + bonusBullets;
+      for (let wave = 0; wave < 3; wave++) {
+        for (let i = 0; i < total; i++) {
+          const a = this.phaseTimer * (0.04 + wave * 0.02) + (i / total) * Math.PI * 2;
+          const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + wave * 0.3, '#d8f', false, 2);
+          b.radius = 2.8; enemyBullets.push(b);
+        }
+      }
+      spawnExplosion(this.x, this.y, 12, '#a4f', '#f0f');
+    } else if (phase.attack === 'gemini_cross') {
+      const twin = this.geminiTwin || this.geminiMaster;
+      const tx = twin ? twin.x : this.x + 120, ty = twin ? twin.y : this.y;
+      const crossAngle = Math.atan2(ty - this.y, tx - this.x);
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = crossAngle + (i - total/2) * 0.12;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#a4f', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 3; enemyBullets.push(b);
+      }
+    } else if (phase.attack === 'gemini_rage') {
+      const total = phase.bulletCount + bonusBullets;
+      for (let wave = 0; wave < 3; wave++) {
+        for (let i = 0; i < total; i++) {
+          const a = this.phaseTimer * 0.06 + (i / total) * Math.PI * 2;
+          const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + wave * 0.3, '#d8f', false, 2);
+          b.radius = 2.8; enemyBullets.push(b);
+        }
+      }
+      spawnExplosion(this.x, this.y, 12, '#a4f', '#f0f');
     }
+    const fireSlow = getEnemyFireSlowProfile(this);
+    this.applyFireSlow(fireSlow.duration, fireSlow.mul);
+    sfxBossAttack(phase.attack, this.currentPhase);
+  }
+  emitPhaseBurst(isTransition) {
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
     sfxBossAttack(phase.attack, this.currentPhase);
@@ -8362,6 +8410,29 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '双子坦克') {
+      const isDark = !!this.geminiMaster;
+      const gemColor = isDark ? '#624' : '#426';
+      const gemAccent = isDark ? '#d8f' : '#a4f';
+      ctx.fillStyle = gemColor;
+      ctx.beginPath(); ctx.moveTo(22, 0); ctx.lineTo(6, -14); ctx.lineTo(-14, -6);
+      ctx.lineTo(-18, 0); ctx.lineTo(-14, 6); ctx.lineTo(6, 14); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = gemAccent; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,' + (isDark ? '0.08' : '0.2') + ')';
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 12); ctx.stroke();
+      drawTechCore(ctx, 1, 0, 4.5, isDark ? '#f0e0ff' : '#e0e0ff', gemAccent);
+      if (this.geminiTwin && this.geminiTwin.alive) {
+        ctx.strokeStyle = 'rgba(180,140,255,0.12)'; ctx.lineWidth = 0.8; ctx.setLineDash([3, 6]);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(this.geminiTwin.x - this.x, this.geminiTwin.y - this.y); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      if (this.currentPhase > 0) {
+        ctx.strokeStyle = 'rgba(200,160,255,0.25)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.stroke();
+      }
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 3, -2, 12, 4, gemColor, gemAccent, '#fff');
+      ctx.restore();
     } else if (bname === '缝合巨兽') {
       // === PATCHWORK BEHEMOTH — asymmetrical junk mech ===
       // Left side: scavenged scout tracks
@@ -11614,6 +11685,18 @@ function update() {
       recordBossEncounter(bd, bossRef);
       enemies.push(bossRef);
       sfxBossIntro();
+      // Gemini: spawn twin at mirrored position
+      if (bd.name === '双子坦克') {
+        const twinX = bs.x + (bs.x < W/2 ? 120 : -120);
+        const twinY = bs.y + (bs.y < H/2 ? 80 : -80);
+        const twin = new BossEnemy(Math.max(40, Math.min(W-40, twinX)), Math.max(40, Math.min(H-40, twinY)), bd);
+        twin.color = '#624'; twin.turretColor = '#d8f'; // Dark variant
+        twin.geminiMaster = bossRef;
+        bossRef.geminiTwin = twin;
+        recordBossEncounter(bd, twin);
+        enemies.push(twin);
+        spawnExplosion(twin.x, twin.y, 25, '#a4f', '#d8f');
+      }
       // Boss entrance effects
       const bn = bossRef.bossDef.name;
       if (bn === '巨兽坦克') {
