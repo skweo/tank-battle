@@ -5,8 +5,6 @@ let weatherIntensity = 0;
 let weatherTransitionTimer = 0;
 let prevWeatherType = 'clear';
 let weatherOverridden = false;
-let savedWeatherType = 'clear';
-let savedWeatherIntensity = 0;
 
 function initWeather() {
   if (weatherOverridden) return;
@@ -7276,10 +7274,6 @@ class BossEnemy extends EliteEnemy {
     this.hitFlash = 0;
     // Sandstorm boss: override weather to dust
     if (bossDef.name === '沙暴') {
-      if (!weatherOverridden) {
-        savedWeatherType = weatherType;
-        savedWeatherIntensity = weatherIntensity;
-      }
       weatherOverridden = true;
       weatherType = 'dust';
       weatherIntensity = Math.max(weatherIntensity, 0.42);
