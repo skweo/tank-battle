@@ -12653,11 +12653,6 @@ function updateGamepadInput() {
         gamepadState.rightY = 0;
       }
       gamepadState._allAxes = ax.slice(0, 10).map(v => clamp(v || 0));
-      // D-pad supplemental aim: up/down for vertical when right stick Y is dead
-      if (Math.abs(gamepadState.rightY) < 0.05) {
-        if (gp.buttons[12] && gp.buttons[12].pressed) gamepadState.rightY = -1;
-        else if (gp.buttons[13] && gp.buttons[13].pressed) gamepadState.rightY = 1;
-      }
       gamepadState.shoot = (gp.buttons[7] && gp.buttons[7].value > 0.2) || (gp.buttons[0] && gp.buttons[0].pressed);
       found = true;
       break;
