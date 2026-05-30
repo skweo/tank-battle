@@ -7125,14 +7125,14 @@ const BOSS_TYPES = [
   { name:'圣龛织者', color:'#864', turret:'#fd0', speed:0.10, hp:200, icon:'WEV', faction:'ash_church',
     desc:'纯召唤Boss，不攻击但不断召唤精英护卫',
     phases:[
-      { name:'织网召唤', hpPct:1.0, attack:'weave_summon', shootDelay:60, burstShots:1, burstRest:200, telegraph:40, recover:160, bulletCount:0, bulletSpeed:0, pressure:0.7, cue:'WEAVE PATTERN', hint:'先清小兵，再打Boss' },
-      { name:'加速编织', hpPct:0.45, attack:'weave_frenzy', shootDelay:36, burstShots:1, burstRest:140, telegraph:30, recover:110, bulletCount:0, bulletSpeed:0, pressure:0.9, cue:'FRENZY WEAVE', hint:'小兵带追踪弹，尽快清除' },
+      { name:'织网召唤', hpPct:1.0, attack:'weave_summon', shootDelay:80, burstShots:1, burstRest:280, telegraph:48, recover:180, bulletCount:0, bulletSpeed:0, pressure:0.7, cue:'WEAVE PATTERN', hint:'先清小兵再打Boss，召唤间隔约6秒' },
+      { name:'加速编织', hpPct:0.45, attack:'weave_frenzy', shootDelay:52, burstRest:240, burstShots:1, telegraph:38, recover:140, bulletCount:0, bulletSpeed:0, pressure:0.9, cue:'FRENZY WEAVE', hint:'小兵带追踪弹，召唤速度加快但上限降低' },
     ]},
   { name:'灰域剑圣', color:'#411', turret:'#f84', speed:0.68, hp:130, icon:'BLD', faction:'moon_arsenal',
     desc:'近战武士Boss，能量巨刃+冲刺斩击',
     phases:[
-      { name:'剑术三式', hpPct:1.0, attack:'blade_sweep', shootDelay:38, burstShots:3, burstRest:120, telegraph:44, recover:100, bulletCount:6, bulletSpeed:3.5, pressure:1.0, cue:'BLADE STANCE', hint:'扇形横扫范围大，保持距离后反击' },
-      { name:'终焉剑舞', hpPct:0.48, attack:'blade_dance', shootDelay:26, burstShots:3, burstRest:150, telegraph:38, recover:120, bulletCount:14, bulletSpeed:3.8, pressure:1.35, cue:'FINAL DANCE', hint:'旋转斩后有短暂停顿，输出窗口' },
+      { name:'剑术三式', hpPct:1.0, attack:'blade_sweep', shootDelay:42, burstShots:3, burstRest:130, telegraph:44, recover:100, bulletCount:6, bulletSpeed:3.5, pressure:1.0, cue:'BLADE STANCE', hint:'扇形横扫范围大，保持距离后反击' },
+      { name:'终焉剑舞', hpPct:0.48, attack:'blade_dance', shootDelay:38, burstShots:3, burstRest:170, telegraph:38, recover:120, bulletCount:10, bulletSpeed:3.8, pressure:1.35, cue:'FINAL DANCE', hint:'旋转斩后有短暂停顿，输出窗口' },
     ]},
   { name:'陷阱师', color:'#542', turret:'#c84', speed:0.22, hp:155, icon:'TRP', faction:'graveyard',
     desc:'陷阱Boss，布雷+减速带+弹射器',
@@ -8105,10 +8105,10 @@ class BossEnemy extends EliteEnemy {
         spawnExplosion(this.x + (rng()-0.5)*40, this.y + (rng()-0.5)*40, 15, '#888', '#aaa');
       }
     } else if (phase.attack === 'weave_summon') {
-      // === WEAVER: Summon 3-5 elite escorts ===
-      const count = 3 + Math.floor(rng() * 3);
+      // === WEAVER: Summon 2-3 elite escorts (slower, fewer) ===
+      const count = 2 + Math.floor(rng() * 2);
       for (let i = 0; i < count; i++) {
-        if (enemies.length < 25) {
+        if (enemies.length < 18) {
           const idx = Math.floor(rng() * Math.min(4, eliteTypes.length));
           const etype = eliteTypes[idx];
           const sx = this.x + (rng() - 0.5) * 100, sy = this.y + (rng() - 0.5) * 80;
@@ -8128,14 +8128,16 @@ class BossEnemy extends EliteEnemy {
         const b = new Bullet(bx, by, a, phase.bulletSpeed, '#f84', false, this.currentPhase > 0 ? 2 : 1);
         b.radius = 3.2; enemyBullets.push(b);
       }
-      // Dash forward — leave burning trail
-      const dashX = this.x + dx/dist * 60, dashY = this.y + dy/dist * 60;
-      for (let d = 0; d < 8; d++) {
-        const px = this.x + (dashX - this.x) * d/8, py = this.y + (dashY - this.y) * d/8;
-        spawnExplosion(px + rng()*8, py + rng()*8, 4, '#f80', '#fc0');
+      // Dash forward — leave burning trail (guard against zero-dist)
+      if (dist > 1) {
+        const dashX = this.x + dx/dist * 60, dashY = this.y + dy/dist * 60;
+        for (let d = 0; d < 6; d++) {
+          const px = this.x + (dashX - this.x) * d/6, py = this.y + (dashY - this.y) * d/6;
+          spawnExplosion(px + rng()*8, py + rng()*8, 4, '#f80', '#fc0');
+        }
+        this.x = Math.max(40, Math.min(W-40, dashX));
+        this.y = Math.max(40, Math.min(H-40, dashY));
       }
-      this.x = Math.max(40, Math.min(W-40, dashX));
-      this.y = Math.max(40, Math.min(H-40, dashY));
     } else if (phase.attack === 'trap_deploy') {
       // === TRAPPER P1: Deploy minefield + slowdown zones ===
       this.deployMines(3 + this.currentPhase, 180);
@@ -8274,7 +8276,7 @@ class BossEnemy extends EliteEnemy {
       // Additional mine scatter
       this.deployMines(3, 150);
     } else if (phase.attack === 'blade_dance') {
-      // === ASH BLADE P2: 360° spin + 3 energy rings ===
+      // === ASH BLADE P2: 360° spin + 2 energy rings ===
       const total = phase.bulletCount + bonusBullets;
       // Spin slash
       for (let i = 0; i < total; i++) {
@@ -8282,8 +8284,8 @@ class BossEnemy extends EliteEnemy {
         const b = new Bullet(this.x, this.y, a, phase.bulletSpeed, '#f84', false, this.currentPhase > 0 ? 2 : 1);
         b.radius = 3; enemyBullets.push(b);
       }
-      // 3 expanding energy rings
-      for (let ring = 0; ring < 3; ring++) {
+      // 2 expanding energy rings
+      for (let ring = 0; ring < 2; ring++) {
         for (let i = 0; i < 8; i++) {
           const a = (i / 8) * Math.PI * 2;
           const dist = 15 + ring * 16 + this.phaseTimer * 0.5;
@@ -8291,13 +8293,13 @@ class BossEnemy extends EliteEnemy {
           b.radius = 2.5; enemyBullets.push(b);
         }
       }
-      spawnExplosion(this.x, this.y, 22, '#f80', '#ff0');
+      spawnExplosion(this.x, this.y, 14, '#f80', '#ff0');
       triggerShake(6, 10);
     } else if (phase.attack === 'weave_frenzy') {
-      // === WEAVER P2: Faster summon + tracking elites ===
-      const count = 4 + Math.floor(rng() * 3);
+      // === WEAVER P2: Faster summon + tracking elites (capped lower) ===
+      const count = 3 + Math.floor(rng() * 2);
       for (let i = 0; i < count; i++) {
-        if (enemies.length < 30) {
+        if (enemies.length < 22) {
           const idx = Math.floor(rng() * Math.min(6, eliteTypes.length));
           const etype = eliteTypes[idx];
           const sx = this.x + (rng() - 0.5) * 120, sy = this.y + (rng() - 0.5) * 100;
