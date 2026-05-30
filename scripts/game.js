@@ -12647,12 +12647,17 @@ function updateGamepadInput() {
         gamepadState.rightX = dz(ax[bestA] || 0);
         gamepadState.rightY = dz(ax[bestB] || 0);
       } else {
-        // Only one active axis found — use it as Y, X from auto-aim
-        const single = bestA >= 2 ? dz(ax[bestA]||0) : 0;
-        gamepadState.rightX = 0;
-        gamepadState.rightY = single || dz(ax[2]||0); // Fallback to axes[2] as vertical
+        // Only one active axis — use it as horizontal (rightX), vertical from auto-aim
+        const single = bestA >= 2 ? dz(ax[bestA]||0) : dz(ax[2]||0);
+        gamepadState.rightX = single;
+        gamepadState.rightY = 0;
       }
       gamepadState._allAxes = ax.slice(0, 10).map(v => clamp(v || 0));
+      // D-pad supplemental aim: up/down for vertical when right stick Y is dead
+      if (Math.abs(gamepadState.rightY) < 0.05) {
+        if (gp.buttons[12] && gp.buttons[12].pressed) gamepadState.rightY = -1;
+        else if (gp.buttons[13] && gp.buttons[13].pressed) gamepadState.rightY = 1;
+      }
       gamepadState.shoot = (gp.buttons[7] && gp.buttons[7].value > 0.2) || (gp.buttons[0] && gp.buttons[0].pressed);
       found = true;
       break;
