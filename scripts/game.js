@@ -4,8 +4,12 @@ let weatherType = 'clear';
 let weatherIntensity = 0;
 let weatherTransitionTimer = 0;
 let prevWeatherType = 'clear';
+let weatherOverridden = false;
+let savedWeatherType = 'clear';
+let savedWeatherIntensity = 0;
 
 function initWeather() {
+  if (weatherOverridden) return;
   weatherParticles = [];
   const safeWave = Math.max(1, Number.isFinite(wave) ? wave : 1);
   const biome = (safeWave - 1) % 8;
@@ -2763,6 +2767,7 @@ function clearDifficulty() {
 
 function startNextWave() {
   wave++;
+  weatherOverridden = false;
   initWeather();
   if (wave > 1 && obstacles.length > 0) refreshObstacles();
   updateTankUnlockProgress({
@@ -7141,6 +7146,24 @@ const BOSS_TYPES = [
       { name:'完美镜像', hpPct:1.0, attack:'mirror_copy', shootDelay:44, burstShots:3, burstRest:140, telegraph:40, recover:110, bulletCount:6, bulletSpeed:2.5, pressure:1.0, cue:'MIRROR COPY', hint:'换不同坦克可打破镜像规律' },
       { name:'强化镜像', hpPct:0.5, attack:'mirror_enhance', shootDelay:34, burstShots:3, burstRest:120, telegraph:34, recover:90, bulletCount:8, bulletSpeed:3.0, pressure:1.25, cue:'ENHANCE', hint:'弹幕速度+20%，弹丸增大' },
     ]},
+  { name:'沙暴', color:'#864', turret:'#c84', speed:0.35, hp:145, icon:'SND', faction:'graveyard',
+    desc:'环境Boss，沙尘降可见度+沙虫突刺',
+    phases:[
+      { name:'沙尘帷幕', hpPct:1.0, attack:'sand_veil', shootDelay:48, burstShots:3, burstRest:156, telegraph:46, recover:128, bulletCount:10, bulletSpeed:1.6, pressure:0.9, cue:'SAND VEIL', hint:'注意沙尘中弹幕方向，靠小地图走位' },
+      { name:'沙虫肆虐', hpPct:0.52, attack:'sand_worm', shootDelay:40, burstShots:3, burstRest:170, telegraph:52, recover:142, bulletCount:14, bulletSpeed:2.0, pressure:1.2, cue:'WORM STRIKE', hint:'地面预警圈即沙虫突刺位置' },
+    ]},
+  { name:'重力锚', color:'#345', turret:'#8cf', speed:0.18, hp:175, icon:'GRV', faction:'moon_arsenal',
+    desc:'引力操控Boss，重力井吸引+锚链裁决',
+    phases:[
+      { name:'重力井', hpPct:1.0, attack:'gravity_well', shootDelay:50, burstShots:3, burstRest:148, telegraph:52, recover:126, bulletCount:12, bulletSpeed:1.5, pressure:0.92, cue:'GRAVITY WELL', hint:'持续被拉向Boss，反向移动保持距离' },
+      { name:'锚链裁决', hpPct:0.52, attack:'anchor_judgment', shootDelay:40, burstShots:3, burstRest:162, telegraph:48, recover:138, bulletCount:16, bulletSpeed:1.9, pressure:1.22, cue:'ANCHOR JUDGMENT', hint:'引力+追踪锚弹，利用障碍物阻挡追踪弹' },
+    ]},
+  { name:'多头蛇', color:'#262', turret:'#4e4', speed:0.40, hp:155, icon:'HYD', faction:'void_cult',
+    desc:'多头再生Boss，三头齐射+多头狂乱',
+    phases:[
+      { name:'三头齐射', hpPct:1.0, attack:'triple_strike', shootDelay:42, burstShots:3, burstRest:132, telegraph:44, recover:110, bulletCount:9, bulletSpeed:2.0, pressure:0.96, cue:'TRIPLE STRIKE', hint:'三方向弹幕各120°，找夹角空隙' },
+      { name:'多头狂乱', hpPct:0.48, attack:'hydra_frenzy', shootDelay:32, burstShots:3, burstRest:148, telegraph:40, recover:118, bulletCount:15, bulletSpeed:2.3, pressure:1.28, cue:'HYDRA FRENZY', hint:'五头齐射+持续再生，爆发输出' },
+    ]},
 
 ];
 
@@ -7251,6 +7274,28 @@ class BossEnemy extends EliteEnemy {
     this.recoverVulnerable = false;
     this.threatRating = 6.8;
     this.hitFlash = 0;
+    // Sandstorm boss: override weather to dust
+    if (bossDef.name === '沙暴') {
+      if (!weatherOverridden) {
+        savedWeatherType = weatherType;
+        savedWeatherIntensity = weatherIntensity;
+      }
+      weatherOverridden = true;
+      weatherType = 'dust';
+      weatherIntensity = Math.max(weatherIntensity, 0.42);
+      weatherParticles = [];
+      const count = 110;
+      for (let i = 0; i < count; i++) {
+        weatherParticles.push({
+          x: rng() * W, y: rng() * H,
+          vx: (rng() - 0.5) * 2.5,
+          vy: (rng() - 0.5) * 2,
+          life: rng() * 180, maxLife: 180 + rng() * 120,
+          size: 2 + rng() * 3,
+          alpha: 0.15 + rng() * 0.22,
+        });
+      }
+    }
   }
   getPhaseDef() {
     return this.bossDef.phases[Math.max(0, this.currentPhase)] || this.bossDef.phases[0];
@@ -7525,10 +7570,30 @@ class BossEnemy extends EliteEnemy {
       else if (dist > 280) { moveX += dx/dist * 0.25; moveY += dy/dist * 0.25; }
       moveX += -dy/dist * strafeDir * 0.5; moveY += dx/dist * strafeDir * 0.5;
     } else if (this.bossDef.name === '镜像体') {
-      // Mirrors player's movement — keeps medium range
       if (dist < 150) { moveX -= dx/dist * 0.5; moveY -= dy/dist * 0.5; }
       else if (dist > 250) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
       moveX += -dy/dist * strafeDir * 0.5; moveY += dx/dist * strafeDir * 0.5;
+    } else if (this.bossDef.name === '沙暴') {
+      // Drifting movement — slow, random wobble
+      moveX += (dx/dist * 0.2 + (rng()-0.5) * 0.3);
+      moveY += (dy/dist * 0.2 + (rng()-0.5) * 0.3);
+    } else if (this.bossDef.name === '重力锚') {
+      // Heavy anchor — slow drift toward player, constant gravity pull
+      moveX += dx/dist * 0.15;
+      moveY += dy/dist * 0.15;
+      if (this.zoneTimer % (this.currentPhase > 0 ? 10 : 18) === 0 && dist < 370) {
+        const pull = this.currentPhase > 0 ? 3.2 : 1.8;
+        this.pushPlayer(-(dx/dist) * pull, -(dy/dist) * pull);
+      }
+    } else if (this.bossDef.name === '多头蛇') {
+      // Circling at medium range, regenerates in P2
+      if (dist < 130) { moveX -= dx/dist * 0.4; moveY -= dy/dist * 0.4; }
+      else if (dist > 250) { moveX += dx/dist * 0.3; moveY += dy/dist * 0.3; }
+      moveX += -dy/dist * strafeDir * 0.65; moveY += dx/dist * strafeDir * 0.65;
+      if (this.currentPhase > 0 && this.zoneTimer % 160 === 0 && this.hp < this.maxHp) {
+        this.hp = Math.min(this.maxHp, this.hp + 6);
+        spawnExplosion(this.x + rng()*20-10, this.y + rng()*20-10, 6, '#4f4', '#0f0');
+      }
     } else if (this.bossDef.name === '缝合巨兽') {
       moveX += dx/dist * 0.5 + (rng() - 0.5) * 0.15;
       moveY += dy/dist * 0.5 + (rng() - 0.5) * 0.15;
@@ -8092,6 +8157,100 @@ class BossEnemy extends EliteEnemy {
       }
       // Flash to show mirroring
       spawnExplosion(this.x, this.y, 6, '#fff', '#888');
+    } else if (phase.attack === 'sand_veil') {
+      // === SANDSTORM P1: Random direction bursts from sand cloud ===
+      const total = phase.bulletCount + bonusBullets;
+      for (let burst = 0; burst < 3; burst++) {
+        const dir = this.phaseTimer * 0.04 + burst * Math.PI * 2 / 3;
+        for (let i = 0; i < Math.floor(total / 3); i++) {
+          const a = dir + (i - Math.floor(total/6)) * 0.15;
+          const b = new Bullet(this.x + Math.cos(dir)*20, this.y + Math.sin(dir)*20, a, phase.bulletSpeed + rng()*0.3, '#c84', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = 2.8; enemyBullets.push(b);
+        }
+      }
+    } else if (phase.attack === 'sand_worm') {
+      // === SANDSTORM P2: Worm strike circles + eruption ===
+      for (let w = 0; w < 4; w++) {
+        const wx = this.x + (rng()-0.5)*300, wy = this.y + (rng()-0.5)*250;
+        // Warning circle
+        spawnExplosion(wx, wy, 14, '#c84', '#da0');
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2;
+          const b = new Bullet(wx, wy, a, 1.8, '#c84', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = 3; enemyBullets.push(b);
+        }
+      }
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total/2) * 0.2;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#c84', false, 2);
+        b.radius = 3.2; enemyBullets.push(b);
+      }
+    } else if (phase.attack === 'gravity_well') {
+      // === GRAVITY ANCHOR P1: Shockwave ring + heavy center burst ===
+      const total = phase.bulletCount + bonusBullets;
+      // Expanding ring
+      const ringCount = this.currentPhase > 0 ? 14 : 10;
+      for (let i = 0; i < ringCount; i++) {
+        const a = this.phaseTimer * 0.08 + (i / ringCount) * Math.PI * 2;
+        const b = new Bullet(this.x, this.y, a, 1.4 + this.currentPhase * 0.1, '#8cf', false, 1);
+        b.radius = 3.2; enemyBullets.push(b);
+      }
+      // Heavy center burst toward player
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total/2) * 0.25;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#adf', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 3.5; enemyBullets.push(b);
+      }
+    } else if (phase.attack === 'anchor_judgment') {
+      // === GRAVITY ANCHOR P2: Ring + homing anchor chains ===
+      const total = phase.bulletCount + bonusBullets;
+      // Ring burst
+      for (let i = 0; i < total; i++) {
+        const a = this.phaseTimer * 0.06 + (i / total) * Math.PI * 2;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed - 0.15, '#8cf', false, 1);
+        b.radius = 3; enemyBullets.push(b);
+      }
+      // Homing anchor projectiles
+      const homingCount = this.currentPhase > 0 ? 5 : 3;
+      for (let i = 0; i < homingCount; i++) {
+        const a = this.turretAngle + (i - (homingCount-1)/2) * 0.35;
+        const b = new Bullet(bx, by, a, 1.3 + rng()*0.5, '#adf', true, 2);
+        b.radius = 3.8; b.homingStrength = 0.025; b.homingLife = 200;
+        enemyBullets.push(b);
+      }
+    } else if (phase.attack === 'triple_strike') {
+      // === HYDRA P1: 3 heads fire in 120° spread ===
+      const total = phase.bulletCount + bonusBullets;
+      for (let head = 0; head < 3; head++) {
+        const headAngle = this.turretAngle + (head - 1) * Math.PI * 2 / 3;
+        const hx = this.x + Math.cos(headAngle) * 14, hy = this.y + Math.sin(headAngle) * 14;
+        for (let i = 0; i < Math.floor(total / 3); i++) {
+          const a = headAngle + (i - Math.floor(total/6)) * 0.14;
+          const b = new Bullet(hx, hy, a, phase.bulletSpeed + rng()*0.3, '#4e4', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = 2.6; enemyBullets.push(b);
+        }
+      }
+    } else if (phase.attack === 'hydra_frenzy') {
+      // === HYDRA P2: 5 heads + poison spray ===
+      const total = phase.bulletCount + bonusBullets;
+      const heads = 5;
+      for (let head = 0; head < heads; head++) {
+        const headAngle = this.turretAngle + (head - (heads-1)/2) * 0.38;
+        const hx = this.x + Math.cos(headAngle) * 14, hy = this.y + Math.sin(headAngle) * 14;
+        for (let i = 0; i < Math.floor(total / heads); i++) {
+          const a = headAngle + (i - Math.floor(total/heads/2)) * 0.1;
+          const b = new Bullet(hx, hy, a, phase.bulletSpeed + rng()*0.4, '#3a3', false, 2);
+          b.radius = 2.8; enemyBullets.push(b);
+        }
+      }
+      // Poison cloud — slow lingering bullets
+      for (let i = 0; i < 6; i++) {
+        const a = rng() * Math.PI * 2;
+        const spd = 0.6 + rng() * 0.8;
+        const b = new Bullet(this.x + rng()*40-20, this.y + rng()*40-20, a, spd, '#060', false, 1);
+        b.radius = 2.2; b.life = 300 + rng() * 200; enemyBullets.push(b);
+      }
     } else if (phase.attack === 'mirror_enhance') {
       // === MIRROR SHELL P2: Enhanced copy — faster + bigger ===
       const pt = player && player._tankDef ? player._tankDef.tankType : 'spread';
@@ -8592,6 +8751,112 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '沙暴') {
+      // === SANDSTORM — dust-wrapped chassis + worm tentacles ===
+      // Dust cloud aura
+      for (let d = 0; d < 12; d++) {
+        const da = brt * 0.3 + d * Math.PI * 2 / 12;
+        const dr = 18 + Math.sin(brt + d) * 4;
+        ctx.fillStyle = 'rgba(180,140,80,' + (0.08 + d * 0.01) + ')';
+        ctx.beginPath(); ctx.arc(Math.cos(da)*dr, Math.sin(da)*dr, 3 + rng()*2, 0, Math.PI*2); ctx.fill();
+      }
+      // Core chassis — half-hidden
+      ctx.fillStyle = '#4a3020'; ctx.strokeStyle = '#c84'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.ellipse(0, 0, 18, 13, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      // Sand worm tentacles on sides
+      for (let side of [-1, 1]) {
+        ctx.strokeStyle = '#c84'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(side * 14, 0);
+        ctx.quadraticCurveTo(side * 22 + Math.sin(brt)*5, -8, side * 20, 14); ctx.stroke();
+        ctx.fillStyle = '#a60'; ctx.beginPath(); ctx.arc(side * 20, 14, 3, 0, Math.PI*2); ctx.fill();
+      }
+      // Vent spewing sand
+      ctx.fillStyle = 'rgba(180,120,60,0.3)';
+      for (let v = 0; v < 5; v++) {
+        ctx.beginPath(); ctx.arc(rng()*12 - 4, rng()*4 - 16, 1 + rng()*2, 0, Math.PI*2); ctx.fill();
+      }
+      drawTechCore(ctx, 0, 0, 4, '#ffe0c0', '#c84');
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 3, -2.5, 10, 5, '#4a3020', '#c84', '#fff');
+      ctx.restore();
+    } else if (bname === '重力锚') {
+      // === GRAVITY ANCHOR — heavy anchor hull + gravity field rings ===
+      // Gravity distortion rings
+      for (let r = 0; r < 3; r++) {
+        const rr = 22 + r * 8 + Math.sin(brt * 2 + r) * 4;
+        ctx.strokeStyle = 'rgba(120,180,255,' + (0.15 - r * 0.04) + ')';
+        ctx.lineWidth = 1.2; ctx.setLineDash([3, 7]);
+        ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      // Heavy anchor body — wide bottom, narrow top
+      ctx.fillStyle = '#1a2a3a'; ctx.strokeStyle = '#8cf'; ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -18); ctx.lineTo(16, -4); ctx.lineTo(20, 10);
+      ctx.lineTo(16, 18); ctx.lineTo(-16, 18); ctx.lineTo(-20, 10);
+      ctx.lineTo(-16, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Anchor flukes at bottom
+      for (let s of [-1, 1]) {
+        ctx.fillStyle = '#2a3a4a';
+        ctx.beginPath(); ctx.moveTo(s * 12, 16);
+        ctx.lineTo(s * 28, 12); ctx.lineTo(s * 22, 22);
+        ctx.lineTo(s * 8, 22); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#8cf'; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+      // Gravity core
+      const coreGlow = Math.sin(brt * 2.5) * 0.3 + 0.7;
+      ctx.fillStyle = 'rgba(120,200,255,' + coreGlow + ')';
+      ctx.shadowColor = '#8cf'; ctx.shadowBlur = 14 * coreGlow;
+      ctx.beginPath(); ctx.arc(0, 2, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      drawTechCore(ctx, 0, 0, 4, '#d0e8ff', '#8cf');
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 3, -2.5, 11, 5, '#2a3a4a', '#8cf', '#fff');
+      ctx.restore();
+    } else if (bname === '多头蛇') {
+      // === HYDRA — multi-head serpent body + venom glow ===
+      const headCount = this.currentPhase > 0 ? 5 : 3;
+      // Serpent body — long curved hull
+      ctx.fillStyle = '#0a1a0a'; ctx.strokeStyle = '#4e4'; ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -10); ctx.lineTo(-14, -6);
+      ctx.lineTo(-20, 2); ctx.lineTo(-16, 12);
+      ctx.lineTo(0, 16); ctx.lineTo(16, 12);
+      ctx.lineTo(20, 2); ctx.lineTo(14, -6); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Scales pattern
+      ctx.strokeStyle = 'rgba(0,200,0,0.1)'; ctx.lineWidth = 0.5;
+      for (let s = 0; s < 8; s++) {
+        ctx.beginPath(); ctx.arc(-6 + s * 2, -4 + s * 2, 2.5 + s * 0.3, 0, Math.PI, false); ctx.stroke();
+      }
+      // Multiple heads
+      for (let h = 0; h < headCount; h++) {
+        const ha = (h - (headCount - 1) / 2) * 0.42;
+        const hx = Math.cos(ha) * 14, hy = Math.sin(ha) * 10 - 12;
+        ctx.save(); ctx.translate(hx, hy); ctx.rotate(ha);
+        // Head shape
+        ctx.fillStyle = '#0a2a0a'; ctx.strokeStyle = '#4e4'; ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.ellipse(0, 0, 6, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        // Eyes
+        const eyeGlow = Math.sin(brt * 4 + h) * 0.3 + 0.6;
+        ctx.fillStyle = 'rgba(0,255,0,' + eyeGlow + ')';
+        ctx.shadowColor = '#0f0'; ctx.shadowBlur = 5 * eyeGlow;
+        ctx.beginPath(); ctx.arc(3, -1.5, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // Tongue/fang
+        ctx.strokeStyle = '#0f0'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(5, 1); ctx.lineTo(8, 2); ctx.stroke();
+        ctx.restore();
+      }
+      // Venom drip from body
+      ctx.fillStyle = 'rgba(0,200,0,0.25)';
+      for (let d = 0; d < 3; d++) {
+        const dx = rng()*16 - 8, dy = 14 + rng()*4;
+        ctx.beginPath(); ctx.arc(dx, dy, 1 + rng()*2, 0, Math.PI * 2); ctx.fill();
+      }
+      drawTechCore(ctx, 0, -2, 3.5, '#d0ffd0', '#4e4');
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 3, -2, 9, 4, '#0a1a0a', '#4e4', '#fff');
+      ctx.restore();
     } else if (bname === '镜像体') {
       // === MIRROR SHELL — liquid metal, reflects player ===
       const playerColor = player ? (player._tankDef ? player._tankDef.color : '#d44') : '#d44';
@@ -9086,6 +9351,31 @@ class BossEnemy extends EliteEnemy {
     if (this.transitionLock > 0) return false;
     const dead = super.hit(bullet);
     this.hitFlash = 6;
+    if (dead && this.bossDef.name === '沙暴' && weatherOverridden) {
+      weatherOverridden = false;
+      weatherType = savedWeatherType;
+      weatherIntensity = savedWeatherIntensity;
+      weatherParticles = [];
+      const safeWave = Math.max(1, Number.isFinite(wave) ? wave : 1);
+      const biome = (safeWave - 1) % 8;
+      const weatherMap = { 0:'clear', 1:'rain', 2:'fog', 3:'dust', 4:'sparks', 5:'snow', 6:'ash', 7:'ion' };
+      const restoreType = weatherMap[biome] || 'clear';
+      if (restoreType !== 'clear') {
+        weatherType = restoreType;
+        weatherIntensity = 0.18 + safeWave * 0.012;
+        const count = restoreType === 'fog' ? 60 : restoreType === 'dust' ? 80 : restoreType === 'ash' ? 70 : restoreType === 'snow' ? 50 : restoreType === 'ion' ? 40 : 40;
+        for (let i = 0; i < count; i++) {
+          weatherParticles.push({
+            x: rng() * W, y: rng() * H,
+            vx: restoreType === 'dust' ? (rng() - 0.5) * 2.5 : restoreType === 'ash' ? (rng() - 0.5) * 1.8 : restoreType === 'snow' ? (rng() - 0.5) * 0.8 : restoreType === 'ion' ? (rng() - 0.5) * 0.15 : (rng() - 0.5) * 0.4,
+            vy: restoreType === 'rain' ? 4 + rng() * 3 : restoreType === 'snow' ? 1.5 + rng() * 1.5 : restoreType === 'ash' ? 2 + rng() * 2 : restoreType === 'ion' ? (rng() - 0.5) * 0.6 : (restoreType === 'dust' ? (rng() - 0.5) * 2 : (rng() - 0.5) * 0.3),
+            life: rng() * 180, maxLife: 180 + rng() * 120,
+            size: restoreType === 'rain' ? 0.8 + rng() : restoreType === 'fog' ? 30 + rng() * 50 : restoreType === 'snow' ? 2 + rng() * 3 : restoreType === 'ash' ? 2 + rng() * 4 : restoreType === 'ion' ? 40 + rng() * 70 : (restoreType === 'dust' ? 1.5 + rng() * 2 : 1 + rng()),
+            alpha: restoreType === 'fog' ? 0.015 + rng() * 0.03 : restoreType === 'snow' ? 0.25 + rng() * 0.35 : restoreType === 'ash' ? 0.15 + rng() * 0.25 : restoreType === 'ion' ? 0.03 + rng() * 0.05 : (restoreType === 'dust' ? 0.12 + rng() * 0.18 : 0.2 + rng() * 0.3),
+          });
+        }
+      }
+    }
     if (!dead && this.attackState === 'firing' && this.currentPhase > 0 && this.phaseBurstCooldown <= 0 && rng() < 0.04) {
       this.phaseBurstCooldown = 110;
       this.emitPhaseBurst(false);
@@ -12230,6 +12520,130 @@ function update() {
   }
 }
 
+function drawMinimap(ctx) {
+  const mmW = 152, mmH = 112;
+  const mmX = W - mmW - 16, mmY = H - mmH - 16;
+  const scaleX = mmW / W, scaleY = mmH / H;
+  const isSandstorm = weatherOverridden && weatherType === 'dust';
+
+  // Rounded rect background
+  const rr = 6;
+  ctx.fillStyle = isSandstorm ? 'rgba(0,0,0,0.78)' : 'rgba(0,0,0,0.52)';
+  ctx.strokeStyle = isSandstorm ? 'rgba(255,200,120,0.65)' : 'rgba(255,255,255,0.28)';
+  ctx.lineWidth = isSandstorm ? 2 : 1.5;
+  ctx.beginPath();
+  ctx.moveTo(mmX + rr, mmY);
+  ctx.lineTo(mmX + mmW - rr, mmY);
+  ctx.arcTo(mmX + mmW, mmY, mmX + mmW, mmY + rr, rr);
+  ctx.lineTo(mmX + mmW, mmY + mmH - rr);
+  ctx.arcTo(mmX + mmW, mmY + mmH, mmX + mmW - rr, mmY + mmH, rr);
+  ctx.lineTo(mmX + rr, mmY + mmH);
+  ctx.arcTo(mmX, mmY + mmH, mmX, mmY + mmH - rr, rr);
+  ctx.lineTo(mmX, mmY + rr);
+  ctx.arcTo(mmX, mmY, mmX + rr, mmY, rr);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  const mx = (wx) => mmX + wx * scaleX;
+  const my = (wy) => mmY + wy * scaleY;
+
+  // Border highlight for sandstorm
+  if (isSandstorm) {
+    ctx.strokeStyle = 'rgba(255,180,60,0.35)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(mmX + rr, mmY);
+    ctx.lineTo(mmX + mmW - rr, mmY);
+    ctx.arcTo(mmX + mmW, mmY, mmX + mmW, mmY + rr, rr);
+    ctx.lineTo(mmX + mmW, mmY + mmH - rr);
+    ctx.arcTo(mmX + mmW, mmY + mmH, mmX + mmW - rr, mmY + mmH, rr);
+    ctx.lineTo(mmX + rr, mmY + mmH);
+    ctx.arcTo(mmX, mmY + mmH, mmX, mmY + mmH - rr, rr);
+    ctx.lineTo(mmX, mmY + rr);
+    ctx.arcTo(mmX, mmY, mmX + rr, mmY, rr);
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // Obstacles
+  ctx.fillStyle = 'rgba(140,140,140,0.22)';
+  for (const obs of obstacles) {
+    if (!obs.alive) continue;
+    ctx.fillRect(mx(obs.x - obs.w / 2), my(obs.y - obs.h / 2),
+      Math.max(1.2, obs.w * scaleX), Math.max(1.2, obs.h * scaleY));
+  }
+
+  // Enemy bullets (sampled)
+  if (enemyBullets.length > 0) {
+    ctx.fillStyle = 'rgba(255,100,50,0.45)';
+    const step = Math.max(1, Math.floor(enemyBullets.length / 60));
+    for (let i = 0; i < enemyBullets.length; i += step) {
+      const b = enemyBullets[i];
+      if (!b.alive) continue;
+      ctx.fillRect(mx(b.x) - 0.5, my(b.y) - 0.5, 1.2, 1.2);
+    }
+  }
+
+  // Mines
+  if (mines.length > 0) {
+    ctx.fillStyle = 'rgba(200,100,30,0.5)';
+    for (const m of mines) {
+      if (!m.alive) continue;
+      ctx.fillRect(mx(m.x) - 1, my(m.y) - 1, 2, 2);
+    }
+  }
+
+  // Enemies
+  for (const enemy of enemies) {
+    if (!enemy.alive) continue;
+    const ex = mx(enemy.x), ey = my(enemy.y);
+    if (enemy.bossDef) {
+      const pulse = Math.sin(Date.now() / 220) * 1.2 + 3.8;
+      ctx.fillStyle = '#ff3030';
+      ctx.shadowColor = '#f00';
+      ctx.shadowBlur = isSandstorm ? 12 : 7;
+      ctx.beginPath(); ctx.arc(ex, ey, pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      // Cross marker
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(ex - pulse - 1, ey); ctx.lineTo(ex + pulse + 1, ey); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex, ey - pulse - 1); ctx.lineTo(ex, ey + pulse + 1); ctx.stroke();
+    } else if (enemy.isElite) {
+      ctx.fillStyle = '#fa0';
+      ctx.beginPath(); ctx.arc(ex, ey, 2.4, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = 'rgba(210,95,75,0.65)';
+      ctx.fillRect(ex - 1.2, ey - 1.2, 2.4, 2.4);
+    }
+  }
+
+  // Player
+  if (player && player.alive) {
+    const px = mx(player.x), py = my(player.y);
+    const pa = player.turretAngle || 0;
+    // Glow
+    ctx.fillStyle = '#0f0'; ctx.shadowColor = '#0f0'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(px, py, 3.8, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Inner dot
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
+    // Direction line
+    ctx.strokeStyle = '#0f0'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px + Math.cos(pa) * 7.5, py + Math.sin(pa) * 7.5);
+    ctx.stroke();
+  }
+
+  // Label
+  ctx.fillStyle = isSandstorm ? 'rgba(255,210,130,0.9)' : 'rgba(255,255,255,0.45)';
+  ctx.font = 'bold 9px "Courier New",monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(isSandstorm ? '◈ 沙尘暴 · 视野受限 ◈' : '战场概览', mmX + mmW / 2, mmY - 5);
+}
+
 function draw() {
   if (ctx.setTransform) ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
@@ -12426,6 +12840,9 @@ function draw() {
 
   // Restore shake transform
   if (shakeIntensity > 0.1) ctx.restore();
+
+  // Minimap
+  if (gameRunning) drawMinimap(ctx);
 }
 
 function endGame(victory = false, runId = activeRunId) {
