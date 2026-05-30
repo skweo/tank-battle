@@ -1695,6 +1695,17 @@ let dualP1Tank = null;
 let dualP2Tank = null;
 let dualSelectingFor = 'p1'; // 'p1' or 'p2' — which player is currently choosing
 function toggleDualMode() {
+  if (!dualModePending) {
+    // Check for gamepad before entering dual mode
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let hasGamepad = false;
+    for (const gp of gamepads) { if (gp && gp.connected) { hasGamepad = true; break; } }
+    if (!hasGamepad) {
+      const info = document.getElementById('diff-info');
+      if (info) { info.textContent = '⚠ 未检测到手柄！请插入手柄后重试。P2需要手柄操作。'; info.style.color = '#f84'; }
+      return;
+    }
+  }
   dualModePending = !dualModePending;
   dualP1Tank = null; dualP2Tank = null; dualSelectingFor = 'p1';
   const btn = document.getElementById('dual-mode-btn');
