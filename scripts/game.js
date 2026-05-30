@@ -7129,6 +7129,12 @@ const BOSS_TYPES = [
       { name:'剑术三式', hpPct:1.0, attack:'blade_sweep', shootDelay:38, burstShots:3, burstRest:120, telegraph:44, recover:100, bulletCount:6, bulletSpeed:3.5, pressure:1.0, cue:'BLADE STANCE', hint:'扇形横扫范围大，保持距离后反击' },
       { name:'终焉剑舞', hpPct:0.48, attack:'blade_dance', shootDelay:26, burstShots:3, burstRest:150, telegraph:38, recover:120, bulletCount:14, bulletSpeed:3.8, pressure:1.35, cue:'FINAL DANCE', hint:'旋转斩后有短暂停顿，输出窗口' },
     ]},
+  { name:'陷阱师', color:'#542', turret:'#c84', speed:0.22, hp:155, icon:'TRP', faction:'graveyard',
+    desc:'陷阱Boss，布雷+减速带+弹射器',
+    phases:[
+      { name:'陷阱阵列', hpPct:1.0, attack:'trap_deploy', shootDelay:55, burstShots:1, burstRest:180, telegraph:42, recover:138, bulletCount:0, bulletSpeed:0, pressure:0.8, cue:'TRAP ARRAY', hint:'注意地面，踩中陷阱会减速和受伤' },
+      { name:'雷区狂暴', hpPct:0.5, attack:'trap_frenzy', shootDelay:38, burstShots:1, burstRest:140, telegraph:32, recover:108, bulletCount:0, bulletSpeed:0, pressure:1.1, cue:'MINE FRENZY', hint:'追踪雷+密集地雷阵，小心移动' },
+    ]},
 
 ];
 
@@ -7506,10 +7512,13 @@ class BossEnemy extends EliteEnemy {
     } else if (this.bossDef.name === '圣龛织者') {
       if (dist < 100) { moveX -= dx/dist * 0.15; moveY -= dy/dist * 0.15; }
     } else if (this.bossDef.name === '灰域剑圣') {
-      // Aggressive charge — closes distance for melee
       moveX += dx/dist * 0.8; moveY += dy/dist * 0.8;
       if (dist < 80) moveX += -dy/dist * strafeDir * 0.3;
-      if (dist < 50) moveX += dx/dist * 0.5; // Even closer for the blade hit
+    } else if (this.bossDef.name === '陷阱师') {
+      // Slow evasive — keeps distance while laying traps
+      if (dist < 160) { moveX -= dx/dist * 0.3; moveY -= dy/dist * 0.3; }
+      else if (dist > 280) { moveX += dx/dist * 0.25; moveY += dy/dist * 0.25; }
+      moveX += -dy/dist * strafeDir * 0.5; moveY += dx/dist * strafeDir * 0.5;
     } else if (this.bossDef.name === '缝合巨兽') {
       moveX += dx/dist * 0.5 + (rng() - 0.5) * 0.15;
       moveY += dy/dist * 0.5 + (rng() - 0.5) * 0.15;
@@ -8052,6 +8061,26 @@ class BossEnemy extends EliteEnemy {
       }
       this.x = Math.max(40, Math.min(W-40, dashX));
       this.y = Math.max(40, Math.min(H-40, dashY));
+    } else if (phase.attack === 'trap_deploy') {
+      // === TRAPPER P1: Deploy minefield + slowdown zones ===
+      this.deployMines(3 + this.currentPhase, 180);
+      // Drop slowing traps around the boss
+      for (let i = 0; i < 4; i++) {
+        const tx = this.x + (rng()-0.5)*160, ty = this.y + (rng()-0.5)*140;
+        spawnExplosion(tx, ty, 8, '#c84', '#da0');
+      }
+      if (rng() < 0.3) this.deployMines(2, 120);
+    } else if (phase.attack === 'trap_frenzy') {
+      // === TRAPPER P2: Dense minefield + homing mines ===
+      this.deployMines(5 + this.currentPhase * 2, 200);
+      // Homing mine — actually a slow bullet that acts like a mine
+      for (let i = 0; i < 3; i++) {
+        const a = this.phaseTimer * 0.04 + (i / 3) * Math.PI * 2;
+        const b = new Bullet(this.x + Math.cos(a)*30, this.y + Math.sin(a)*30, a, 0.8, '#f80', false, 1);
+        b.radius = 5; enemyBullets.push(b);
+      }
+      // Additional mine scatter
+      this.deployMines(3, 150);
     } else if (phase.attack === 'blade_dance') {
       // === ASH BLADE P2: 360° spin + 3 energy rings ===
       const total = phase.bulletCount + bonusBullets;
@@ -8530,6 +8559,31 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '陷阱师') {
+      // === TRAPPER — hexagon carrier with mine payload ===
+      ctx.fillStyle = '#3a2010'; ctx.strokeStyle = '#c84'; ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI/6 + i * Math.PI/3;
+        const px = Math.cos(a) * 22, py = Math.sin(a) * 16;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Mine payload on back
+      ctx.fillStyle = '#2a1808';
+      for (let m = 0; m < 4; m++) {
+        ctx.fillRect(-8 + m * 5, -18, 4, 8);
+        ctx.fillStyle = '#f80'; ctx.beginPath(); ctx.arc(-6 + m * 5, -16, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#2a1808';
+      }
+      // Deployment rails on rear
+      ctx.strokeStyle = 'rgba(200,140,80,0.4)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-20, 10); ctx.lineTo(20, 10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-16, 14); ctx.lineTo(16, 14); ctx.stroke();
+      drawTechCore(ctx, 0, 0, 4, '#ffe0c0', '#c84');
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 3, -2, 8, 4, '#3a2010', '#c84', '#fff');
+      ctx.restore();
     } else if (bname === '灰域剑圣') {
       // === ASH BLADE — asymmetrical mecha with energy katana ===
       ctx.fillStyle = '#200808';
