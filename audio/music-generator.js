@@ -244,25 +244,26 @@ class CyberSynth {
     }
 
     if (section === 1) {
-      // Organic drums — NOT rigid grid
-      if ([0,6,12,18,24,30,36,42,48,54,60,66].includes(sn)) this._kick(t, 0.12);
-      if ([6,22,38,54].includes(sn)) this._snare(t, 0.04);
-      if (sn % 3 === 0 && sn > 4) this._hat(t, 0.018);
-      if (sn >= 66 && sn % 2 === 0) { this._snare(t, 0.05); this._hat(t, 0.022); }
-      // Bass
-      const bB = [0,0,0,0,-2,-2,-2,-2, 0,-5,-2,-3, 3,-5,-2,0, 0,-5,3,0, -2,-5,0,-3, 0,0,-2,-2, 3,3,0,0];
-      if (sn % 3 === 0) this._bass(this._n(bB[(sn/3)%28], -2), t, bp*1.2, 0.11);
-      // Lead
-      if (sn % 4 === 0 || sn % 4 === 2) {
-        const melB = [0,3,5,7,10,7,5,3, 0,-2,0,3,5,7,10,12, 7,10,12,14,17,14,12,10, 7,5,3,0,-2,3,5,7, 0,3,5,7,10,7,5,3, 2,0,-2,-5,0,3,5,7, 10,12,14,17,14,12,10,7, 5,3,0,-2,3,5,7,10];
-        this._lead(this._n(melB[(sn/2)%36], 0), t, 0.5, 0.04);
+      // Minimal drums — only sparse kick + occasional snare
+      if (sn === 0 || sn === 24 || sn === 48) this._kick(t, 0.14);
+      if (sn === 12 || sn === 36 || sn === 60) this._kick(t, 0.10);
+      if (sn === 18 || sn === 42) this._snare(t, 0.04);
+      // No hats — they create the anxiety
+      // Bass — slow, deep, breathing
+      const bB = [0, -2, 3, -4, 0, -2, -5, 3];
+      if (sn % 9 === 0) this._bass(this._n(bB[(sn/9)%8], -2), t, bp*2, 0.12);
+      // Lead melody — sparse, emotional
+      if (sn % 12 === 0 || sn % 12 === 6) {
+        const melB = [0,3,5,7,10,7,5,3, 7,5,3,0,-2,3,5,7, 0,-2,0,3,5,3,2,0, 7,10,12,14,17,14,10,7];
+        this._lead(this._n(melB[(sn/6)%16], 0), t, 0.45, 0.038);
       }
-      // Arp
-      const arpB = [7,11,14,11,7,4,0,4, 5,10,12,10,5,2,-2,2, 7,11,14,11,7,4,0,4, 3,7,10,7,3,0,-2,-5];
-      if (sn % 2 === 0) this._arp(this._n(arpB[(sn/2)%32], 0), t+bp*0.1, 0.18, 0.018);
-      if (sn % 12 === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*3, 0.025);
-      if (sn % 12 === 6) this._chord([this._n(-2,-1),this._n(0,-1),this._n(5,-1)], t, bp*3, 0.022);
-      if (sn % 18 === 0) this._vox(this._n([0,7,10][(sn/18)%3], 0), t+bp*0.2, bp*8, 0.022);
+      // Soft bell accents instead of arp
+      if (sn % 16 === 0) this._bell(this._n([0,3,7,10][(sn/16)%4], 0), t+bp*0.2, 2, 0.025);
+      // Chords — wide, spaced
+      if (sn === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*12, 0.022);
+      if (sn === 36) this._chord([this._n(-2,-1),this._n(0,-1),this._n(5,-1)], t, bp*8, 0.02);
+      // Vox — floating
+      if (sn % 24 === 12) this._vox(this._n([0,7,10][(sn/24)%3], 0), t+bp*0.2, bp*10, 0.025);
       if (sn === 0) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*72, 0.025);
       return;
     }
@@ -284,36 +285,43 @@ class CyberSynth {
   }
   _combatChase(n) {
     const t = this.ctx.currentTime, bp = 60 / (this._bpm + 3);
-    if (n % 4 === 0) this._kick(t, 0.11);
-    if (n % 4 === 2) this._snare(t, 0.038);
-    if (n % 2 === 1) this._hat(t, 0.018);
-    if (n % 3 === 0) this._hat(t + bp * 0.5, 0.014);
-    const bassP = [0, -5, -2, -3, 3, -5, -2, 0, 0, -5, 3, 0, -2, -5, 0, -3, 0, -5, -2, -3, 3, -5, -2, 0, 0, -5, 3, 0, -2, -5, -2, 0];
-    this._bass(this._n(bassP[n % 32], -2), t, bp * 0.85, 0.11);
-    if (n % 3 === 0) {
-      const mel = [0, 5, 3, 7, 10, 7, 5, 3, 0, 3, 7, 10, 12, 10, 7, 5, 3, 7, 10, 14, 12, 10, 7, 3, 0, 5, 3, 0, -2, 0, 3, 5];
-      this._lead(this._n(mel[n % 32], 0), t, 0.5, 0.036);
+    // Minimal drums — no hats, sparse
+    if (n % 16 === 0) this._kick(t, 0.12);
+    if (n % 16 === 8) this._kick(t, 0.08);
+    if (n % 32 === 16) this._snare(t, 0.035);
+    // Slow bass pulse
+    const bassP = [0, -5, 3, -2, 0, -5, 3, 0];
+    if (n % 8 === 0) this._bass(this._n(bassP[(n/8)%8], -2), t, bp*3, 0.1);
+    // Sparse melody
+    if (n % 8 === 0) {
+      const mel = [0, 5, 3, 7, 0, 10, 7, 11, 0, 3, 7, 10, 12, 10, 7, 5, 3, 7, 10, 14, 0, 5, 3, 0];
+      this._lead(this._n(mel[(n/8)%24], 0), t, 0.45, 0.035);
     }
-    if (n % 2 === 0) this._bell(this._n([7, 10, 14, 10, 7, 3, 5, 7][(n / 2) % 8], 0), t + bp * 0.12, 0.35, 0.016);
-    if (n % 8 === 0) this._chord([this._n(0, -1), this._n(3, -1), this._n(7, -1)], t, bp * 1.8, 0.024);
-    if (n % 16 === 0) this._pad([this._n(-2, -1), this._n(0, -1), this._n(3, -1)], t, bp * 16, 0.02);
-    this._arp(this._n([14, 10, 7, 3, 12, 7, 3, 0][n % 8], 0), t + bp * 0.06, 0.18, 0.016);
+    if (n % 16 === 8) this._bell(this._n([0, 7, 10][(n/16)%3], 0), t+bp*0.3, 2, 0.022);
+    if (n % 32 === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*8, 0.022);
+    if (n % 64 === 0) this._pad([this._n(-2,-1),this._n(0,-1),this._n(3,-1)], t, bp*64, 0.02);
+    if (n % 16 === 0) this._vox(this._n([0,3,7][(n/16)%3], 0), t+bp*0.3, bp*8, 0.02);
   }
 
   _combatSiege(n) {
     const t = this.ctx.currentTime, bp = 60 / (this._bpm - 2);
-    if (n % 4 === 0) this._kick(t, 0.14);
-    if (n % 4 === 2) this._snare(t, 0.045);
-    if (n % 8 === 0) this._hat(t + bp * 0.5, 0.018);
-    const bassP = [0, -5, -7, -5, 3, -5, -2, 0, 0, -5, -2, -5, 3, 0, -2, -5, 0, -5, -7, -5, 3, -5, -2, 0, 0, -5, -2, -5, 3, 0, -5, -2];
-    this._bass(this._n(bassP[n % 32], -2), t, bp * 0.9, 0.13);
-    if (n % 2 === 0) {
-      const mel = [0, -5, 3, 0, 7, 3, 10, 7, 0, -5, 3, 7, 10, 7, 3, 0, -2, -7, 0, -2, 5, 0, 7, 3, 0, -5, -2, -7, 0, -5, 3, -2];
-      this._lead(this._n(mel[n % 32], 0), t, 0.45, 0.04);
+    // Heavy but sparse — stomping, not clicking
+    if (n % 12 === 0) this._kick(t, 0.15);
+    if (n % 24 === 12) this._snare(t, 0.05);
+    if (n % 48 === 36) this._snare(t, 0.06);
+    // Deep bass
+    const bassP = [0, -5, -7, 3, 0, -5, -2, 3];
+    if (n % 6 === 0) this._bass(this._n(bassP[(n/6)%8], -2), t, bp*1.5, 0.14);
+    // Heavy melody — slow
+    if (n % 8 === 0) {
+      const mel = [0, -5, 3, 7, 0, -5, 3, 10, 0, -7, 3, 0, -2, -5, 3, 7, 0, -5, -2, 3, 5, 0, 7, 10];
+      this._lead(this._n(mel[(n/8)%24], 0), t, 0.42, 0.04);
     }
-    this._arp(this._n([7, 11, 14, 17, 14, 11, 7, 4][n % 8], 0), t + bp * 0.07, 0.2, 0.02);
-    if (n % 8 === 0) this._chord([this._n(-5, -2), this._n(0, -1), this._n(3, -1)], t, bp * 2, 0.026);
-    if (n % 16 === 0) this._pad([this._n(-5, -1), this._n(0, -1), this._n(3, -1), this._n(7, -1)], t, bp * 16, 0.026);
+    // Bell accent
+    if (n % 16 === 0) this._bell(this._n([0, 3, 7][(n/16)%3], 0), t+bp*0.2, 2, 0.025);
+    if (n % 24 === 0) this._chord([this._n(-5,-2),this._n(0,-1),this._n(3,-1)], t, bp*4, 0.024);
+    if (n % 48 === 0) this._pad([this._n(-5,-1),this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*48, 0.026);
+    if (n % 24 === 0) this._vox(this._n([0,3,7][(n/24)%3], 0), t+bp*0.2, bp*10, 0.02);
   }
 
   // ============================================
