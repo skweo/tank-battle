@@ -10278,6 +10278,12 @@ function generateObstacles(countOverride) {
 }
 
 function drawObstacles(ctx) {
+  // Shadow under all obstacles for depth
+  for (const obs of obstacles) {
+    if (obs.passable) continue;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(obs.x + 3, obs.y + 3, obs.w, obs.h);
+  }
   for (const obs of obstacles) {
     if (obs.type === 'wall') {
       ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
@@ -10466,9 +10472,13 @@ function drawObstacles(ctx) {
       const t = Date.now()/1000;
       ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
       ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      // Pulsing glow — highly readable
+      const glow = Math.sin(t * 3 + obs.x * 0.02) * 0.3 + 0.7;
+      ctx.shadowColor = '#6af'; ctx.shadowBlur = 6 * glow;
       ctx.strokeStyle = 'rgba(100,170,255,'+(0.3+Math.sin(t*2+obs.x)*0.15)+')'; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(obs.x, obs.y+obs.h/2); ctx.lineTo(obs.x+obs.w, obs.y+obs.h/2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(obs.x+obs.w/2, obs.y); ctx.lineTo(obs.x+obs.w/2, obs.y+obs.h); ctx.stroke();
+      ctx.shadowBlur = 0;
     } else if (obs.type === 'brush') {
       ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
       ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
