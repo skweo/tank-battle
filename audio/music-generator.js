@@ -121,30 +121,30 @@ class CyberSynth {
   // ============================================
   _menuCrystal(n) {
     const t = this.ctx.currentTime, bp = 60 / 70;
-    // Layer 1: Wide evolving pad
-    if (n % 32 === 0) {
-      const r = [0, -2, -4, 2][(n / 32) % 4];
-      this._pad([this._n(r, -1), this._n(r + 2, -1), this._n(r + 4, -1), this._n(r + 6, -1), this._n(r, 0)], t, bp * 32, 0.045);
+    const section = Math.floor(n / 48) % 2; // A/B sections, 48 beats each = 96 beat cycle
+    const sn = n % 48;
+    // Pad — changes per section
+    if (sn === 0) {
+      const chordRoot = section === 0 ? 0 : -4;
+      this._pad([this._n(chordRoot,-1),this._n(chordRoot+2,-1),this._n(chordRoot+4,-1),this._n(chordRoot+6,-1),this._n(chordRoot,0)], t, bp*48, 0.045);
     }
-    // Layer 2: Warm sub pad
-    if (n % 16 === 0) {
-      const r = [0, -2, -4, 2][(n / 16) % 4];
-      this._pad([this._n(r, -2), this._n(r + 3, -2), this._n(r + 5, -2)], t + bp * 0.4, bp * 16, 0.032);
+    // Sub pad
+    if (sn % 24 === 0) {
+      const r = section === 0 ? [0,-2,-4,2][(sn/24)%2] : [-4,-2,0,3][(sn/24)%2];
+      this._pad([this._n(r,-2),this._n(r+3,-2),this._n(r+5,-2)], t+bp*0.5, bp*24, 0.03);
     }
-    // Layer 3: Bell melody — every 3 beats
-    if (n % 3 === 0) {
-      const mel = [0, 2, 4, 5, 7, 5, 4, 2, 0, -2, 0, 2, 4, 2, 0, -2, -1, 0, 2, 4, 5, 4, 2, 0];
-      this._bell(this._n(mel[n % 24], 0), t, 1.8, 0.045);
+    // Bell melody — 48-beat phrase with 2 variations
+    const mel = section === 0
+      ? [0,2,4,5,7,5,4,2, 0,-2,0,2,4,2,0,-2, -1,0,2,4,5,4,2,0, 0,2,4,5,7,5,4,2, 3,5,7,10,12,10,7,5, 3,2,0,-2,0,2,3,5]
+      : [3,2,0,-2,-4,-2,0,2, 3,5,3,2,0,2,3,5, 0,2,4,5,7,5,4,2, -1,0,2,4,5,4,2,0, -2,0,2,3,5,3,2,0, -1,0,2,4,5,4,2,0];
+    if (sn % 3 === 0) this._bell(this._n(mel[sn%48], 0), t, 1.8, 0.04);
+    // Sparkle
+    if (sn % 8 === 1) {
+      const sp = section === 0 ? [7,11,14,11,12,14,11,7] : [5,10,12,10,7,12,10,5];
+      this._arp(this._n(sp[sn%8], 0), t+bp*0.2, 0.6, 0.015);
     }
-    // Layer 4: High sparkle
-    if (n % 6 === 1) {
-      const sp = [7, 11, 14, 11, 12, 14, 11, 7];
-      this._arp(this._n(sp[n % 8], 0), t + bp * 0.2, 0.65, 0.016);
-    }
-    // Layer 5: Subtle bass pulse
-    if (n % 24 === 0) this._osc('sine', this._n(0, -2), t, 3.5, 0.025, 0, false);
-    // Chord stab for depth
-    if (n % 16 === 8) this._chord([this._n(0, -1), this._n(2, -1), this._n(5, -1)], t + bp * 0.3, bp * 4, 0.018);
+    if (sn % 48 === 0) this._osc('sine', this._n(0, -2), t, 3.5, 0.022, 0, false);
+    if (sn % 24 === 12) this._chord([this._n(0,-1),this._n(2,-1),this._n(5,-1)], t+bp*0.3, bp*4, 0.016);
   }
 
   _menuVoid(n) {
@@ -185,27 +185,39 @@ class CyberSynth {
   // ============================================
   _combatPulse(n) {
     const t = this.ctx.currentTime, bp = 60 / this._bpm;
-    // Drums
-    if (n % 4 === 0) this._kick(t, 0.12);
-    if (n % 4 === 2) this._snare(t, 0.04);
-    if (n % 2 === 1) this._hat(t, 0.02);
-    if (n % 8 === 0) this._hat(t + bp * 0.5, 0.015);
-    // Bass — groovy
-    const bassP = [0, 0, 0, 0, -2, -2, 0, -2, 3, 3, 0, 3, -4, -4, -2, 0, 0, 0, -2, 0, 3, 3, 0, -2, -4, 0, -2, 0, -5, -2, 0, 3];
-    if (n % 2 === 0) this._bass(this._n(bassP[n % 32], -2), t, bp * 1.4, 0.1);
-    // Lead melody — 32-beat phrase
-    if (n % 2 === 0) {
-      const mel = [0, 2, 3, 5, 7, 5, 3, 2, 0, 3, 5, 7, 10, 7, 5, 3, 0, -1, -2, 0, 2, 3, 5, 3, 2, 0, -1, 0, 3, 2, 0, -2];
-      this._lead(this._n(mel[n % 32], 0), t, 0.55, 0.035);
+    // Song structure: A(0-63) B(64-127) C(128-167) repeat
+    const section = Math.floor(n / 64) % 3; // 0=A, 1=B, 2=C
+    const sn = n % 64; // beat within section
+    // === DRUMS (vary by section) ===
+    if (sn % 4 === 0) this._kick(t, section > 0 ? 0.14 : 0.10);
+    if (sn % 4 === 2) this._snare(t, section > 0 ? 0.045 : 0.035);
+    if (sn % 2 === 1) this._hat(t, section > 0 ? 0.022 : 0.016);
+    if (section > 0 && sn % 8 === 0) this._hat(t + bp * 0.5, 0.014);
+    // === BASS (different per section) ===
+    const bassA = [0,0,0,0,-2,-2,0,-2,3,3,0,3,-4,-4,-2,0, 0,0,-2,0,3,3,0,-2,-4,0,-2,0,-5,-2,0,3];
+    const bassB = [0,-5,-2,-3,3,-5,-2,0, 0,-5,3,0,-2,-5,0,-3, 0,-5,-2,0,3,-5,-2,0, 0,0,3,3,-2,-2,-5,0];
+    const bassC = [-2,-2,-4,-4,0,0,-5,-5, 3,3,0,0,-2,-2,-5,-5, 0,0,-2,-2,3,3,0,0, -2,-2,-5,-5,0,0,3,3];
+    const bassLine = section === 0 ? bassA : section === 1 ? bassB : bassC;
+    if (sn % 2 === 0) this._bass(this._n(bassLine[sn % 32], -2), t, bp * 1.4, 0.1);
+    // === LEAD MELODY ===
+    const melA = [0,2,3,5,7,5,3,2, 0,3,5,7,10,7,5,3, 0,-1,-2,0,2,3,5,3, 2,0,-1,0,3,2,0,-2, 0,2,3,5,7,5,3,2, 0,3,5,7,10,7,5,3, 2,0,-1,-2,0,2,3,5, 7,5,3,2,0,-1,0,2];
+    const melB = [7,10,12,14,12,10,7,5, 3,7,10,12,14,12,10,7, 5,3,0,5,7,10,12,14, 10,7,5,3,0,-2,3,5, 7,10,12,14,12,10,7,5, 3,7,10,12,14,12,10,7, 5,7,10,14,17,14,10,7, 5,3,0,-2,-5,0,3,7];
+    const melC = [3,2,0,2,3,0,-2,0, 3,5,3,2,0,2,3,5, 0,-2,-5,-2,0,3,0,-2, -5,-2,0,2,3,0,-2,-5, 3,2,0,2,3,0,-2,0, 3,5,7,5,3,2,0,-2, 0,3,5,7,10,7,5,3, 0,-2,0,2,3,0,-2,0];
+    const melody = section === 0 ? melA : section === 1 ? melB : melC;
+    if (sn % 2 === 0) this._lead(this._n(melody[sn % 64], 0), t, 0.55, 0.035);
+    // === ARP ===
+    const arpA = [7,11,14,11,7,4,7,4, 5,10,12,10,5,2,3,2, 7,11,14,11,7,4,3,4, 5,10,12,10,5,2,0,2];
+    const arpB = [14,11,7,4,0,4,7,11, 17,14,10,7,3,7,10,14, 12,10,5,2,-2,2,5,10, 14,11,7,4,0,4,7,11];
+    const arp = section !== 2 ? (section === 0 ? arpA : arpB) : arpA;
+    this._arp(this._n(arp[sn % 32], 0), t + bp * 0.1, 0.22, 0.018);
+    // === CHORDS ===
+    if (sn % 8 === 0) this._chord([this._n(0,-1),this._n(2,-1),this._n(4,-1)], t, bp*2.5, section>0?0.025:0.018);
+    if (section > 0 && sn % 8 === 4) this._chord([this._n(-2,-1),this._n(0,-1),this._n(3,-1)], t, bp*2.5, 0.022);
+    // === PAD ===
+    if (sn % 32 === 0) {
+      const cp = section === 0 ? [0,2,4,6] : section === 1 ? [0,3,5,7] : [-2,0,2,4];
+      this._pad(cp.map(c => this._n(c, -1)), t, bp * 32, 0.022);
     }
-    // Arp counterpoint
-    const arp = [7, 11, 14, 11, 7, 4, 7, 4, 5, 10, 12, 10, 5, 2, 3, 2, 7, 11, 14, 11, 7, 4, 3, 4, 5, 10, 12, 10, 5, 2, 0, 2];
-    this._arp(this._n(arp[n % 32], 0), t + bp * 0.1, 0.22, 0.018);
-    // Chord stabs
-    if (n % 8 === 0) this._chord([this._n(0, -1), this._n(2, -1), this._n(4, -1)], t, bp * 2.5, 0.022);
-    if (n % 8 === 4) this._chord([this._n(-2, -1), this._n(0, -1), this._n(3, -1)], t, bp * 2.5, 0.02);
-    // Pad
-    if (n % 16 === 0) this._pad([this._n(0, -1), this._n(2, -1), this._n(4, -1), this._n(6, -1)], t, bp * 16, 0.022);
   }
 
   _combatChase(n) {
