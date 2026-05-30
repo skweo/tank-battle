@@ -1596,12 +1596,19 @@ function renderDifficultyButtons() {
     gpStatus.style.cssText = 'display:block;margin-top:2px;font:10px "Courier New";color:#888;';
     dualBtn.parentNode.insertBefore(gpStatus, dualBtn.nextSibling);
   }
-  // Poll gamepad for status display
-  let gpName = '';
-  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-  for (const gp of gamepads) {
-    if (gp && gp.connected) { gpName = gp.id; break; }
+  // Poll gamepad for status display (throttled to every 3s to avoid BT lag)
+  const now = Date.now();
+  if (!dualBtn._lastGpPoll || now - dualBtn._lastGpPoll > 3000) {
+    dualBtn._lastGpPoll = now;
+    dualBtn._cachedGpName = '';
+    try {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      for (const gp of gamepads) {
+        if (gp && gp.connected) { dualBtn._cachedGpName = gp.id; break; }
+      }
+    } catch(e) { /* ignore gamepad API errors */ }
   }
+  const gpName = dualBtn._cachedGpName || '';
   const gpStatus = document.getElementById('gamepad-status');
   if (gpStatus) {
     gpStatus.textContent = gpName ? '\u{1F3AE} 已连接: ' + gpName.substring(0, 40) : '未检测到手柄';
@@ -1713,12 +1720,18 @@ let dualSelectingFor = 'p1'; // 'p1' or 'p2' — which player is currently choos
 function toggleDualMode() {
   if (!dualModePending) {
     // Check for gamepad before entering dual mode
-    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-    let hasGamepad = false;
-    for (const gp of gamepads) { if (gp && gp.connected) { hasGamepad = true; break; } }
-    if (!hasGamepad) {
+    try {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      let hasGamepad = false;
+      for (const gp of gamepads) { if (gp && gp.connected) { hasGamepad = true; break; } }
+      if (!hasGamepad) {
+        const info = document.getElementById('diff-info');
+        if (info) { info.textContent = '⚠ 未检测到手柄！蓝牙手柄请摇一下唤醒，再点一次按钮。'; info.style.color = '#f84'; }
+        return;
+      }
+    } catch(e) {
       const info = document.getElementById('diff-info');
-      if (info) { info.textContent = '⚠ 未检测到手柄！蓝牙手柄请摇一下唤醒，再点一次按钮。'; info.style.color = '#f84'; }
+      if (info) { info.textContent = '⚠ 手柄检测异常，请重试。'; info.style.color = '#f84'; }
       return;
     }
   }
