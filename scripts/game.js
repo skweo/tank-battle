@@ -1734,7 +1734,9 @@ function startTankSelectGamepadPolling() {
     style.textContent = '.tank-card.gp-focus { outline:3px solid #f80 !important; outline-offset:2px; transform:scale(1.04); z-index:5; }';
     document.head.appendChild(style);
   }
-  let prevA = false, prevLeft = false, prevRight = false, prevLB = false, prevRB = false;
+  let prevA = false, prevLeft = false, prevRight = false, prevUp = false, prevDown = false;
+  let prevLB = false, prevRB = false, prevConfirm = false;
+  const CARDS_PER_ROW = 5;
   dualTankSelectGpPoll = setInterval(() => {
     const screen = document.getElementById('tank-select-screen');
     if (!screen || screen.style.display === 'none') { clearInterval(dualTankSelectGpPoll); return; }
@@ -1742,47 +1744,58 @@ function startTankSelectGamepadPolling() {
     let gp = null;
     for (const g of gamepads) { if (g && g.connected) { gp = g; break; } }
     if (!gp) return;
-    const a = gp.buttons[0] && gp.buttons[0].pressed;
-    const left = gp.axes[0] < -0.5 || (gp.buttons[14] && gp.buttons[14].pressed);
-    const right = gp.axes[0] > 0.5 || (gp.buttons[15] && gp.buttons[15].pressed);
-    const lb = gp.buttons[4] && gp.buttons[4].pressed;
-    const rb = gp.buttons[5] && gp.buttons[5].pressed;
-    const start = gp.buttons[9] && gp.buttons[9].pressed;
+
+    // Detect buttons: support Xbox, PS, and UCOM mappings
+    const btnPressed = (idx) => gp.buttons[idx] && gp.buttons[idx].pressed;
+    const a = btnPressed(0) || btnPressed(1); // A (Xbox) or B / Cross (PS)
+    const left = gp.axes[0] < -0.5 || btnPressed(14);
+    const right = gp.axes[0] > 0.5 || btnPressed(15);
+    const up = gp.axes[1] < -0.5 || btnPressed(12);
+    const down = gp.axes[1] > 0.5 || btnPressed(13);
+    const lb = btnPressed(4); const rb = btnPressed(5);
+    // Confirm: Start(9), A(0), X(2), Y(3), B(1)
+    const confirm = btnPressed(9) || btnPressed(0) || btnPressed(2) || btnPressed(3);
 
     // LB/RB: switch active player
     if (lb && !prevLB) switchSelectingPlayer('p1');
     if (rb && !prevRB) switchSelectingPlayer('p2');
 
-    // D-pad: highlight next/prev card
-    if ((right && !prevRight) || (left && !prevLeft)) {
+    // Navigate cards (grid: 5 per row)
+    const nav = (right && !prevRight) || (left && !prevLeft) || (up && !prevUp) || (down && !prevDown);
+    if (nav) {
       const cards = screen.querySelectorAll('.tank-card:not(.locked-card)');
+      const total = cards.length;
       let focused = screen.querySelector('.tank-card.gp-focus');
-      let idx = focused ? Array.from(cards).indexOf(focused) : -1;
+      let idx = focused ? Array.from(cards).indexOf(focused) : 0;
       if (focused) focused.classList.remove('gp-focus');
-      if (right) idx = (idx + 1) % cards.length;
-      else if (left) idx = (idx - 1 + cards.length) % cards.length;
-      else idx = 0;
+      if (right) idx = Math.min(total - 1, idx + 1);
+      else if (left) idx = Math.max(0, idx - 1);
+      else if (up) idx = Math.max(0, idx - CARDS_PER_ROW);
+      else if (down) idx = Math.min(total - 1, idx + CARDS_PER_ROW);
+      if (idx < 0 || idx >= total) idx = focused ? Array.from(cards).indexOf(focused) : 0;
       if (cards[idx]) {
         cards[idx].classList.add('gp-focus');
         cards[idx].scrollIntoView({behavior:'smooth', block:'nearest'});
       }
     }
 
-    // A button: select focused card
-    if (a && !prevA) {
-      const focused = screen.querySelector('.tank-card.gp-focus');
-      if (focused) {
-        const key = Array.from(focused.classList).find(c => c !== 'tank-card' && c !== 'gp-focus' && c !== 'p1-locked');
-        if (key) selectTankForDual(key);
+    // A/Confirm button: select or start
+    if (confirm && !prevConfirm) {
+      const bothReady = dualP1Tank && dualP2Tank && dualP1Tank !== dualP2Tank;
+      if (bothReady) {
+        startGame(currentDifficulty, dualP1Tank, {mode:selectedRunMode, dual:true, p2tank:dualP2Tank});
+      } else {
+        const focused = screen.querySelector('.tank-card.gp-focus');
+        if (focused) {
+          const cls = Array.from(focused.classList).filter(c => c !== 'tank-card' && c !== 'gp-focus' && c !== 'p1-locked');
+          const key = cls[0];
+          if (key) selectTankForDual(key);
+        }
       }
     }
 
-    // Start button: confirm
-    if (start && dualP1Tank && dualP2Tank && dualP1Tank !== dualP2Tank) {
-      startGame(currentDifficulty, dualP1Tank, {mode:selectedRunMode, dual:true, p2tank:dualP2Tank});
-    }
-
-    prevA = a; prevLeft = left; prevRight = right; prevLB = lb; prevRB = rb;
+    prevA = a; prevLeft = left; prevRight = right; prevUp = up; prevDown = down;
+    prevLB = lb; prevRB = rb; prevConfirm = confirm;
   }, 120);
 }
 function toggleDualMode() {
