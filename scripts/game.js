@@ -1718,12 +1718,16 @@ function showTankSelect(difficulty, forPlayer2) {
     const unlocked = unlockedTanks.has(key);
     if (unlocked) {
       const cadence = '弹匣 ' + t.magSize + ' / 装填 ' + (t.reloadTime / 60).toFixed(1) + 's / 冷却 ' + t.shootDelay;
+      const isP1Taken = dualModePending && dualP1Tank && dualP1Tank === key;
       const clickHandler = dualModePending && !dualP1Tank
         ? `dualP1Tank='${key}';showTankSelect(currentDifficulty, true)`
-        : dualModePending
-          ? `startGame(currentDifficulty, dualP1Tank, {mode:selectedRunMode, dual:true, p2tank:'${key}'})`
-          : `startGame(currentDifficulty, '${key}', {mode:selectedRunMode})`;
-      return `<div class="tank-card ${key}" onclick="${clickHandler}">
+        : dualModePending && isP1Taken
+          ? ''
+          : dualModePending
+            ? `startGame(currentDifficulty, dualP1Tank, {mode:selectedRunMode, dual:true, p2tank:'${key}'})`
+            : `startGame(currentDifficulty, '${key}', {mode:selectedRunMode})`;
+      const extraClass = isP1Taken ? 'p1-locked' : '';
+      return `<div class="tank-card ${key} ${extraClass}" onclick="${clickHandler}" style="${isP1Taken ? 'opacity:0.35;pointer-events:none;' : ''}">
         <span class="tank-icon">${tankIcons[i]}</span>
         <div class="tank-name">${t.name}</div>
         <div class="tank-subtitle">${tankNamesExtra[i]}</div>
