@@ -197,18 +197,26 @@ class CyberSynth {
   }
 
   _menuVoid(n) {
-    const t = this.ctx.currentTime, bp = 60 / 70;
-    if (n % 24 === 0) {
-      this._pad([this._n(-4, -1), this._n(0, -1), this._n(3, -1), this._n(7, -1)], t, bp * 24, 0.05);
+    const t = this.ctx.currentTime, bp = 60 / 65; // Slower, more spacious
+    // Deep cathedral pad — ever-present, hollow
+    if (n % 32 === 0) {
+      this._pad([this._n(-4,-2),this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*32, 0.06);
     }
-    if (n % 12 === 0) this._pad([this._n(-2, -2), this._n(0, -2), this._n(5, -2)], t + bp * 0.5, bp * 12, 0.028);
-    if (n % 4 === 0) {
-      const mel = [-2, 0, 3, 5, 3, 0, -2, -3, -4, -2, 0, 3, 5, 3, 0, -2];
-      this._lead(this._n(mel[(n / 4) % 16], 0), t, 2.2, 0.028);
+    if (n % 16 === 0) this._pad([this._n(-7,-2),this._n(-2,-1),this._n(0,-1)], t+bp*0.6, bp*16, 0.03);
+    // Cello-like strings — slow, mournful melody
+    if (n % 8 === 0) {
+      const celloMel = [-4,-2,0,3, 0,-2,-4,-7, -2,0,3,7, 3,0,-2,-4, -7,-4,-2,0, 3,7,10,7, 3,0,-2,-4, -7,-4,0,3];
+      this._string(this._n(celloMel[(n/8)%32], -1), t, bp*7, 0.04);
     }
-    if (n % 8 === 0) this._bell(this._n([0, 3, 7, 3][(n / 8) % 4], 0), t + bp * 0.25, 2.2, 0.03);
-    if (n % 3 === 0) this._arp(this._n([7, 10, 14, 10, 12, 14, 10, 7][n % 8], 0), t + bp * 0.35, 0.5, 0.014);
-    if (n % 16 === 0) this._osc('sine', this._n(-4, -2), t, 3.5, 0.03, 0, false);
+    // Bell — distant, resonant (keep the "hollow" feel)
+    if (n % 12 === 0) this._bell(this._n([0,3,7,10,7,3][(n/12)%6], 0), t+bp*0.3, 3, 0.035);
+    // Second string layer — higher, ethereal
+    if (n % 24 === 12) {
+      this._string(this._n([3,7,10,14][(n/24)%4], 0), t, bp*10, 0.025);
+    }
+    // Deep bass — felt, not heard
+    if (n % 32 === 0) this._bass(this._n(-4, -2), t, bp*6, 0.05);
+    if (n % 32 === 16) this._bass(this._n(0, -2), t, bp*5, 0.04);
   }
 
   _menuEcho(n) {
