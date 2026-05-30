@@ -1581,6 +1581,18 @@ function renderDifficultyButtons() {
     const activeBtn = modeSwitch.querySelector(selectedRunMode === 'endless' ? '.run-mode-btn:nth-child(2)' : '.run-mode-btn:nth-child(1)');
     if (activeBtn) activeBtn.classList.add('active');
   }
+  // Ensure dual mode button exists on start screen
+  let dualBtn = document.getElementById('dual-mode-btn');
+  if (!dualBtn) {
+    dualBtn = document.createElement('button');
+    dualBtn.id = 'dual-mode-btn';
+    dualBtn.style.cssText = 'margin-top:8px;padding:8px 24px;font:14px "Courier New";' +
+      'background:#1a1a2a;color:#8cf;border:1px solid #8cf;border-radius:4px;cursor:pointer;';
+    dualBtn.onclick = toggleDualMode;
+    document.getElementById('start-screen').appendChild(dualBtn);
+  }
+  dualBtn.textContent = dualModePending ? '[ON]  双人模式 (手柄P2)' : '[OFF]  单人模式';
+
   const classes = ['easy','normal','hard','extreme','nightmare'];
   container.innerHTML = DIFFICULTY_ORDER.map((key, idx) => {
     const diff = difficultySettings[key];
@@ -1678,8 +1690,15 @@ function renderCodeIcon(code, title, tankType) {
   return `<span class="ui-code-icon" title="${escapeHtml(title || code)}">${getTankSelectIcon(type)}</span>`;
 }
 
+let dualModePending = false;
+function toggleDualMode() {
+  dualModePending = !dualModePending;
+  const btn = document.getElementById('dual-mode-btn');
+  if (btn) btn.classList.toggle('dual-active', dualModePending);
+}
 function showTankSelect(difficulty) {
   currentDifficulty = difficulty;
+  document.getElementById('tank-select-screen').querySelector('h2').textContent = dualModePending ? '选择机体 (双人模式)' : '选择机体';
   const container = document.querySelector('#tank-select-screen .tank-cards');
   const tankKeys = ['spread','focus','wide','burst','sniper','homing','border','blade','scarlet','astral'];
   const tankNamesExtra = ['博丽灵梦式','雾雨魔理沙式','十六夜咲夜式','芙兰朵露式','八意永琳式','东风谷早苗式','境界结社式','魂魄妖梦式','斯卡雷特式','帕秋莉式'];
@@ -1691,7 +1710,7 @@ function showTankSelect(difficulty) {
     const unlocked = unlockedTanks.has(key);
     if (unlocked) {
       const cadence = '弹匣 ' + t.magSize + ' / 装填 ' + (t.reloadTime / 60).toFixed(1) + 's / 冷却 ' + t.shootDelay;
-      return `<div class="tank-card ${key}" onclick="startGame(currentDifficulty, '${key}', {mode:selectedRunMode})">
+      return `<div class="tank-card ${key}" onclick="startGame(currentDifficulty, '${key}', {mode:selectedRunMode, dual:dualModePending})">
         <span class="tank-icon">${tankIcons[i]}</span>
         <div class="tank-name">${t.name}</div>
         <div class="tank-subtitle">${tankNamesExtra[i]}</div>
@@ -2643,6 +2662,9 @@ function showWaveNotification(text, sub) {
   if (text.includes('清除')) sfxWaveClear();
 }
 
+function getDualModeEnemyMul() {
+  return isDualMode ? 1.5 : 1.0;
+}
 function getWaveEnemyBudget(waveNo) {
   const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
   const base = Math.min(9, 2 + Math.floor(waveNo * 0.34) + Math.floor(waveNo * waveNo / 150));
@@ -5007,7 +5029,7 @@ class Tank {
 }
 
 class PlayerTank extends Tank {
-  constructor(tankType) {
+  constructor(tankType, inputSource) {
     const type = getPlayerTankDefinition(tankType || 'spread');
     const baseHp = difficultySettings[currentDifficulty].playerHp;
     super(W/2, H - 70, type.color, type.turret, type.speed, Math.max(3, baseHp + type.hpBonus));
@@ -5023,6 +5045,8 @@ class PlayerTank extends Tank {
     this.partialReloading = false;
     this.visualScale = type.visualScale || 1;
     this.hitboxSize = type.hitboxSize || 36;
+    this.inputSource = inputSource || 'kbm';
+    this._gpAimAngle = 0;
   }
   update() {
     if (!this.alive) return;
@@ -5046,14 +5070,22 @@ class PlayerTank extends Tank {
     }
 
     let dx = 0, dy = 0;
-    if (keys['w'] || keys['arrowup']) dy = -1;
-    if (keys['s'] || keys['arrowdown']) dy = 1;
-    if (keys['a'] || keys['arrowleft']) dx = -1;
-    if (keys['d'] || keys['arrowright']) dx = 1;
-
-    if (dx !== 0 && dy !== 0) {
-      dx *= 0.707;
-      dy *= 0.707;
+    if (this.inputSource === 'gamepad') {
+      // Gamepad left stick movement
+      dx = gamepadState.leftX;
+      dy = gamepadState.leftY;
+      const mag = Math.sqrt(dx*dx + dy*dy);
+      if (mag > 1) { dx /= mag; dy /= mag; }
+    } else {
+      // Keyboard movement
+      if (keys['w'] || keys['arrowup']) dy = -1;
+      if (keys['s'] || keys['arrowdown']) dy = 1;
+      if (keys['a'] || keys['arrowleft']) dx = -1;
+      if (keys['d'] || keys['arrowright']) dx = 1;
+      if (dx !== 0 && dy !== 0) {
+        dx *= 0.707;
+        dy *= 0.707;
+      }
     }
 
     // Check terrain slow
@@ -5073,17 +5105,39 @@ class PlayerTank extends Tank {
     if (newX > margin && newX < W - margin && !tankCollidesObstacle(newX, this.y, hb, hb)) this.x = newX;
     if (newY > margin && newY < H - margin && !tankCollidesObstacle(this.x, newY, hb, hb)) this.y = newY;
 
-    // Turret aims at mouse with rotation speed
-    const targetAngle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+    // Turret aiming
+    let targetAngle;
+    if (this.inputSource === 'gamepad') {
+      // Right stick aim or auto-aim nearest enemy
+      const rMag = Math.sqrt(gamepadState.rightX*gamepadState.rightX + gamepadState.rightY*gamepadState.rightY);
+      if (rMag > 0.15) {
+        targetAngle = Math.atan2(gamepadState.rightY, gamepadState.rightX);
+      } else {
+        // Auto-aim nearest enemy
+        let nearest = null, nearestDist = 300;
+        for (const enemy of enemies) {
+          if (!enemy.alive) continue;
+          const edx = enemy.x - this.x, edy = enemy.y - this.y;
+          const ed = Math.sqrt(edx*edx + edy*edy);
+          if (ed < nearestDist) { nearestDist = ed; nearest = enemy; }
+        }
+        if (nearest) targetAngle = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+        else targetAngle = this.turretAngle;
+      }
+    } else {
+      targetAngle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+    }
     const pSpeed = TURRET_SPEED_PLAYER[this.tankType] || 0.12;
     this.turretAngle = rotateTurretToward(this.turretAngle, targetAngle, pSpeed);
 
-    if (!wantsToShoot && this.ammo < this.magSize && this.reloadTimer <= 0) {
+    // Shooting
+    const wantsToShoot2 = this.inputSource === 'gamepad' ? gamepadState.shoot : wantsToShoot;
+    if (!wantsToShoot2 && this.ammo < this.magSize && this.reloadTimer <= 0) {
       this.startReload(true);
     }
 
     // Shoot
-    if (wantsToShoot && this.shootCooldown <= 0 && this.reloadTimer <= 0) {
+    if (wantsToShoot2 && this.shootCooldown <= 0 && this.reloadTimer <= 0) {
       this.shoot();
       this.shootCooldown = getEffectiveShootDelay();
     }
@@ -7245,7 +7299,7 @@ class BossEnemy extends EliteEnemy {
     const diff = difficultySettings[currentDifficulty];
     const diffIdx = Math.max(0, DIFFICULTY_ORDER.indexOf(currentDifficulty));
     const scaling = 1 + Math.max(0, wave - 4) * 0.045 + Math.max(0, level - 1) * 0.035 + diffIdx * 0.08;
-    const hp = Math.floor((bossDef.hp + level * 10 + diff.enemyHpBonus * 18 + Math.floor(wave * 3.2)) * scaling * (diff.bossHpMul || 1) * getBossDuelHpMultiplier(wave));
+    const hp = Math.floor((bossDef.hp + level * 10 + diff.enemyHpBonus * 18 + Math.floor(wave * 3.2)) * scaling * (diff.bossHpMul || 1) * getBossDuelHpMultiplier(wave) * getDualModeEnemyMul());
     super(x, y, {name:bossDef.name, color:bossDef.color, turret:bossDef.turret, speed:bossDef.speed, hp:Math.max(140,hp), special:'boss', icon:bossDef.icon});
     this.bossDef = bossDef;
     this.maxHp = this.hp;
@@ -11373,6 +11427,12 @@ function hideLeaderboard() {
 
 // --- Game objects ---
 let player;
+let player2 = null;
+let isDualMode = false;
+let dualSharedLives = 0;
+let gamepadState = { leftX:0, leftY:0, rightX:0, rightY:0, shoot:false, connected:false };
+let dualReviveCooldown = 0;
+let p1DeadTimer = 0, p2DeadTimer = 0;
 let enemies = [];
 let playerBullets = [];
 let enemyBullets = [];
@@ -12265,9 +12325,31 @@ function drawGround(ctx) {
 }
 
 // --- Game Loop ---
+function updateGamepadInput() {
+  if (!isDualMode) return;
+  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+  let found = false;
+  for (const gp of gamepads) {
+    if (gp && gp.connected) {
+      // Apply deadzone
+      const dz = (v) => Math.abs(v) < 0.12 ? 0 : v;
+      gamepadState.connected = true;
+      gamepadState.leftX = dz(gp.axes[0] || 0);
+      gamepadState.leftY = dz(gp.axes[1] || 0);
+      gamepadState.rightX = dz(gp.axes[2] || 0);
+      gamepadState.rightY = dz(gp.axes[3] || 0);
+      gamepadState.shoot = (gp.buttons[7] && gp.buttons[7].value > 0.2) || (gp.buttons[0] && gp.buttons[0].pressed);
+      found = true;
+      break;
+    }
+  }
+  if (!found) gamepadState.connected = false;
+}
+
 function update() {
   if (!gameRunning) return;
   runFrameCount++;
+  if (isDualMode) updateGamepadInput();
   updateRunReportPeaks();
 
   // Boss warning countdown
@@ -12331,18 +12413,45 @@ function update() {
 
   // Update player
   player.update();
+  if (isDualMode && player2) {
+    player2.update();
+    // Spawn P2 bullets as player bullets so they damage enemies
+    // (PlayerTank.shoot already handles this via playerBullets array)
+  }
   if (!player.alive && !gameOverFlag) {
     lives--;
-    if (lives <= 0) {
+    if (lives <= 0 && (!isDualMode || !player2 || !player2.alive)) {
       endGame();
       return;
     }
-    // Respawn
-    player = new PlayerTank(currentTankType);
-    applyTankUpgrades(currentTankType);
-    positionPlayerSafely(220);
-    player.hp = player.maxHp;
-    player.invincible = 120;
+    // Respawn P1
+    if (isDualMode && dualReviveCooldown > 0) {
+      p1DeadTimer = dualReviveCooldown;
+    } else {
+      player = new PlayerTank(currentTankType, 'kbm');
+      if (isDualMode && player2 && player2.alive) {
+        player.x = player2.x + (rng()-0.5)*60; player.y = player2.y + (rng()-0.5)*40;
+      }
+      player.hp = player.maxHp;
+      player.invincible = 120;
+    }
+  }
+  // P2 death handling
+  if (isDualMode && player2 && !player2.alive && !gameOverFlag) {
+    if (dualReviveCooldown > 0) {
+      p2DeadTimer = dualReviveCooldown;
+    } else {
+      lives--;
+      if (lives <= 0 && !player.alive) { endGame(); return; }
+      player2 = new PlayerTank(currentTankType, 'gamepad');
+      player2.turretColor = '#ff8800';
+      player2.color = '#331100';
+      if (player.alive) {
+        player2.x = player.x + (rng()-0.5)*60; player2.y = player.y + (rng()-0.5)*40;
+      }
+      player2.hp = player2.maxHp;
+      player2.invincible = 120;
+    }
   }
 
   // Update enemies
@@ -12355,7 +12464,9 @@ function update() {
   // Collisions
   checkBulletBulletCollisions();
   checkBulletTankCollisions(playerBullets, enemies, true);
-  checkBulletTankCollisions(enemyBullets, [player], false);
+  const playerTargets = [player];
+  if (isDualMode && player2) playerTargets.push(player2);
+  checkBulletTankCollisions(enemyBullets, playerTargets, false);
 
   // Cleanup
   playerBullets = playerBullets.filter(b => b.alive);
@@ -12495,6 +12606,24 @@ function update() {
   document.getElementById('score').textContent = score;
   document.getElementById('lives').textContent = lives;
   document.getElementById('level').textContent = level;
+  // P2 UI in dual mode
+  if (isDualMode && player2) {
+    let p2ui = document.getElementById('p2-ui');
+    if (!p2ui) {
+      p2ui = document.createElement('div');
+      p2ui.id = 'p2-ui';
+      p2ui.style.cssText = 'position:absolute;top:4px;left:4px;z-index:10;' +
+        'background:rgba(0,0,0,0.6);color:#f80;padding:4px 10px;' +
+        'font:bold 13px "Courier New",monospace;border:1px solid #f80;border-radius:4px;';
+      document.getElementById('game-container').appendChild(p2ui);
+    }
+    const p2hp = player2.alive ? Math.max(0, player2.hp) : 0;
+    p2ui.textContent = 'P2  HP:' + p2hp + '/' + player2.maxHp + '  \u{1F3AE}';
+    p2ui.style.display = 'block';
+  } else {
+    const p2ui = document.getElementById('p2-ui');
+    if (p2ui) p2ui.style.display = 'none';
+  }
   updateRunXpHud();
   const ammoEl = document.getElementById('ammo');
   if (ammoEl && player) {
@@ -12771,6 +12900,7 @@ function draw() {
   // Player
   ctx.globalAlpha = 1;
   if (player.alive) player.draw(ctx);
+  if (isDualMode && player2 && player2.alive) player2.draw(ctx);
 
   // Particles
   for (const p of particles) {
@@ -12998,6 +13128,15 @@ function resetRunState() {
   enemyBullets = [];
   obstacles.length = 0;
   mines.length = 0;
+  player2 = null;
+  isDualMode = false;
+  dualSharedLives = 0;
+  dualReviveCooldown = 0;
+  p1DeadTimer = 0;
+  p2DeadTimer = 0;
+  // Clean P2 UI
+  const p2ui = document.getElementById('p2-ui');
+  if (p2ui) p2ui.style.display = 'none';
   powerUps.length = 0;
   chests.length = 0;
   powerUpSpawnTimer = 0;
@@ -13135,6 +13274,7 @@ function isFirstRun() {
 
 function startGame(difficulty, tankType, options = {}) {
   activeRunId++;
+  dualModePending = false;
   cancelPendingRunCallbacks();
   stopMusic();
   clearInputState();
@@ -13168,9 +13308,25 @@ function startGame(difficulty, tankType, options = {}) {
     dailyBestScore = 0;
   }
   generateObstacles();
-  player = new PlayerTank(currentTankType);
-  applyTankUpgrades(currentTankType);
-  positionPlayerSafely(220);
+  isDualMode = options.dual || false;
+  if (isDualMode) {
+    player = new PlayerTank(currentTankType, 'kbm');
+    player2 = new PlayerTank(currentTankType, 'gamepad');
+    dualSharedLives = Math.max(3, diff.lives * 2);
+    lives = dualSharedLives;
+    dualReviveCooldown = 0;
+    p1DeadTimer = 0; p2DeadTimer = 0;
+    applyTankUpgrades(currentTankType);
+    player.x = W/2 - 80; player.y = H - 100;
+    player2.x = W/2 + 80; player2.y = H - 100;
+    player2.turretColor = '#ff8800';
+    player2.color = '#331100';
+  } else {
+    player = new PlayerTank(currentTankType);
+    player2 = null;
+    applyTankUpgrades(currentTankType);
+    positionPlayerSafely(220);
+  }
   resetAchievementTracking();
   renderDailyTarget();
   initWeather();
