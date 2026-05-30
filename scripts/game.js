@@ -10539,10 +10539,19 @@ function bulletHitsObstacle(bullet) {
         obs.hp = (obs.hp || 1) - 1;
         if (obs.hp <= 0) {
           if (obs.explosive) {
-            spawnExplosion(obs.x + obs.w/2, obs.y + obs.h/2, 45, '#f80', '#ff0');
+            const cx = obs.x + obs.w/2, cy = obs.y + obs.h/2;
+            spawnExplosion(cx, cy, 45, '#f80', '#ff0');
             triggerShake(4, 6);
+            // Chain reaction: damage nearby explosive barrels
+            for (const other of obstacles) {
+              if (other === obs || !other.explosive) continue;
+              const dx = (other.x + other.w/2) - cx, dy = (other.y + other.h/2) - cy;
+              if (Math.sqrt(dx*dx + dy*dy) < 80) other.hp = (other.hp || 2) - 1;
+            }
           } else {
             spawnExplosion(obs.x + obs.w/2, obs.y + obs.h/2, 12, '#a80', '#da0');
+            // Small chance to drop power-up on destruction
+            if (rng() < 0.15) spawnPowerUp(obs.x + obs.w/2, obs.y + obs.h/2);
           }
           obstacles.splice(obstacles.indexOf(obs), 1);
         } else { spawnExplosion(bullet.x, bullet.y, 5, obs.explosive ? '#f80' : '#a80', '#fc0'); }
@@ -10553,6 +10562,8 @@ function bulletHitsObstacle(bullet) {
         return true;
       }
       if (obs.ricochet) {
+        // Bounce plate: reflected bullets get double damage
+        bullet.damage = (bullet.damage || 1) + 1;
         const cx = obs.x + obs.w/2, cy = obs.y + obs.h/2;
         if (Math.abs(bullet.x - cx) / obs.w > Math.abs(bullet.y - cy) / obs.h) {
           bullet.angle = Math.PI - bullet.angle;
