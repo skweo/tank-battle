@@ -3473,6 +3473,13 @@ function getEnemyBulletSpeedMul() {
 }
 
 function renderAchievements() {
+  // Inject category icon styles once
+  if (!document.getElementById('ach-cat-icon-style')) {
+    const style = document.createElement('style');
+    style.id = 'ach-cat-icon-style';
+    style.textContent = '.ach-cat-icon{display:flex;align-items:center;justify-content:center;width:100%;height:100%}.ach-cat-icon svg{width:22px;height:22px;color:var(--ach-accent,#f49800)}.achieve-row.locked .ach-cat-icon svg{opacity:0.35}';
+    document.head.appendChild(style);
+  }
   const grid = document.getElementById('achieve-grid');
   const groups = getAchievementGroups();
   const tabsEl = document.getElementById('achieve-tabs');
@@ -3505,7 +3512,11 @@ function renderAchievements() {
     const unlocked = unlockedAchievements.has(a.id); const claimed = claimedAchievementRewards.has(a.id);
     const reward = getAchievementReward(a); const rarity = getAchievementRarity(a);
     const code = getAchievementCode(a); const seal = getAchievementSeal(a);
-    const medalIcon = unlocked ? renderCodeIcon(a.icon || seal, a.name) : escapeHtml(seal);
+    const categoryIcon = getAchievementCategoryIcon(achievementsTab);
+    const tankIcon = unlocked ? renderCodeIcon(a.icon || seal, a.name) : '';
+    const medalIcon = tankIcon && tankIcon.indexOf('code-text-fallback') === -1
+      ? tankIcon
+      : '<span class="ach-cat-icon">' + categoryIcon + '</span>';
     const tierName = rarity.label + ' · 奖励 ' + reward + ' 月光石';
     const rewardHtml = unlocked
       ? (claimed ? `<button class="ach-reward claimed" disabled>已领</button>` : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">+${reward}</button>`)
@@ -3523,6 +3534,17 @@ function renderAchievements() {
   grid.innerHTML = html;
 }
 let achievementsTab = 'combat';
+function getAchievementCategoryIcon(groupKey) {
+  const icons = {
+    combat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 3L12 8L17 3L22 8L17 13L12 8L7 13L2 8Z" stroke-linejoin="round"/><path d="M12 8V20" opacity="0.6"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>',
+    survival: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L3 7V13C3 18 7 22 12 23C17 22 21 18 21 13V7L12 2Z" stroke-linejoin="round"/><path d="M12 8V14" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.2" fill="currentColor"/></svg>',
+    score: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9" stroke-linejoin="round"/></svg>',
+    tank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="9" width="18" height="9" rx="2"/><rect x="5" y="6" width="5" height="6" rx="1"/><circle cx="7" cy="15" r="2.5"/><circle cx="17" cy="15" r="2.5"/><line x1="12" y1="9" x2="12" y2="3" stroke-width="2" stroke-linecap="round"/></svg>',
+    collection: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 16,6 22,6 18,10 19.5,16 14.5,18 12,22 9.5,18 4.5,16 6,10 2,6 8,6" stroke-linejoin="round"/></svg>',
+    special: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="22"/><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/></svg>',
+  };
+  return icons[groupKey] || icons.special;
+}
 function getAchievementGroups() {
   return {
     'combat': { label:'战斗', color:'#ff5a4a', ids:['first_blood','sharpshooter','tank_hunter','battle_veteran','kills_500','kills_1000','kills_2000','kills_5000','kills_10000','combo_20','combo_35','combo_50','combo_75','combo_100','combo_150','elite_hunter','elite_hunter_25','elite_hunter_40','elite_50'] },
