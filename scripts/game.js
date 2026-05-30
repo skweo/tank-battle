@@ -3536,12 +3536,12 @@ function renderAchievements() {
 let achievementsTab = 'combat';
 function getAchievementCategoryIcon(groupKey) {
   const icons = {
-    combat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 3L12 8L17 3L22 8L17 13L12 8L7 13L2 8Z" stroke-linejoin="round"/><path d="M12 8V20" opacity="0.6"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>',
-    survival: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L3 7V13C3 18 7 22 12 23C17 22 21 18 21 13V7L12 2Z" stroke-linejoin="round"/><path d="M12 8V14" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.2" fill="currentColor"/></svg>',
+    combat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg>',
+    survival: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L3 8V14C3 18 12 22 12 22C12 22 21 18 21 14V8L12 2Z" stroke-linejoin="round"/></svg>',
     score: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9" stroke-linejoin="round"/></svg>',
-    tank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="9" width="18" height="9" rx="2"/><rect x="5" y="6" width="5" height="6" rx="1"/><circle cx="7" cy="15" r="2.5"/><circle cx="17" cy="15" r="2.5"/><line x1="12" y1="9" x2="12" y2="3" stroke-width="2" stroke-linecap="round"/></svg>',
-    collection: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 16,6 22,6 18,10 19.5,16 14.5,18 12,22 9.5,18 4.5,16 6,10 2,6 8,6" stroke-linejoin="round"/></svg>',
-    special: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="22"/><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/></svg>',
+    tank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="6"/><line x1="12" y1="3" x2="12" y2="10"/><line x1="8" y1="6" x2="11" y2="12"/><line x1="16" y1="6" x2="13" y2="12"/></svg>',
+    collection: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="12,2 16,10 22,10 16,16 18,22 12,18 6,22 8,16 2,10 8,10"/></svg>',
+    special: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   };
   return icons[groupKey] || icons.special;
 }
