@@ -12652,6 +12652,7 @@ function updateGamepadInput() {
       gamepadState.rightX = dz(rx);
       gamepadState.rightY = dz(ry);
       gamepadState._ryIdx = ryIdx; // Debug: which axis is being used for RY
+      gamepadState._allAxes = ax.slice(0, 10).map(v => clamp(v || 0)); // Store all for debug
       gamepadState.shoot = (gp.buttons[7] && gp.buttons[7].value > 0.2) || (gp.buttons[0] && gp.buttons[0].pressed);
       found = true;
       break;
@@ -12939,10 +12940,14 @@ function update() {
       document.getElementById('game-container').appendChild(p2ui);
     }
     const p2hp = player2.alive ? Math.max(0, player2.hp) : 0;
-    const rx = gamepadState.rightX.toFixed(2), ry = gamepadState.rightY.toFixed(2);
-    const aimMode = (Math.abs(gamepadState.rightX) > 0.05 || Math.abs(gamepadState.rightY) > 0.05) ? 'RS手动' : '自动';
-    const ryIdx = gamepadState._ryIdx >= 0 ? ' a[' + gamepadState._ryIdx + ']' : '';
-    p2ui.textContent = 'P2 HP:' + p2hp + '/' + player2.maxHp + '  RS:(' + rx + ',' + ry + ')' + ryIdx + ' ' + aimMode;
+    // Show all axis values for debugging UCOM right stick
+    let axisDebug = '';
+    if (gamepadState._allAxes) {
+      axisDebug = ' AX:' + gamepadState._allAxes.map((v,i) => i+':'+v.toFixed(1)).join(' ');
+    }
+    const rx = gamepadState.rightX.toFixed(1), ry = gamepadState.rightY.toFixed(1);
+    const aimMode = (Math.abs(gamepadState.rightX) > 0.05 || Math.abs(gamepadState.rightY) > 0.05) ? 'RS' : 'AUTO';
+    p2ui.textContent = 'P2 HP:' + p2hp + '/' + player2.maxHp + '  RS:(' + rx + ',' + ry + ') ' + aimMode + axisDebug;
     p2ui.style.display = 'block';
   } else {
     const p2ui = document.getElementById('p2-ui');
