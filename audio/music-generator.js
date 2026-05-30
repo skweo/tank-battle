@@ -223,69 +223,43 @@ class CyberSynth {
   // ============================================
   _combatPulse(n) {
     const t = this.ctx.currentTime, bp = 60 / this._bpm;
-    const section = Math.floor(n / 72) % 3;
-    const sn = n % 72;
-    // YMO-style swing — subtle micro-offset for human feel
-    const swing = (off) => t + off * bp * 0.08;
+    const section = Math.floor(n / 64) % 2; // A=melancholy build, B=full resolve
+    const sn = n % 64;
+    // Hollow Knight theme — one long melancholy melody
+    const theme = [0,3,5,7, 3,2,0,-2, 0,3,7,10, 7,5,3,2, 0,3,5,7, 10,7,5,3, 2,0,-1,-2, 0,2,3,5, 3,2,0,-2, -2,-4,-2,0, 3,5,7,10, 12,10,7,5, 3,2,0,-2, -4,-2,0,3, 5,7,10,12, 14,12,10,7];
 
-    // === SECTION A: Ambient intro — no drums, bell + vox ===
     if (section === 0) {
-      if (sn === 0) this._pad([this._n(0,-1),this._n(2,-1),this._n(4,-1),this._n(6,-1)], t, bp*72, 0.04);
-      if (sn % 24 === 0) {
-        const bassNote = [0, -2, 3][sn/24];
-        this._bass(this._n(bassNote, -2), t, bp*8, 0.07);
-        this._string(this._n(bassNote, -1), t, bp*10, 0.03);
+      // A: Quiet melancholy — bell theme + strings slowly build
+      if (sn === 0) {
+        this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*64, 0.045);
+        this._string(this._n(0, -1), t, bp*32, 0.04);
       }
-      if (sn % 6 === 0) {
-        const bellMel = [0,2,4,5,7,5,4,2, 0,-2,0,2,4,2,0,-1, 0,3,5,7,10,7,5,3, 2,0,-1,-2,0,2,3,5];
-        this._bell(this._n(bellMel[(sn/6)%24], 0), t, 2.5, 0.04);
-      }
-      if (sn % 12 === 0) this._vox(this._n([0,3,5,7,10,7][(sn/12)%6], 0), t+bp*0.3, bp*5, 0.03);
-      if (sn % 24 === 0) this._kick(t, 0.06);
+      if (sn % 4 === 0) this._bell(this._n(theme[(sn/4)%64], 0), t, 2.8, 0.04);
+      if (sn === 32) this._string(this._n(3, -1), t, bp*20, 0.035);
+      if (sn % 16 === 0) this._bass(this._n([0,-2,0,-4][(sn/16)%4], -2), t, bp*4, 0.06);
+      if (sn % 32 === 0) this._kick(t, 0.06);
+      if (sn % 16 === 8) this._vox(this._n(theme[(sn/4)%64], 0), t+bp*0.3, bp*6, 0.02);
       return;
     }
 
-    if (section === 1) {
-      // YMO-style groove — drums with swing offset
-      if (sn === 0 || sn === 24 || sn === 48) this._kick(swing(0), 0.14);
-      if (sn === 12 || sn === 36 || sn === 60) this._kick(swing(0.5), 0.10);
-      if (sn === 18 || sn === 42) this._snare(swing(0), 0.04);
-      // Bass — melodic, not just root
-      const bB = [0, -2, 3, -4, 0, -2, -5, 3, 0, -2, 0, 3, -2, -5, 3, 0];
-      if (sn % 4 === 0) this._bass(this._n(bB[(sn/4)%16], -2), t, bp*1.5, 0.11);
-      // === CALL & RESPONSE: lead ↔ bell ===
-      if (sn % 12 === 0) {
-        // Lead "calls"
-        const melB = [0,3,5,7,10,7,5,3, 7,5,3,0,-2,3,5,7];
-        this._lead(this._n(melB[(sn/12)%8], 0), t, 0.45, 0.038);
-      }
-      if (sn % 12 === 6) {
-        // Bell "responds"
-        this._bell(this._n([7,10,12,10,7,3,0,3][(sn/12)%8], 0), swing(0.3), 2, 0.028);
-      }
-      // Vox — another voice in the conversation
-      if (sn % 24 === 12) this._vox(this._n([0,7,10][(sn/24)%3], 0), swing(0.2), bp*10, 0.025);
-      // Chords
-      if (sn === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*12, 0.022);
-      if (sn === 36) this._chord([this._n(-2,-1),this._n(0,-1),this._n(5,-1)], t, bp*8, 0.02);
-      if (sn === 0) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*72, 0.025);
-      return;
-    }
-
-    // === SECTION C: Emotional — ambient, vox, no drums ===
+    // B: Full resolve — strings swell, theme soars, drums enter
     if (sn === 0) {
-      this._pad([this._n(-2,-1),this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*72, 0.045);
-      this._string(this._n(0, -1), t, bp*20, 0.04);
-      this._string(this._n(3, -1), t+bp*3, bp*18, 0.03);
+      this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*64, 0.05);
+      this._string(this._n(0, -1), t, bp*16, 0.045);
+      this._string(this._n(7, -1), t+bp*1, bp*14, 0.035);
     }
-    if (sn % 6 === 0) {
-      const voxMelC = [0,3,5,7,10,7,5,3, 0,-2,0,3,5,3,2,0, 7,5,3,2,0,-2,-5,-2, 0,3,5,7,5,3,0,-2];
-      this._vox(this._n(voxMelC[(sn/6)%24], 0), t, bp*4, 0.04);
+    if (sn % 4 === 0) {
+      this._bell(this._n(theme[(sn/4)%64], 0), t, 2.2, 0.035);
+      if (sn % 8 === 0) this._lead(this._n(theme[(sn/4)%64], 0), t, 0.4, 0.03);
     }
-    if (sn % 8 === 4) this._bell(this._n([0,3,7,10,7,3][(sn/8)%6], 0), t+bp*0.3, 3, 0.03);
-    if (sn === 0) this._bass(this._n(-2, -2), t, bp*8, 0.06);
-    if (sn === 36) this._bass(this._n(0, -2), t, bp*8, 0.05);
-    if (sn % 36 === 0) this._kick(t, 0.05);
+    if (sn % 8 === 4) this._vox(this._n(theme[((sn-4)/4)%64], 1), t+bp*0.2, bp*4, 0.03);
+    if (sn % 16 === 0) this._kick(t, 0.12);
+    if (sn % 16 === 8) this._kick(t, 0.08);
+    if (sn % 32 === 16) this._snare(t, 0.035);
+    const bB = [0,0,0,0, -2,-2,-2,-2, 3,3,3,3, -4,-4,-4,-4, 0,0,-2,-2, 3,3,-4,-4, -5,-5,0,0, -2,-2,3,3];
+    if (sn % 4 === 0) this._bass(this._n(bB[(sn/2)%32], -2), t, bp*1.5, 0.1);
+    if (sn === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*8, 0.022);
+    if (sn === 32) this._chord([this._n(-2,-1),this._n(0,-1),this._n(5,-1)], t, bp*6, 0.02);
   }
   _combatChase(n) {
     const t = this.ctx.currentTime, bp = 60 / (this._bpm + 3);
