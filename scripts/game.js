@@ -7074,6 +7074,12 @@ const BOSS_TYPES = [
       { name:'激光锁定', hpPct:1.0, attack:'laser_snipe', shootDelay:48, burstShots:1, burstRest:160, telegraph:90, recover:70, bulletCount:1, bulletSpeed:5.5, pressure:0.85, cue:'TARGET LOCK', hint:'躲开激光瞄准线' },
       { name:'光束扫射', hpPct:0.55, attack:'beam_sweep', shootDelay:42, burstShots:3, burstRest:180, telegraph:60, recover:90, bulletCount:5, bulletSpeed:2.8, pressure:1.15, cue:'SWEEP ARRAY', hint:'光束间隙可闪避' },
     ]},
+  { name:'圣龛守卫', color:'#864', turret:'#fd0', speed:0.22, hp:175, icon:'SCT', faction:'ash_church',
+    desc:'神圣堡垒Boss，圣光弹幕+护盾反弹',
+    phases:[
+      { name:'圣光帷幕', hpPct:1.0, attack:'holy_barrage', shootDelay:50, burstShots:3, burstRest:140, telegraph:48, recover:112, bulletCount:12, bulletSpeed:1.35, pressure:0.9, cue:'SANCTUM LIGHT', hint:'圣光规律密集可读，穿行间隙' },
+      { name:'圣盾反制', hpPct:0.52, attack:'shield_counter', shootDelay:46, burstShots:3, burstRest:170, telegraph:54, recover:136, bulletCount:8, bulletSpeed:1.95, pressure:1.1, cue:'SHIELD RETORT', hint:'护盾展开时反弹子弹，关闭后自愈' },
+    ]},
 
 ];
 
@@ -7427,11 +7433,14 @@ class BossEnemy extends EliteEnemy {
       if (dist > 260) { moveX += dx/dist * 0.55; moveY += dy/dist * 0.55; }
       else if (dist < 100) { moveX -= dx/dist * 0.45; moveY -= dy/dist * 0.45; }
     } else if (this.bossDef.name === '轨道炮台') {
-      // Long-range sniper — keeps 300+px, slow lateral drift
       if (dist < 280) { moveX -= dx/dist * 0.6; moveY -= dy/dist * 0.6; }
       else if (dist > 400) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
-      moveX += -dy/dist * strafeDir * 0.3;
-      moveY += dx/dist * strafeDir * 0.3;
+      moveX += -dy/dist * strafeDir * 0.3; moveY += dx/dist * strafeDir * 0.3;
+    } else if (this.bossDef.name === '圣龛守卫') {
+      // Slow defensive — keeps medium range, minimal strafe
+      if (dist < 140) { moveX -= dx/dist * 0.35; moveY -= dy/dist * 0.35; }
+      else if (dist > 220) { moveX += dx/dist * 0.25; moveY += dy/dist * 0.25; }
+      moveX += -dy/dist * strafeDir * 0.15; moveY += dx/dist * strafeDir * 0.15;
     }
 
     const slowMul = this.currentPhase > 0 ? 1.18 : 1;
@@ -7793,7 +7802,6 @@ class BossEnemy extends EliteEnemy {
       // Warning beam visual is handled by telegraph
       triggerShake(3, 5);
     } else if (phase.attack === 'beam_sweep') {
-      // === ORBITAL CANNON P2: Horizontal beam sweeps ===
       const total = phase.bulletCount + bonusBullets;
       for (let line = 0; line < 3; line++) {
         const sweepAngle = this.telegraphAngle + (line - 1) * 0.35 + Math.sin(this.phaseTimer * 0.02 + line) * 0.15;
@@ -7804,6 +7812,32 @@ class BossEnemy extends EliteEnemy {
         }
       }
       triggerShake(4, 8);
+    } else if (phase.attack === 'holy_barrage') {
+      // === SANCTUM GUARD P1: Slow golden ring barrage ===
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = this.phaseTimer * 0.03 + (i / total) * Math.PI * 2;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed, '#fd0', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 4; enemyBullets.push(b);
+      }
+      // Second ring, counter-rotating
+      for (let i = 0; i < total - 4; i++) {
+        const a = -this.phaseTimer * 0.035 + (i / (total - 4)) * Math.PI * 2;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed * 0.85, '#da0', false, 1);
+        b.radius = 3.2; enemyBullets.push(b);
+      }
+    } else if (phase.attack === 'shield_counter') {
+      // === SANCTUM GUARD P2: Shield bounce + self-heal ===
+      // Spread shot
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total/2) * 0.15;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#fd0', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 3.5; enemyBullets.push(b);
+      }
+      // Self-heal during recover phase (3 HP)
+      if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + 3);
+      spawnExplosion(this.x, this.y, 14, '#fd0', '#fff');
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
@@ -8227,6 +8261,40 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '圣龛守卫') {
+      // === SANCTUM GUARD — church stained glass + halo ===
+      // Wide hexagonal chassis — like a cathedral platform
+      ctx.fillStyle = '#3a2810'; ctx.strokeStyle = '#c90'; ctx.lineWidth = 3;
+      drawArmorPanel(ctx, -26, -18, 52, 36, '#3a2810', '#fd0', 5);
+      // Stained glass pattern — colored panels
+      const glassColors = ['rgba(255,200,50,0.3)','rgba(200,150,30,0.25)','rgba(255,180,40,0.2)','rgba(180,120,20,0.3)'];
+      for (let g = 0; g < 6; g++) {
+        ctx.fillStyle = glassColors[g % 4];
+        ctx.fillRect(-22 + g * 7, -15 + (g % 2) * 6, 6, 10);
+      }
+      // Golden halo ring
+      const haloPulse = Math.sin(brt * 1.5) * 0.15 + 0.7;
+      ctx.strokeStyle = 'rgba(255,220,0,' + haloPulse + ')';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(0, -4, 24, -Math.PI * 0.7, Math.PI * 0.7); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,200,' + (haloPulse * 0.5) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, -4, 28, -Math.PI * 0.6, Math.PI * 0.6); ctx.stroke();
+      // Floating sigils (small diamonds orbiting)
+      for (let s = 0; s < 3; s++) {
+        const sa = brt * 0.5 + s * Math.PI * 2 / 3;
+        const sx = Math.cos(sa) * 26, sy = Math.sin(sa) * 22 - 4;
+        ctx.fillStyle = '#fd0'; ctx.globalAlpha = 0.6 + Math.sin(brt + s) * 0.2;
+        ctx.fillRect(sx - 2, sy - 2, 5, 5);
+        ctx.globalAlpha = 1;
+      }
+      // Central core
+      drawArmorPanel(ctx, -8, -6, 16, 12, 'rgba(0,0,0,0.8)', '#fd0', 3);
+      drawTechCore(ctx, 0, 0, 5, '#fff8d0', '#fd0');
+      // Cannon — modest
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 4, -3, 16, 6, '#5a4020', '#c90', '#fff8e0');
+      ctx.restore();
     } else if (bname === '轨道炮台') {
       // === ORBITAL CANNON — long-range sniper platform ===
       // Large cannon barrel
