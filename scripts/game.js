@@ -10593,11 +10593,17 @@ function drawObstacles(ctx) {
       ctx.fillStyle = 'rgba(100,180,255,0.15)';
       ctx.fillRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h - 6);
     } else if (obs.type === 'wreck') {
-      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      // Bent metal scrap — angular trapezoid
+      ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(obs.x + 6, obs.y + obs.h);
+      ctx.lineTo(obs.x + rng()*6, obs.y + 3);
+      ctx.lineTo(obs.x + obs.w - 4, obs.y);
+      ctx.lineTo(obs.x + obs.w - rng()*4, obs.y + obs.h - 2);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = '#553311'; ctx.lineWidth = 0.8;
       for (let lx = obs.x + 6; lx < obs.x + obs.w; lx += 14) {
-        ctx.beginPath(); ctx.moveTo(lx, obs.y); ctx.lineTo(lx + 5, obs.y + obs.h); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(lx, obs.y + 3); ctx.lineTo(lx + 5, obs.y + obs.h - 2); ctx.stroke();
       }
     } else if (obs.type === 'trench') {
       const tGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.h);
