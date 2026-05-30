@@ -2751,6 +2751,7 @@ function clearDifficulty() {
 function startNextWave() {
   wave++;
   initWeather();
+  if (wave > 1 && obstacles.length > 0) refreshObstacles();
   updateTankUnlockProgress({
     maxWave: wave,
     borderEcho: wave >= 12,
@@ -10172,6 +10173,9 @@ const OBSTACLE_TYPES = {
   crystal:{ color:'#3a2a5a', stroke:'#7a5aaa', passable:false, slow:0, minW:15, maxW:25, minH:20, maxH:35, weight:8 },
   metal:  { color:'#445566', stroke:'#667788', passable:false, slow:0, minW:35, maxW:60, minH:25, maxH:45, weight:8 },
   bunker: { color:'#3a3028', stroke:'#5a5048', passable:false, slow:0, minW:50, maxW:90, minH:35, maxH:55, weight:5 },
+  barrel:  { color:'#5a3010', stroke:'#c84', passable:false, slow:0, minW:20, maxW:28, minH:20, maxH:28, weight:8, explosive:true },
+  bounce:  { color:'#304060', stroke:'#6af', passable:false, slow:0, minW:18, maxW:35, minH:12, maxH:20, weight:6, ricochet:true },
+  brush:   { color:'#1a2a14', stroke:'#3a5a2a', passable:true, slow:0.2, minW:25, maxW:50, minH:20, maxH:40, weight:7, conceal:true },
   crater:  { color:'#332211', stroke:'#554433', passable:true,  slow:0.35, minW:45, maxW:90, minH:35, maxH:70, weight:10 },
   energy:  { color:'#1a2a3a', stroke:'#4a9acc', passable:true,  slow:0.25, minW:30, maxW:60, minH:25, maxH:50, weight:8 },
   wreck:   { color:'#443322', stroke:'#886644', passable:false, slow:0,    minW:35, maxW:70, minH:25, maxH:50, weight:10 },
@@ -10182,9 +10186,33 @@ const OBSTACLE_TYPES = {
   spires:  { color:'#2a1a3a', stroke:'#5a3a7a', passable:false, slow:0,    minW:20, maxW:40, minH:30, maxH:65, weight:6  },
 };
 
-function generateObstacles() {
-  obstacles.length = 0;
-  const count = 12 + level * 3;
+function refreshObstacles() {
+  // Remove ~20% of existing obstacles, favoring ones far from player
+  const removeCount = Math.max(3, Math.floor(obstacles.length * 0.2));
+  for (let i = 0; i < removeCount && obstacles.length > 5; i++) {
+    // Remove obstacles farthest from center
+    let bestIdx = 0, bestDist = 0;
+    for (let j = 0; j < obstacles.length; j++) {
+      const dx = obstacles[j].x + obstacles[j].w/2 - W/2;
+      const dy = obstacles[j].y + obstacles[j].h/2 - H/2;
+      const dist = dx*dx + dy*dy;
+      // Prefer removing obstacles far from player
+      const pdx = player ? (obstacles[j].x + obstacles[j].w/2 - player.x) : 0;
+      const pdy = player ? (obstacles[j].y + obstacles[j].h/2 - player.y) : 0;
+      const pDist = pdx*pdx + pdy*pdy;
+      const score = dist * 0.3 + pDist * 0.7;
+      if (score > bestDist) { bestDist = score; bestIdx = j; }
+    }
+    obstacles.splice(bestIdx, 1);
+  }
+  // Add ~20% new obstacles
+  const addCount = Math.max(4, Math.floor(15 + wave * 1.5));
+  generateObstacles(addCount);
+}
+
+function generateObstacles(countOverride) {
+  const prevLen = obstacles.length;
+  const count = countOverride || Math.max(18, 18 + wave * 1.5);
   const totalWeight = Object.values(OBSTACLE_TYPES).reduce((s, d) => s + d.weight, 0);
   const keepOutZones = [
     { x: W / 2, y: H - 70, r: 90 },
@@ -10209,7 +10237,11 @@ function generateObstacles() {
       return Math.sqrt(dx * dx + dy * dy) < z.r;
     });
     if (blockedMain) continue;
-    obstacles.push({ x: ox, y: oy, w: ow, h: oh, type: obsType, passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke });
+    const obs = { x: ox, y: oy, w: ow, h: oh, type: obsType, passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke };
+    if (def.explosive) obs.hp = 2;
+    if (def.ricochet) obs.ricochet = true;
+    if (def.conceal) obs.conceal = true;
+    obstacles.push(obs);
 
     // 30% chance to spawn 1-2 smaller obstacles nearby (cluster effect)
     if (rng() < 0.3) {
@@ -10227,7 +10259,10 @@ function generateObstacles() {
           return Math.sqrt(dx * dx + dy * dy) < z.r;
         });
         if (blockedCluster) continue;
-        obstacles.push({ x: cx, y: cy, w: cw, h: ch, type: ctype, passable: cd.passable, slow: cd.slow, color: cd.color, stroke: cd.stroke });
+        const cobs = { x: cx, y: cy, w: cw, h: ch, type: ctype, passable: cd.passable, slow: cd.slow, color: cd.color, stroke: cd.stroke };
+        if (cd.explosive) cobs.hp = 2;
+        if (cd.ricochet) cobs.ricochet = true;
+        obstacles.push(cobs);
       }
     }
   }
@@ -10411,6 +10446,28 @@ function drawObstacles(ctx) {
         const spy = obs.y + ((sp * 31 + obs.y) % (obs.h * 0.7));
         ctx.beginPath(); ctx.arc(spx, spy, 1.2, 0, Math.PI*2); ctx.fill();
       }
+    } else if (obs.type === 'barrel') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      // Danger stripe
+      ctx.fillStyle = '#fc0'; ctx.fillRect(obs.x + 4, obs.y + obs.h/2 - 2, obs.w - 8, 4);
+      ctx.fillStyle = '#f00'; ctx.beginPath(); ctx.arc(obs.x + obs.w/2, obs.y + 3, 3, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(obs.x + obs.w/2, obs.y + 3, 1.5, 0, Math.PI*2); ctx.fill();
+    } else if (obs.type === 'bounce') {
+      const t = Date.now()/1000;
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = 'rgba(100,170,255,'+(0.3+Math.sin(t*2+obs.x)*0.15)+')'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(obs.x, obs.y+obs.h/2); ctx.lineTo(obs.x+obs.w, obs.y+obs.h/2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(obs.x+obs.w/2, obs.y); ctx.lineTo(obs.x+obs.w/2, obs.y+obs.h); ctx.stroke();
+    } else if (obs.type === 'brush') {
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+      ctx.strokeRect(obs.x, obs.y, obs.w, obs.h); ctx.setLineDash([]);
+      for (let g = 0; g < 4; g++) {
+        const gx = obs.x + 4 + g * (obs.w/5); const gy = obs.y + rng() * obs.h * 0.7;
+        ctx.fillStyle = '#4a7a3a'; ctx.beginPath(); ctx.ellipse(gx, gy, 3, 8, rng(), 0, Math.PI*2); ctx.fill();
+      }
     }
   }
 }
@@ -10419,8 +10476,27 @@ function bulletHitsObstacle(bullet) {
   for (const obs of obstacles) {
     if (bullet.x > obs.x && bullet.x < obs.x + obs.w &&
         bullet.y > obs.y && bullet.y < obs.y + obs.h) {
+      if (obs.explosive) {
+        obs.hp = (obs.hp || 1) - 1;
+        if (obs.hp <= 0) {
+          obstacles.splice(obstacles.indexOf(obs), 1);
+          spawnExplosion(obs.x + obs.w/2, obs.y + obs.h/2, 45, '#f80', '#ff0');
+          triggerShake(4, 6);
+        } else { spawnExplosion(bullet.x, bullet.y, 5, '#f80', '#fc0'); }
+        return true;
+      }
+      if (obs.ricochet) {
+        const cx = obs.x + obs.w/2, cy = obs.y + obs.h/2;
+        if (Math.abs(bullet.x - cx) / obs.w > Math.abs(bullet.y - cy) / obs.h) {
+          bullet.angle = Math.PI - bullet.angle;
+        } else {
+          bullet.angle = -bullet.angle;
+        }
+        spawnExplosion(bullet.x, bullet.y, 3, '#6af', '#fff');
+        return false;
+      }
+      if (obs.passable) return false;
       if (bullet.ricochet && bullet.bounces > 0) {
-        // Ricochet: reflect off obstacle edge
         const cx = obs.x + obs.w/2, cy = obs.y + obs.h/2;
         if (Math.abs(bullet.x - cx) / obs.w > Math.abs(bullet.y - cy) / obs.h) {
           bullet.angle = Math.PI - bullet.angle;
