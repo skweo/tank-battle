@@ -11,7 +11,7 @@ class CyberSynth {
     this.d1 = ctx.createDelay(0.28); this.d2 = ctx.createDelay(0.52);
     this.f1 = ctx.createGain(); this.f1.gain.value = 0.15;
     this.f2 = ctx.createGain(); this.f2.gain.value = 0.08;
-    this.vOut = ctx.createGain(); this.vOut.gain.value = 0.7;
+    this.vOut = ctx.createGain(); this.vOut.gain.value = 0.5;
     this.preVerb.connect(this.d1); this.preVerb.connect(this.d2);
     this.d1.connect(this.f1); this.f1.connect(this.d1);
     this.d2.connect(this.f2); this.f2.connect(this.d2);
@@ -166,12 +166,14 @@ class CyberSynth {
     const sn = n % 48;
     // Pad — changes per section
     // Pad enters gradually — not on beat 0
-    if (sn === 8) {
+    // Pad enters late — clean piano opening
+      if (sn === 16) {
       const chordRoot = section === 0 ? 0 : -4;
       this._pad([this._n(chordRoot,-1),this._n(chordRoot+2,-1),this._n(chordRoot+4,-1),this._n(chordRoot+6,-1),this._n(chordRoot,0)], t, bp*40, 0.04);
     }
     // Sub pad
-    if (sn % 24 === 0) {
+    // Sub pad — enters later
+      if (sn === 32 && sn % 24 === 0) {
       const r = section === 0 ? [0,-2,-4,2][(sn/24)%2] : [-4,-2,0,3][(sn/24)%2];
       this._pad([this._n(r,-2),this._n(r+3,-2),this._n(r+5,-2)], t+bp*0.5, bp*24, 0.03);
     }
@@ -199,7 +201,8 @@ class CyberSynth {
   _menuVoid(n) {
     const t = this.ctx.currentTime, bp = 60 / 65; // Slower, more spacious
     // Deep cathedral pad — enters after bell
-    if (n % 32 === 4) {
+    // Pad enters after bell establishes hollow feel
+      if (n === 8) {
       this._pad([this._n(-4,-2),this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*28, 0.055);
     }
     if (n % 16 === 0) this._pad([this._n(-7,-2),this._n(-2,-1),this._n(0,-1)], t+bp*0.6, bp*16, 0.03);
@@ -250,7 +253,8 @@ class CyberSynth {
 
     if (section === 0) {
       // A: Quiet opening — bell alone first, pad enters later
-      if (sn === 12) {
+      // Pad enters very late — bell solo first
+      if (sn === 24) {
         this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*52, 0.04);
         this._string(this._n(0, -1), t, bp*24, 0.035);
       }
