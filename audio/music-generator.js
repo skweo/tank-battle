@@ -18,9 +18,9 @@ class CyberSynth {
     this.d1.connect(this.vOut); this.d2.connect(this.vOut);
     this.vOut.connect(this.masterGain);
 
-    this._menuTracks = ['menu_crystal', 'menu_void', 'menu_echo'];
-    this._combatTracks = ['combat_pulse', 'combat_chase', 'combat_siege'];
-    this._bossTracks = ['boss_abyss', 'boss_judgment'];
+    this._menuTracks = ['menu_crystal','menu_void','menu_echo', 'menu_pulse','menu_chase','menu_siege'];
+    this._combatTracks = ['boss_abyss', 'boss_judgment'];
+    this._bossTracks = ['boss_onslaught', 'boss_cataclysm'];
     this._activeTrack = 'menu_crystal';
     this.currentMode = 'menu'; this.currentWave = 1;
     this._running = false; this._nextBeat = 0; this._bpm = 70; this._beat = 0;
@@ -221,7 +221,7 @@ class CyberSynth {
   // ============================================
   // === COMBAT — dense layered arrangements ===
   // ============================================
-  _combatPulse(n) {
+  _menuPulse(n) {
     const t = this.ctx.currentTime, bp = 60 / this._bpm;
     const section = Math.floor(n / 64) % 2;
     const sn = n % 64;
@@ -264,7 +264,7 @@ class CyberSynth {
     if (sn % 4 === 0) this._bass(this._n(bB[(sn/2)%32], -2), t, bp*1.5, 0.1);
     if (sn === 32) this._chord([this._n(-2,-1),this._n(0,-1),this._n(5,-1)], t, bp*6, 0.022);
   }
-  _combatChase(n) {
+  _menuChase(n) {
     const t = this.ctx.currentTime, bp = 60 / (this._bpm + 3);
     // Minimal drums — no hats, sparse
     if (n % 16 === 0) this._kick(t, 0.12);
@@ -284,7 +284,7 @@ class CyberSynth {
     if (n % 16 === 0) this._vox(this._n([0,3,7][(n/16)%3], 0), t+bp*0.3, bp*8, 0.02);
   }
 
-  _combatSiege(n) {
+  _menuSiege(n) {
     const t = this.ctx.currentTime, bp = 60 / (this._bpm - 2);
     // Heavy but sparse — stomping, not clicking
     if (n % 12 === 0) this._kick(t, 0.15);
@@ -368,16 +368,69 @@ class CyberSynth {
   // ============================================
   // === DISPATCH ===
   // ============================================
-  _playBeat(n) {
+
+  _bossOnslaught(n) {
+    const t = this.ctx.currentTime, bp = 60 / this._bpm;
+    // Maximum intensity — dense drums, double bass, alarm chords
+    if (n % 2 === 0) this._kick(t, 0.18);
+    if (n % 2 === 1) this._snare(t, 0.06);
+    if (n % 2 === 0) this._hat(t, 0.028);
+    if (n % 4 === 0) this._hat(t+bp*0.5, 0.02);
+    // Drum roll every 16
+    if (n % 16 === 14) for (let d=0;d<4;d++) this._snare(t+d*bp*0.25, 0.05);
+    // Driving bass — every beat
+    const bl = [0,-7,-5,-3, 0,-7,-5,0, 3,-5,0,-2, -5,-7,-2,3, 0,-7,-5,-3, 3,-5,0,-2, -5,-7,-2,0, 0,-7,-5,-3];
+    this._bass(this._n(bl[n%32], -2), t, bp*0.7, 0.18);
+    // Aggressive chord stabs — every 2 beats
+    if (n % 4 === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*0.5, 0.04);
+    if (n % 4 === 2) this._chord([this._n(-5,-1),this._n(-2,-1),this._n(3,-1)], t, bp*0.4, 0.035);
+    // Lead — urgent
+    if (n % 2 === 0) {
+      const mel = [0,7,5,10,7,12,10,14, 0,7,5,3,7,5,3,0, -2,5,3,7,5,10,7,12, 0,-2,-5,-2,0,3,5,7];
+      this._lead(this._n(mel[n%32], 0), t, 0.38, 0.05);
+    }
+    // Arp — high speed counterpoint
+    this._arp(this._n([17,14,10,7,3,7,10,14, 17,14,10,7,3,7,10,14][n%16], 0), t+bp*0.08, 0.15, 0.025);
+    // Alarm every 8
+    if (n % 8 === 0) { this._osc('sawtooth',this._n(0,1),t,bp*0.8,0.05); this._osc('sawtooth',this._n(7,0),t+0.015,bp*0.7,0.04); }
+    if (n % 16 === 0) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*16, 0.035);
+    if (n % 12 === 0) this._vox(this._n([0,7,14][(n/12)%3], 1), t+bp*0.2, bp*4, 0.035);
+  }
+
+  _bossCataclysm(n) {
+    const t = this.ctx.currentTime, bp = 60 / (this._bpm + 6);
+    // Ultimate chaos — fast drums, triple bass, everything at once
+    if (n % 2 === 0) this._kick(t, 0.17);
+    if (n % 2 === 1) this._snare(t, 0.06);
+    this._hat(t, 0.028);
+    if (n % 3 === 0) this._hat(t+bp*0.5, 0.02);
+    if (n % 8 === 6) for (let d=0;d<6;d++) this._snare(t+d*bp*0.2, 0.04);
+    // Bass — aggressive walking
+    const bl = [0,-7,-5,-3, 3,-5,0,-2, -5,-7,-2,0, 0,-7,-5,3, 0,-7,-5,-3, 3,-5,0,-2, -5,3,0,-5, -7,-5,-2,0];
+    this._bass(this._n(bl[n%32], -2), t, bp*0.7, 0.17);
+    // Chords — every beat
+    if (n % 2 === 0) this._chord([this._n(0,-1),this._n(4,-1),this._n(7,-1),this._n(11,-1)], t, bp*0.5, 0.04);
+    if (n % 2 === 1) this._chord([this._n(-7,-1),this._n(-3,-1),this._n(0,-1)], t, bp*0.4, 0.035);
+    // Lead + bell together
+    if (n % 2 === 0) {
+      const mel = [0,7,5,10,7,12,10,14, 0,7,5,3,7,5,3,0, -2,5,3,7,5,10,7,12, 0,-2,-5,3,0,3,5,7, 7,14,10,17,14,19,17,21, 7,14,10,7,14,12,10,7, 0,7,5,10,7,12,10,14, 0,7,5,3,0,-2,-5,-7];
+      this._lead(this._n(mel[n%64], 0), t, 0.38, 0.05);
+    }
+    this._bell(this._n([14,21,17,14,10,7,3,0, 7,14,10,7,0,3,7,10][n%16], 0), t+bp*0.1, 0.25, 0.025);
+    this._arp(this._n([21,17,14,10,7,3,0,3, 7,10,14,17,21,17,14,10][n%16], 0), t+bp*0.06, 0.16, 0.026);
+    if (n % 8 === 0) { this._osc('sawtooth',this._n(0,1),t,bp*0.9,0.05); this._osc('triangle',this._n(4,1),t+0.02,bp*0.7,0.04); }
+    if (n % 16 === 0) this._pad([this._n(0,-1),this._n(4,-1),this._n(7,-1),this._n(11,-1)], t, bp*16, 0.04);
+    if (n % 8 === 0) this._vox(this._n([14,7,0][(n/8)%3], 1), t+bp*0.15, bp*5, 0.035);
+  }  _playBeat(n) {
     switch (this._activeTrack) {
       case 'menu_crystal': this._menuCrystal(n); break;
       case 'menu_void': this._menuVoid(n); break;
       case 'menu_echo': this._menuEcho(n); break;
-      case 'combat_pulse': this._combatPulse(n); break;
-      case 'combat_chase': this._combatChase(n); break;
-      case 'combat_siege': this._combatSiege(n); break;
+      case 'menu_pulse': this._menuPulse(n); break;
+      case 'menu_chase': this._menuChase(n); break;
+      case 'menu_siege': this._menuSiege(n); break;
       case 'boss_abyss': this._bossAbyss(n); break;
-      case 'boss_judgment': this._bossJudgment(n); break;
+      case 'boss_judgment': this._bossJudgment(n); break; case 'boss_onslaught': this._bossOnslaught(n); break; case 'boss_cataclysm': this._bossCataclysm(n); break; case 'boss_onslaught': this._bossOnslaught(n); break; case 'boss_cataclysm': this._bossCataclysm(n); break;
     }
   }
 
