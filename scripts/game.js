@@ -1581,23 +1581,55 @@ function renderDifficultyButtons() {
     const activeBtn = modeSwitch.querySelector(selectedRunMode === 'endless' ? '.run-mode-btn:nth-child(2)' : '.run-mode-btn:nth-child(1)');
     if (activeBtn) activeBtn.classList.add('active');
   }
+  // Inject mode switch styles (match difficulty buttons)
+  if (!document.getElementById('mode-switch-style')) {
+    const style = document.createElement('style');
+    style.id = 'mode-switch-style';
+    style.textContent = `
+      #dual-mode-btn, #dual-auto-btn {
+        padding: 8px 60px; font-size: 14px; font-weight: 400; margin-top: 6px;
+        font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 4px; border: none;
+        background: rgba(18,24,34,0.7); color: #8a94a4;
+        cursor: pointer; transition: all 0.2s; position: relative;
+        clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+      }
+      #dual-mode-btn::after, #dual-auto-btn::after {
+        content: ''; position: absolute; top: 1px; left: 1px; right: 1px; bottom: 1px;
+        border: 1px solid rgba(107,125,149,0.1);
+        clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+        transition: border-color 0.2s;
+      }
+      #dual-mode-btn:hover, #dual-auto-btn:hover {
+        background: rgba(30,40,54,0.9); color: #e0e4ec;
+        transform: translateX(4px);
+        box-shadow: 0 0 20px rgba(244,152,0,0.1);
+      }
+      #dual-mode-btn:hover::after { border-color: rgba(120,200,255,0.45); }
+      #dual-auto-btn:hover::after { border-color: rgba(255,160,0,0.45); }
+      #dual-mode-btn.dual-active { color: #cdf; }
+      #dual-mode-btn.dual-active::after { border-color: rgba(120,200,255,0.55); }
+      #dual-auto-btn.auto-active { color: #fa0; }
+      #gamepad-status {
+        display: block; margin-top: 2px; padding: 0 4px;
+        font: 10px "Courier New"; color: #888; cursor: pointer; text-align: center;
+      }
+    `;
+    document.head.appendChild(style);
+  }
   // Ensure dual mode button exists on start screen
   let dualBtn = document.getElementById('dual-mode-btn');
   if (!dualBtn) {
     dualBtn = document.createElement('button');
     dualBtn.id = 'dual-mode-btn';
-    dualBtn.style.cssText = 'margin-top:8px;padding:8px 24px;font:14px "Courier New";' +
-      'background:#1a1a2a;color:#8cf;border:1px solid #8cf;border-radius:4px;cursor:pointer;';
     dualBtn.onclick = toggleDualMode;
     document.getElementById('start-screen').appendChild(dualBtn);
     // Gamepad status indicator (clickable to force re-scan)
     const gpStatus = document.createElement('span');
     gpStatus.id = 'gamepad-status';
-    gpStatus.style.cssText = 'display:block;margin-top:2px;font:10px "Courier New";color:#888;cursor:pointer;';
     gpStatus.title = '点击此处强制重新检测手柄';
     gpStatus.onclick = function(e) {
       e.stopPropagation();
-      dualBtn._lastGpPoll = 0; // Force re-poll
+      dualBtn._lastGpPoll = 0;
       renderDifficultyButtons();
     };
     dualBtn.parentNode.insertBefore(gpStatus, dualBtn.nextSibling);
@@ -1620,23 +1652,20 @@ function renderDifficultyButtons() {
     gpStatus.textContent = gpName ? '\u{1F3AE} 已连接: ' + gpName.substring(0, 40) : '未检测到手柄';
     gpStatus.style.color = gpName ? '#0f0' : '#888';
   }
-  dualBtn.textContent = dualModePending ? '[ON]  双人模式 (手柄P2)' : '[OFF]  单人模式';
+  dualBtn.textContent = dualModePending ? 'DUAL 双人模式' : 'SOLO 单人模式';
 
-  // Auto-aim toggle (visible only in dual mode)
+  // Auto-aim toggle
   let autoBtn = document.getElementById('dual-auto-btn');
   if (!autoBtn) {
     autoBtn = document.createElement('button');
     autoBtn.id = 'dual-auto-btn';
-    autoBtn.style.cssText = 'margin-top:4px;padding:6px 18px;font:12px "Courier New";' +
-      'background:#1a1a2a;color:#fa0;border:1px solid #fa0;border-radius:4px;cursor:pointer;';
     autoBtn.onclick = function() {
       autoAimEnabled = !autoAimEnabled;
       renderDifficultyButtons();
     };
     document.getElementById('start-screen').appendChild(autoBtn);
   }
-  autoBtn.style.display = 'inline-block';
-  autoBtn.textContent = autoAimEnabled ? '[AUTO] 自动索敌 (土豆兄弟式)' : '[MANUAL] 手动瞄准';
+  autoBtn.textContent = autoAimEnabled ? 'AUTO 自动索敌' : 'MANUAL 手动瞄准';
 
   const classes = ['easy','normal','hard','extreme','nightmare'];
   container.innerHTML = DIFFICULTY_ORDER.map((key, idx) => {
@@ -1886,7 +1915,7 @@ function toggleDualMode() {
   const btn = document.getElementById('dual-mode-btn');
   if (btn) {
     btn.classList.toggle('dual-active', dualModePending);
-    btn.textContent = dualModePending ? '[ON]  双人模式 (手柄P2)' : '[OFF]  单人模式';
+    btn.textContent = dualModePending ? 'DUAL 双人模式' : 'SOLO 单人模式';
     btn._lastGpPoll = 0; // Force re-poll next render
   }
   renderDifficultyButtons();
