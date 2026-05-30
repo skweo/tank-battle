@@ -5930,12 +5930,127 @@ class EnemyTank extends Tank {
   shoot() {
     const bx = this.x + Math.cos(this.turretAngle) * 18;
     const by = this.y + Math.sin(this.turretAngle) * 18;
-    const spread = (rng() - 0.5) * 0.15;
     const ebs = 1.7;
     const dmg = 1 + (this.bulletDamageBonus || 0);
-    const b = new Bullet(bx, by, this.turretAngle + spread, ebs * (this.bulletSpeedMul || 1), '#f44', false, dmg);
-    if (this.bulletSpeedMul && this.bulletSpeedMul > 1) b.radius = 2.6;
-    enemyBullets.push(b);
+    const color = this.turretColor || '#f44';
+    // Elite patterns (special-based)
+    if (this.isElite) {
+      const s = this.special;
+      if (s === 'heavy') {
+        for (let i = -1; i <= 1; i++) {
+          const b = new Bullet(bx, by, this.turretAngle + i * 0.14, ebs * 0.65, '#c44', false, dmg + 1);
+          b.radius = 4; enemyBullets.push(b);
+        }
+      } else if (s === 'sniper') {
+        const sb = new Bullet(bx, by, this.turretAngle + (rng() - 0.5) * 0.03, 4.2, '#6f6', false, 3);
+        sb.radius = 1.8; enemyBullets.push(sb);
+      } else if (s === 'fast') {
+        for (let s = -1; s <= 1; s += 2) {
+          const b = new Bullet(bx, by, this.turretAngle + s * 0.1, 2.8, '#4af', false, dmg);
+          b.radius = 1.6; enemyBullets.push(b);
+        }
+      } else if (s === 'flame') {
+        for (let i = -2; i <= 2; i++) {
+          const b = new Bullet(bx, by, this.turretAngle + i * 0.1, 1.2 + Math.abs(i) * 0.3, '#f80', false, dmg);
+          b.radius = 2.5; enemyBullets.push(b);
+        }
+      } else if (s === 'laser') {
+        const lb = new Bullet(bx, by, this.turretAngle, 3.5, '#aaf', true, dmg + 1);
+        lb.radius = 2; enemyBullets.push(lb);
+        for (let i = -2; i <= 2; i += 4) {
+          const b = new Bullet(this.x, this.y, this.turretAngle + i * 0.35, 1.2, '#88f', false, 1);
+          b.radius = 1.8; enemyBullets.push(b);
+        }
+      } else if (s === 'missile') {
+        const mb = new Bullet(bx, by, this.turretAngle, 1.2, '#f84', false, 2);
+        mb.radius = 5; mb.isMissile = true; enemyBullets.push(mb);
+      } else if (s === 'summoner') {
+        for (let i = 0; i < 4; i++) {
+          const a = this.turretAngle + (i - 1.5) * 0.15;
+          const b = new Bullet(bx, by, a, 1.3, '#6cf', false, dmg);
+          b.radius = 2.2; enemyBullets.push(b);
+        }
+      } else if (s === 'barrier') {
+        for (let i = 0; i < 3; i++) {
+          const a = this.turretAngle - 0.15 + i * 0.15;
+          const b = new Bullet(bx, by, a, 1.1, '#4ff', false, 1);
+          b.radius = 2; enemyBullets.push(b);
+        }
+      } else if (s === 'miner') {
+        const mb = new Bullet(bx, by, this.turretAngle, 1.5, '#ca4', false, dmg);
+        mb.radius = 2.5; enemyBullets.push(mb);
+      } else if (s === 'warden') {
+        for (let i = -1; i <= 1; i++) {
+          const b = new Bullet(bx, by, this.turretAngle + i * 0.06, 2.8, '#f6e5aa', false, 2);
+          b.radius = 3; enemyBullets.push(b);
+        }
+      } else {
+        // Default elite: 2-shot spread
+        for (let i = -1; i <= 1; i += 2) {
+          const b = new Bullet(bx, by, this.turretAngle + i * 0.1, ebs, color, false, dmg);
+          b.radius = 2.5; enemyBullets.push(b);
+        }
+      }
+      const fireSlow = getEnemyFireSlowProfile(this);
+      this.applyFireSlow(fireSlow.duration, fireSlow.mul);
+      sfxEnemyShoot(this.special || 'elite');
+      return;
+    }
+    // Normal enemy kind-based patterns
+    switch (this.kind) {
+      case 'sniper':
+        // Fast single shot, very accurate
+        const sb = new Bullet(bx, by, this.turretAngle + (rng()-0.5)*0.04, 3.8, '#adf', false, 2);
+        sb.radius = 2; enemyBullets.push(sb); break;
+      case 'runner':
+        // Fast double shot — alternating sides
+        for (let s = -1; s <= 1; s += 2) {
+          const b = new Bullet(bx, by, this.turretAngle + s * 0.12 + this.aiTimer*0.02, ebs*1.1, '#fa8', false, dmg);
+          b.radius = 1.8; enemyBullets.push(b);
+        }
+        break;
+      case 'brute':
+        // Slow wide cone — 3 shots
+        for (let i = -1; i <= 1; i++) {
+          const b = new Bullet(bx, by, this.turretAngle + i * 0.15, ebs*0.75, '#c6f', false, dmg+1);
+          b.radius = 3.5; enemyBullets.push(b);
+        }
+        break;
+      case 'artillery':
+        // Arc shot — 2 slow wide bullets
+        for (let s = -1; s <= 1; s += 2) {
+          const b = new Bullet(bx, by, this.turretAngle + s * 0.1, ebs*0.6, '#f6c', false, dmg+1);
+          b.radius = 4; enemyBullets.push(b);
+        }
+        break;
+      case 'sapper':
+        // Single shot + trailing delay shot
+        const mb = new Bullet(bx, by, this.turretAngle, ebs, '#fa6', false, dmg);
+        mb.radius = 2.2; enemyBullets.push(mb);
+        if (rng() < 0.4) {
+          const tb = new Bullet(bx, by, this.turretAngle + (rng()-0.5)*0.3, ebs*0.7, '#fa6', false, dmg);
+          tb.radius = 2; enemyBullets.push(tb);
+        }
+        break;
+      case 'buffer':
+        // Support: fires slow ring of 3 weak bullets
+        for (let i = 0; i < 3; i++) {
+          const a = this.turretAngle - 0.2 + i * 0.2;
+          const b = new Bullet(bx, by, a, ebs*0.55, '#bfb', false, 1);
+          b.radius = 2.2; enemyBullets.push(b);
+        }
+        break;
+      case 'fissure':
+        // Erratic — 2 bullets with random angle offset
+        for (let i = 0; i < 2; i++) {
+          const b = new Bullet(bx, by, this.turretAngle + (rng()-0.5)*0.4, ebs*0.85, '#d8f', false, dmg);
+          b.radius = 2.4; enemyBullets.push(b);
+        }
+        break;
+      default: // scout
+        const rb = new Bullet(bx, by, this.turretAngle + (rng()-0.5)*0.1, ebs, color, false, dmg);
+        rb.radius = 2.2; enemyBullets.push(rb);
+    }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
     sfxEnemyShoot(this.kind);
