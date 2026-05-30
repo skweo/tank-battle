@@ -7285,38 +7285,50 @@ class BossEnemy extends EliteEnemy {
     const rageSpeed = this.currentPhase > 0 ? 0.14 : 0;
     const bonusBullets = this.currentPhase > 0 ? 2 : 0;
     if (phase.attack === 'spiral') {
+      // === BEHEMOTH P1: 破城弹幕 — expanding rings + forward cone ===
       const total = phase.bulletCount + bonusBullets;
-      const spinOffset = this.phaseTimer * 0.12;
+      // Expanding ring from boss center (shockwave feel)
+      const ringCount = this.currentPhase > 0 ? 12 : 9;
+      for (let i = 0; i < ringCount; i++) {
+        const a = this.phaseTimer * 0.1 + (i / ringCount) * Math.PI * 2;
+        const b = new Bullet(this.x, this.y, a, 1.55 + this.currentPhase * 0.2, '#f44', false, 1);
+        b.radius = 3.5;
+        enemyBullets.push(b);
+      }
+      // Forward dense cone
       for (let i = 0; i < total; i++) {
-        const a = spinOffset + this.turretAngle + (i / total) * Math.PI * 2;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed + rageSpeed, '#f44', false, this.currentPhase > 0 ? 2 : 1);
+        const a = this.turretAngle + (i - total/2) * 0.22;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + rageSpeed, '#ff6040', false, this.currentPhase > 0 ? 2 : 1);
         b.radius = this.currentPhase > 0 ? 4 : 3.2;
         enemyBullets.push(b);
       }
       if (this.currentPhase > 0) {
-        for (let i = -1; i <= 1; i++) {
-          const a = this.turretAngle + i * 0.12;
-          const b = new Bullet(bx, by, a, 3.1, '#ffd27a', false, 1);
-          b.radius = 2.4;
-          enemyBullets.push(b);
+        // Second ring, counter-rotating
+        for (let i = 0; i < 8; i++) {
+          const a = -this.phaseTimer * 0.07 + (i / 8) * Math.PI * 2;
+          const b = new Bullet(this.x, this.y, a, 1.35, '#ffb25d', false, 1);
+          b.radius = 2.8; enemyBullets.push(b);
         }
       }
     } else if (phase.attack === 'enrage') {
-      const total = phase.bulletCount + (this.currentPhase > 0 ? 1 : 0);
+      // === BEHEMOTH P2: 过热狂潮 — spiral + scatter burst ===
+      const total = phase.bulletCount + bonusBullets + 2;
+      // Dense forward barrage
       for (let i = 0; i < total; i++) {
-        const a = this.turretAngle + (i - total / 2) * 0.12;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed + 0.2, '#f80', false, 2);
-        b.radius = 4.2;
-        enemyBullets.push(b);
+        const a = this.turretAngle + (i - total/2) * 0.14;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + 0.25, '#f80', false, 2);
+        b.radius = 4.2; enemyBullets.push(b);
       }
-      for (let ring = 0; ring < 1; ring++) {
-        for (let i = 0; i < 8; i++) {
-          const a = this.phaseTimer * 0.08 + ring * 0.15 + (i / 8) * Math.PI * 2;
-          const b = new Bullet(this.x, this.y, a, 1.78 + ring * 0.25, '#ffb25d', false, 1);
-          b.radius = 3;
-          enemyBullets.push(b);
+      // Rotating scatter ring
+      for (let ring = 0; ring < 2; ring++) {
+        const ringCount = 10 + ring * 4;
+        for (let i = 0; i < ringCount; i++) {
+          const a = this.phaseTimer * (0.08 + ring * 0.04) + (i / ringCount) * Math.PI * 2;
+          const b = new Bullet(this.x, this.y, a, 1.6 + ring * 0.3, '#ffb25d', false, 1);
+          b.radius = 2.6 + ring; enemyBullets.push(b);
         }
       }
+      if (this.currentPhase > 0) triggerShake(3, 4);
     } else if (phase.attack === 'teleport') {
       if (this.attackBurstShots === 0) this.teleportToSafePoint(this.currentPhase > 0 ? 235 : 195);
       const total = phase.bulletCount + bonusBullets;
@@ -7351,15 +7363,21 @@ class BossEnemy extends EliteEnemy {
       }
       if (this.attackBurstShots === 0) this.teleportToSafePoint(235);
     } else if (phase.attack === 'turret_salvo') {
-      const offsets = [-30, 0, 30];
+      // === FORTRESS P1: 弹幕围墙 — moving wall of bullets ===
+      const offsets = [-30, -15, 0, 15, 30];
       for (const offset of offsets) {
         const tx = this.x + offset;
-        for (let i = 0; i < Math.max(3, Math.floor((phase.bulletCount + bonusBullets) / 3)); i++) {
-          const a = this.telegraphAngle + (i - 1) * 0.12 + offset * 0.0025;
-          const b = new Bullet(tx, this.y, a, phase.bulletSpeed + rageSpeed, '#ca4', false, this.currentPhase > 0 ? 2 : 1);
-          b.radius = offset === 0 ? 4 : 3.2;
-          enemyBullets.push(b);
+        for (let i = 0; i < 4; i++) {
+          const a = this.telegraphAngle + (i - 1.5) * 0.08;
+          const b = new Bullet(tx, this.y + (i-1.5)*12, a, phase.bulletSpeed + rageSpeed, '#ca4', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = 3.5; enemyBullets.push(b);
         }
+      }
+      // Rotating wall ring
+      for (let i = 0; i < 12; i++) {
+        const a = this.phaseTimer * 0.05 + (i / 12) * Math.PI * 2;
+        const b = new Bullet(this.x + Math.cos(a)*25, this.y + Math.sin(a)*25, a + Math.PI/2, 1.45, '#da4', false, 1);
+        b.radius = 2.8; enemyBullets.push(b);
       }
       if (this.currentPhase > 0) this.deployMines(2, 180);
     } else if (phase.attack === 'mine_storm') {
@@ -7371,27 +7389,47 @@ class BossEnemy extends EliteEnemy {
         enemyBullets.push(b);
       }
     } else if (phase.attack === 'gravity_wave') {
-      for (let i = 0; i < phase.bulletCount + bonusBullets; i++) {
-        const a = this.turretAngle + (i - (phase.bulletCount + bonusBullets) / 2) * 0.16;
+      // === VOID P1: 旋涡吸积 — inward spiral + forward cone ===
+      const total = phase.bulletCount + bonusBullets;
+      // Inward spiral (bullets spiral toward boss)
+      for (let i = 0; i < total + 4; i++) {
+        const a = this.phaseTimer * 0.08 + (i / (total + 4)) * Math.PI * 2;
+        const dist = 15 + i * 3;
+        const b = new Bullet(this.x + Math.cos(a) * dist, this.y + Math.sin(a) * dist, a + Math.PI/2, 1.4, '#c4f', false, 1);
+        b.radius = 3.5; enemyBullets.push(b);
+      }
+      // Forward cone from barrel
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total/2) * 0.18;
         const b = new Bullet(bx, by, a, phase.bulletSpeed + rageSpeed, '#c4f', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = this.currentPhase > 0 ? 5 : 4;
-        enemyBullets.push(b);
+        b.radius = this.currentPhase > 0 ? 5 : 4; enemyBullets.push(b);
       }
       if (this.currentPhase > 0 && hpRatio < 0.4 && this.phaseBurstCooldown <= 0) {
         this.phaseBurstCooldown = 105;
         this.emitPhaseBurst(false);
       }
     } else if (phase.attack === 'black_hole') {
+      // === VOID P2: 黑洞弹幕花 — gravity pull + concentric petals ===
       const pdx = player.x - this.x, pdy = player.y - this.y;
       const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
       if (pdist > 30 && pdist < 350) {
-        this.pushPlayer(-(pdx / pdist) * (this.currentPhase > 0 ? 2.05 : 1.55), -(pdy / pdist) * (this.currentPhase > 0 ? 2.05 : 1.55));
+        this.pushPlayer(-(pdx / pdist) * (this.currentPhase > 0 ? 2.2 : 1.6), -(pdy / pdist) * (this.currentPhase > 0 ? 2.2 : 1.6));
       }
+      // Concentric rings (petal pattern)
+      for (let ring = 0; ring < 3; ring++) {
+        const count = 8 + ring * 6;
+        for (let i = 0; i < count; i++) {
+          const a = this.phaseTimer * (0.04 + ring * 0.02) + (i / count) * Math.PI * 2;
+          const dist = 12 + ring * 10;
+          const b = new Bullet(this.x, this.y, a, 1.2 + ring * 0.35, '#a4f', false, 1);
+          b.radius = 2.5 + ring; enemyBullets.push(b);
+        }
+      }
+      // Direct shots at player
       for (let i = 0; i < phase.bulletCount + bonusBullets; i++) {
         const a = this.phaseTimer * 0.06 + (i / (phase.bulletCount + bonusBullets)) * Math.PI * 2;
         const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + 0.25, '#a4f', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = this.currentPhase > 0 ? 4.2 : 3.4;
-        enemyBullets.push(b);
+        b.radius = this.currentPhase > 0 ? 4.2 : 3.4; enemyBullets.push(b);
       }
       spawnExplosion(this.x, this.y, this.currentPhase > 0 ? 18 : 12, '#a4f', '#fff');
       triggerShake(this.currentPhase > 0 ? 10 : 6, 10);
@@ -7450,60 +7488,76 @@ class BossEnemy extends EliteEnemy {
         }
       }
     } else if (phase.attack === 'orbital_strike') {
-      // Observatory Phase 2: Orbital bombardment from 4 cardinal directions
+      // === OBSERVER P2: 轨道审判 — concentric rings + cardinal bombardment ===
       const baseX = this.telegraphX || (player ? player.x : this.x);
       const baseY = this.telegraphY || (player ? player.y : this.y);
+      // 4 cardinal strikes
       const strikeRadius = this.currentPhase > 0 ? 155 : 125;
-      const directions = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+      const directions = [0, Math.PI/2, Math.PI, Math.PI*1.5];
       for (const dir of directions) {
         const sx = baseX + Math.cos(dir) * strikeRadius;
         const sy = baseY + Math.sin(dir) * strikeRadius;
         for (let i = 0; i < Math.floor((phase.bulletCount + bonusBullets) / 4); i++) {
-          const a = dir + Math.PI + (i - 1) * 0.14;
+          const a = dir + Math.PI + (i - 1) * 0.12;
           const b = new Bullet(sx, sy, a, phase.bulletSpeed + rageSpeed, '#0ee', false, this.currentPhase > 0 ? 2 : 1);
-          b.radius = 3.6;
-          enemyBullets.push(b);
+          b.radius = 3.6; enemyBullets.push(b);
         }
         spawnExplosion(sx, sy, 8, '#4ec', '#0ee');
       }
-      // Center implosion
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 + this.phaseTimer * 0.04;
-        const b = new Bullet(baseX, baseY, a, 1.4, '#0ee', false, 1);
-        b.radius = 2;
-        enemyBullets.push(b);
+      // Concentric rings (Touhou-style)
+      for (let ring = 0; ring < 3; ring++) {
+        const count = 10 + ring * 6;
+        for (let i = 0; i < count; i++) {
+          const a = this.phaseTimer * (0.03 + ring * 0.02) + (i / count) * Math.PI * 2;
+          const dist = 25 + ring * 20;
+          const b = new Bullet(baseX + Math.cos(a)*dist, baseY + Math.sin(a)*dist, a + Math.PI/2, 1.3 + ring * 0.25, '#0ee', false, 1);
+          b.radius = 2.2; enemyBullets.push(b);
+        }
+      }
+      // Center burst
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + this.phaseTimer * 0.05;
+        const b = new Bullet(baseX, baseY, a, 1.5, '#0ee', false, 1);
+        b.radius = 2; enemyBullets.push(b);
       }
       triggerShake(this.currentPhase > 0 ? 12 : 8, 12);
       spawnExplosion(baseX, baseY, 22, '#4ec', '#aff');    } else if (phase.attack === 'salvage_swarm') {
-      // Graveyard Phase 1: Wide salvaged debris arcs
+      // === SCRAP P1: 碎片风暴 — random sector bursts ===
       const total = phase.bulletCount + bonusBullets;
-      for (let i = 0; i < total; i++) {
-        const a = this.turretAngle + (i - total / 2) * 0.22;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed + (i % 3) * 0.22, '#c84', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = 2.8 + (i % 2) * 1.4;
-        enemyBullets.push(b);
+      // Random sector burst (fires in one direction, rotates each volley)
+      const sectorAngle = this.phaseTimer * 0.3;
+      for (let i = 0; i < total + 4; i++) {
+        const a = sectorAngle + (i - (total+4)/2) * 0.18;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + (i % 3) * 0.25, '#c84', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 2.8 + (i % 2) * 1.4; enemyBullets.push(b);
       }
-      for (let i = 0; i < 4; i++) {
-        const a = this.phaseTimer * 0.06 + (i / 4) * Math.PI * 2;
-        const b = new Bullet(this.x + Math.cos(a) * 22, this.y + Math.sin(a) * 22, a + rng() * 0.3, 1.35, '#964', false, 1);
-        b.radius = 3.5;
-        enemyBullets.push(b);
+      // Scatter debris
+      for (let i = 0; i < 6; i++) {
+        const a = this.phaseTimer * 0.07 + (i / 6) * Math.PI * 2;
+        const b = new Bullet(this.x + Math.cos(a) * 22, this.y + Math.sin(a) * 22, a + rng() * 0.5, 1.5, '#964', false, 1);
+        b.radius = 3.5; enemyBullets.push(b);
       }
       if (this.currentPhase > 0 && rng() < 0.35) this.deployMines(1, 120);
     } else if (phase.attack === 'scrap_overload') {
-      // Graveyard Phase 2: Chaotic overload
+      // === SCRAP P2: 弹片雨 — 360° with random gaps + splitting debris ===
       const total = phase.bulletCount + bonusBullets + 2;
-      for (let i = 0; i < total; i++) {
-        const a = this.phaseTimer * 0.09 + (i / total) * Math.PI * 2;
-        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + rng() * 0.35, '#f84', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = 3.2 + rng() * 1.8;
-        enemyBullets.push(b);
+      // Dense 360 burst with intentional gaps
+      const gapCount = 3 + rng() * 2;
+      const gaps = new Set();
+      for (let g = 0; g < gapCount; g++) gaps.add(Math.floor(rng() * 18));
+      for (let i = 0; i < 18; i++) {
+        if (gaps.has(i)) continue; // Skip gap sectors
+        const a = this.phaseTimer * 0.06 + (i / 18) * Math.PI * 2;
+        for (let j = 0; j < 2; j++) {
+          const b = new Bullet(this.x, this.y, a + j * 0.08, 1.7 + j * 0.3, '#f84', false, 1);
+          b.radius = 3 + j; enemyBullets.push(b);
+        }
       }
+      // Fast directed shards
       for (let i = 0; i < 5; i++) {
-        const a = this.turretAngle + (i - 2) * 0.16;
-        const b = new Bullet(bx, by, a, 2.8, '#fa3', false, 2);
-        b.radius = 2.6;
-        enemyBullets.push(b);
+        const a = this.turretAngle + (i - 2) * 0.18;
+        const b = new Bullet(bx, by, a, 3.0, '#fa3', false, 2);
+        b.radius = 2.8; enemyBullets.push(b);
       }
       spawnExplosion(this.x, this.y, 16, '#c84', '#964');
       triggerShake(6, 8);
