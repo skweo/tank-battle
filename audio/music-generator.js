@@ -104,6 +104,14 @@ class CyberSynth {
     notes.forEach(f => this._osc('square', f, t, dur, g, 500));
   }
 
+  // Piano — warm, natural overtones (1, 2, 3, 4x harmonics)
+  _piano(freq, t, dur, g = 0.05) {
+    this._osc('sine', freq, t, dur * 0.5, g);
+    this._osc('sine', freq * 2, t + 0.003, dur * 0.3, g * 0.3, 4000, false);
+    this._osc('sine', freq * 3, t + 0.005, dur * 0.15, g * 0.12, 6000, false);
+    this._osc('sine', freq * 4, t + 0.008, dur * 0.08, g * 0.05, 8000, false);
+  }
+
   // Bell with rich overtones
   _bell(freq, t, dur, g = 0.05) {
     this._osc('sine', freq, t, dur * 0.6, g);
@@ -170,7 +178,10 @@ class CyberSynth {
     const mel = section === 0
       ? [0,2,4,5,7,5,4,2, 0,-2,0,2,4,2,0,-2, -1,0,2,4,5,4,2,0, 0,2,4,5,7,5,4,2, 3,5,7,10,12,10,7,5, 3,2,0,-2,0,2,3,5]
       : [3,2,0,-2,-4,-2,0,2, 3,5,3,2,0,2,3,5, 0,2,4,5,7,5,4,2, -1,0,2,4,5,4,2,0, -2,0,2,3,5,3,2,0, -1,0,2,4,5,4,2,0];
-    if (sn % 3 === 0) this._bell(this._n(mel[sn%48], 0), t, 1.8, 0.04);
+    // Piano main melody — warm, epic
+    if (sn % 3 === 0) this._piano(this._n(mel[sn%48], 0), t, 2.0, 0.045);
+    // Bell accent — sparkle on top
+    if (sn % 6 === 0) this._bell(this._n(mel[(sn+3)%48], 0), t+bp*0.15, 1.2, 0.02);
     // Sparkle
     if (sn % 8 === 1) {
       const sp = section === 0 ? [7,11,14,11,12,14,11,7] : [5,10,12,10,7,12,10,5];
