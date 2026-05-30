@@ -1480,11 +1480,11 @@ let isDailyChallenge = false;
 
 // --- Difficulty Settings ---
 const difficultySettings = {
-  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 1,  playerHp: 12, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 1.55, unlockScore: 0,     clearWave: 20, label: '简单' },
-  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2,  playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 2.05, unlockScore: 2800,  clearWave: 20, label: '普通' },
-  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4,  playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 2.55, unlockScore: 7200,  clearWave: 24, label: '困难' },
-  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6,  playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 3.05, unlockScore: 12800, clearWave: 28, label: '极限' },
-  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8,  playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 3.65, unlockScore: 20500, clearWave: 32, label: '梦魇' },
+  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 1,  playerHp: 12, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 1.55, unlockScore: 0,     clearWave: 20, bossRequired: 5,  label: '简单' },
+  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2,  playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 2.05, unlockScore: 2800,  clearWave: 28, bossRequired: 7,  label: '普通' },
+  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4,  playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 2.55, unlockScore: 7200,  clearWave: 36, bossRequired: 9,  label: '困难' },
+  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6,  playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 3.05, unlockScore: 12800, clearWave: 44, bossRequired: 12, label: '极限' },
+  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8,  playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 3.65, unlockScore: 20500, clearWave: 56, bossRequired: 15, label: '梦魇' },
 };
 const DIFFICULTY_ORDER = ['easy','normal','hard','extreme','nightmare'];
 
@@ -2699,6 +2699,16 @@ function selectBossForWave(waveNo) {
   // Build pool: all bosses for archive, expanding pool for post-archive
   let pool = [...BOSS_TYPES];
 
+  // Tier-based filtering by boss wave depth
+  if (bossWaveIndex < 3) {
+    // Waves 4, 8, 12: Tier 1 only (beginner bosses)
+    pool = pool.filter(b => b.tier === 1);
+  } else if (bossWaveIndex < 6) {
+    // Waves 16, 20, 24: Tier 1 + Tier 2 (intermediate bosses)
+    pool = pool.filter(b => b.tier <= 2);
+  }
+  // Waves 28+: all tiers (Tier 3 bosses join the pool)
+
   // Filter out last boss to avoid consecutive repeats
   if (lastBossName && pool.length > 1) {
     pool = pool.filter(b => b.name !== lastBossName);
@@ -2717,17 +2727,15 @@ function selectBossForWave(waveNo) {
     if (factionShift.length > 0) pool = factionShift;
   }
 
-  // Tier-S bosses (要塞, 雷霆执政官) don't appear in first 3 boss waves
-  const HARD_BOSSES = ['要塞坦克', '雷霆执政官'];
-  if (bossWaveIndex < 3 && pool.length > HARD_BOSSES.length) {
-    pool = pool.filter(b => !HARD_BOSSES.includes(b.name));
-  }
-
   return pool[Math.floor(rng() * pool.length)] || BOSS_TYPES[0];
 }
 
+function getRequiredBossDefeats() {
+  const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
+  return diff.bossRequired || 5;
+}
 function hasSeenAllRunBosses() {
-  return BOSS_TYPES.every(b => runBossesSeen.has(b.name));
+  return runBossesSeen.size >= getRequiredBossDefeats();
 }
 
 function shouldClearDifficulty() {
@@ -7035,128 +7043,128 @@ let bossWarningDef = null;
 let bossWarningSpawn = null;
 
 const BOSS_TYPES = [
-  { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.34, hp:150, icon:'BST', faction:'moon_arsenal',
+  { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.34, hp:150, icon:'BST', faction:'moon_arsenal', tier:1,
     desc:'重型压制Boss，装甲轰杀+过载冲击',
     phases:[
       { name:'装甲镇压', hpPct:1.0, attack:'spiral', shootDelay:40, burstShots:3, burstRest:126, telegraph:46, recover:112, bulletCount:11, bulletSpeed:1.58, pressure:0.9, cue:'BREACH ARC', hint:'环形压制后有装甲空窗' },
       { name:'过载破城', hpPct:0.58, attack:'enrage', shootDelay:38, burstShots:3, burstRest:156, telegraph:56, recover:132, bulletCount:12, bulletSpeed:1.92, pressure:1.18, cue:'SIEGE BURN', hint:'正面破城弹后短暂过热' },
     ]},
-  { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.68, hp:112, icon:'PHZ', faction:'void_cult',
+  { name:'幻影坦克', color:'#448', turret:'#88f', speed:0.68, hp:112, icon:'PHZ', faction:'void_cult', tier:1,
     desc:'高速相位Boss，折跃猎杀+镜像围杀',
     phases:[
       { name:'折跃猎杀', hpPct:1.0, attack:'teleport', shootDelay:46, burstShots:3, burstRest:140, telegraph:42, recover:116, bulletCount:7, bulletSpeed:1.82, pressure:0.86, cue:'PHASE LOCK', hint:'折跃前会锁定安全距离' },
       { name:'镜像歼灭', hpPct:0.6, attack:'clone_barrage', shootDelay:44, burstShots:3, burstRest:176, telegraph:52, recover:142, bulletCount:7, bulletSpeed:1.95, pressure:1.08, cue:'MIRROR LOCK', hint:'镜像结阵后本体短暂停顿' },
     ]},
-  { name:'要塞坦克', color:'#664', turret:'#ca4', speed:0.08, hp:180, icon:'FRT', faction:'ash_church',
+  { name:'要塞坦克', color:'#664', turret:'#ca4', speed:0.08, hp:180, icon:'FRT', faction:'ash_church', tier:2,
     desc:'堡垒压场Boss，多炮塔火网+雷区封锁',
     phases:[
       { name:'重炮幕墙', hpPct:1.0, attack:'turret_salvo', shootDelay:50, burstShots:3, burstRest:138, telegraph:56, recover:126, bulletCount:9, bulletSpeed:1.82, pressure:1.0, cue:'CITADEL LINE', hint:'炮线展开后侧翼可反击' },
       { name:'湮灭雷暴', hpPct:0.57, attack:'mine_storm', shootDelay:46, burstShots:3, burstRest:166, telegraph:64, recover:150, bulletCount:9, bulletSpeed:2.0, pressure:1.24, cue:'MINE LITURGY', hint:'雷区封锁结束后炮塔冷却' },
     ]},
-  { name:'虚空坦克', color:'#424', turret:'#a4f', speed:0.44, hp:132, icon:'VOID', faction:'void_cult',
+  { name:'虚空坦克', color:'#424', turret:'#a4f', speed:0.44, hp:132, icon:'VOID', faction:'void_cult', tier:2,
     desc:'奇点操控Boss，引力洪流+黑洞撕裂',
     phases:[
       { name:'引力洪流', hpPct:1.0, attack:'gravity_wave', shootDelay:46, burstShots:3, burstRest:132, telegraph:50, recover:120, bulletCount:9, bulletSpeed:1.7, pressure:0.98, cue:'GRAVITY TIDE', hint:'引力波后奇点短暂失稳' },
       { name:'黑洞撕裂', hpPct:0.6, attack:'black_hole', shootDelay:44, burstShots:3, burstRest:162, telegraph:60, recover:148, bulletCount:9, bulletSpeed:1.9, pressure:1.24, cue:'BLACK WELL', hint:'吸引结束后核心暴露' },
     ]},
-  { name:'风暴坦克', color:'#446', turret:'#4ff', speed:0.56, hp:126, icon:'STM', faction:'storm_cloister',
+  { name:'风暴坦克', color:'#446', turret:'#4ff', speed:0.56, hp:126, icon:'STM', faction:'storm_cloister', tier:2,
     desc:'天候支配Boss，电弧锁链+雷暴空袭',
     phases:[
       { name:'电弧狩猎', hpPct:1.0, attack:'lightning_chain', shootDelay:42, burstShots:3, burstRest:124, telegraph:42, recover:110, bulletCount:7, bulletSpeed:2.32, pressure:0.98, cue:'ARC JUDGMENT', hint:'电弧直线清晰，横移可避' },
       { name:'雷霆天幕', hpPct:0.58, attack:'thunder_storm', shootDelay:40, burstShots:3, burstRest:160, telegraph:54, recover:138, bulletCount:9, bulletSpeed:2.38, pressure:1.25, cue:'STORM CANOPY', hint:'落雷前会标记区域' },
     ]},
-  { name:'观星者坦克', color:'#244', turret:'#4ec', speed:0.42, hp:138, icon:'OBS', faction:'observatory',
+  { name:'观星者坦克', color:'#244', turret:'#4ec', speed:0.42, hp:138, icon:'OBS', faction:'observatory', tier:2,
     desc:'数据支配Boss，扫描标记+轨道轰炸',
     phases:[
       { name:'扫描标记', hpPct:1.0, attack:'scan_mark', shootDelay:44, burstShots:3, burstRest:136, telegraph:48, recover:118, bulletCount:8, bulletSpeed:1.76, pressure:0.96, cue:'SCAN LOCK', hint:'扫描束间隙可闪避，被标记后子弹会追踪' },
       { name:'轨道审判', hpPct:0.56, attack:'orbital_strike', shootDelay:42, burstShots:3, burstRest:172, telegraph:62, recover:146, bulletCount:10, bulletSpeed:2.08, pressure:1.28, cue:'ORBITAL JUDGMENT', hint:'光束锁定区域后短暂撤退' },
     ]}
 ,
-  { name:'废铁巨像', color:'#643', turret:'#c84', speed:0.16, hp:165, icon:'SCP', faction:'graveyard',
+  { name:'废铁巨像', color:'#643', turret:'#c84', speed:0.16, hp:165, icon:'SCP', faction:'graveyard', tier:1,
     desc:'残骸支配Boss，废铁回收+过载狂潮',
     phases:[
       { name:'残骸回收', hpPct:1.0, attack:'salvage_swarm', shootDelay:52, burstShots:3, burstRest:148, telegraph:50, recover:134, bulletCount:10, bulletSpeed:1.48, pressure:0.88, cue:'SALVAGE PROTOCOL', hint:'碎片弹幕密度高但速度慢，横移可规避' },
       { name:'废铁觉醒', hpPct:0.54, attack:'scrap_overload', shootDelay:44, burstShots:3, burstRest:158, telegraph:58, recover:140, bulletCount:12, bulletSpeed:1.82, pressure:1.16, cue:'OVERLOAD AWAKENING', hint:'全向弹幕后巨像核心短暂暴露' },
     ]},
-  { name:'雷霆执政官', color:'#348', turret:'#6ff', speed:0.48, hp:114, icon:'ARB', faction:'storm_cloister',
+  { name:'雷霆执政官', color:'#348', turret:'#6ff', speed:0.48, hp:114, icon:'ARB', faction:'storm_cloister', tier:3,
     desc:'天罚支配Boss，电弧裁决+雷域展开',
     phases:[
       { name:'电弧裁决', hpPct:1.0, attack:'arc_judgment', shootDelay:38, burstShots:3, burstRest:120, telegraph:40, recover:108, bulletCount:6, bulletSpeed:2.62, pressure:1.02, cue:'ARC JUDGMENT', hint:'电弧直线清晰可辨，横移躲避' },
       { name:'雷域展开', hpPct:0.55, attack:'storm_domain', shootDelay:36, burstShots:3, burstRest:156, telegraph:56, recover:136, bulletCount:10, bulletSpeed:2.48, pressure:1.35, cue:'DOMAIN EXPANSION', hint:'雷域边缘安全，但中心持续高压' },
     ]},
-  { name:'轨道炮台', color:'#533', turret:'#f84', speed:0.12, hp:140, icon:'ORB', faction:'moon_arsenal',
+  { name:'轨道炮台', color:'#533', turret:'#f84', speed:0.12, hp:140, icon:'ORB', faction:'moon_arsenal', tier:1,
     desc:'远距狙击Boss，激光锁定+光束扫射',
     phases:[
       { name:'激光锁定', hpPct:1.0, attack:'laser_snipe', shootDelay:48, burstShots:1, burstRest:160, telegraph:90, recover:70, bulletCount:1, bulletSpeed:5.5, pressure:0.85, cue:'TARGET LOCK', hint:'躲开激光瞄准线' },
       { name:'光束扫射', hpPct:0.55, attack:'beam_sweep', shootDelay:42, burstShots:3, burstRest:180, telegraph:60, recover:90, bulletCount:5, bulletSpeed:2.8, pressure:1.15, cue:'SWEEP ARRAY', hint:'光束间隙可闪避' },
     ]},
-  { name:'圣龛守卫', color:'#864', turret:'#fd0', speed:0.22, hp:175, icon:'SCT', faction:'ash_church',
+  { name:'圣龛守卫', color:'#864', turret:'#fd0', speed:0.22, hp:175, icon:'SCT', faction:'ash_church', tier:1,
     desc:'神圣堡垒Boss，圣光弹幕+护盾反弹',
     phases:[
       { name:'圣光帷幕', hpPct:1.0, attack:'holy_barrage', shootDelay:50, burstShots:3, burstRest:140, telegraph:48, recover:112, bulletCount:12, bulletSpeed:1.35, pressure:0.9, cue:'SANCTUM LIGHT', hint:'圣光规律密集可读，穿行间隙' },
       { name:'圣盾反制', hpPct:0.52, attack:'shield_counter', shootDelay:46, burstShots:3, burstRest:170, telegraph:54, recover:136, bulletCount:8, bulletSpeed:1.95, pressure:1.1, cue:'SHIELD RETORT', hint:'护盾展开时反弹子弹，关闭后自愈' },
     ]},
-  { name:'星象仪', color:'#1a2a3a', turret:'#4ce', speed:0.30, hp:128, icon:'AST', faction:'observatory',
+  { name:'星象仪', color:'#1a2a3a', turret:'#4ce', speed:0.30, hp:128, icon:'AST', faction:'observatory', tier:1,
     desc:'几何弹幕Boss，星轨旋转环+星座阵列',
     phases:[
       { name:'星轨共鸣', hpPct:1.0, attack:'star_rings', shootDelay:44, burstShots:3, burstRest:150, telegraph:52, recover:122, bulletCount:14, bulletSpeed:1.2, pressure:0.92, cue:'STAR HARMONY', hint:'三层旋转环，逆向观察找稳定空隙' },
       { name:'星座阵列', hpPct:0.5, attack:'constellation', shootDelay:40, burstShots:3, burstRest:168, telegraph:56, recover:140, bulletCount:18, bulletSpeed:1.55, pressure:1.2, cue:'CONSTELLATION', hint:'弹幕排列成几何图形，识破图案找突破口' },
     ]},
-  { name:'缝合巨兽', color:'#543', turret:'#c84', speed:0.18, hp:195, icon:'PTC', faction:'graveyard',
+  { name:'缝合巨兽', color:'#543', turret:'#c84', speed:0.18, hp:195, icon:'PTC', faction:'graveyard', tier:3,
     desc:'吸收进化Boss，碎片散射+吞噬爆发',
     phases:[
       { name:'碎片回收', hpPct:1.0, attack:'patchwork_swarm', shootDelay:52, burstShots:3, burstRest:148, telegraph:50, recover:126, bulletCount:12, bulletSpeed:1.5, pressure:0.88, cue:'SALVAGE SWARM', hint:'碎片不规则散射，保持移动可规避' },
       { name:'吞噬爆发', hpPct:0.5, attack:'devour_burst', shootDelay:44, burstShots:3, burstRest:172, telegraph:58, recover:152, bulletCount:16, bulletSpeed:1.85, pressure:1.22, cue:'DEVOUR BURST', hint:'吞噬尸体后释放冲击波，远离Boss中心' },
     ]},
-  { name:'双子坦克', color:'#426', turret:'#a4f', speed:0.52, hp:100, icon:'GEM', faction:'void_cult',
+  { name:'双子坦克', color:'#426', turret:'#a4f', speed:0.52, hp:100, icon:'GEM', faction:'void_cult', tier:1,
     desc:'双体镜像Boss，交叉火力+狂暴',
     phases:[
       { name:'交叉弹幕', hpPct:1.0, attack:'gemini_cross', shootDelay:40, burstShots:3, burstRest:130, telegraph:44, recover:106, bulletCount:8, bulletSpeed:2.0, pressure:1.0, cue:'MIRROR DANCE', hint:'两体弹幕交织成网，找网眼穿行' },
       { name:'镜像狂暴', hpPct:0.0, attack:'gemini_rage', shootDelay:28, burstShots:3, burstRest:90, telegraph:30, recover:70, bulletCount:18, bulletSpeed:2.6, pressure:1.45, cue:'RAGE AWAKENING', hint:'一体死亡后另一体狂暴，弹幕密度×3' },
     ]},
-  { name:'迅影', color:'#123', turret:'#4ff', speed:0.92, hp:90, icon:'SWF', faction:'storm_cloister',
+  { name:'迅影', color:'#123', turret:'#4ff', speed:0.92, hp:90, icon:'SWF', faction:'storm_cloister', tier:3,
     desc:'忍者刺客Boss，手里剑+瞬移背刺',
     phases:[
       { name:'影舞', hpPct:1.0, attack:'shuriken_fan', shootDelay:34, burstShots:3, burstRest:112, telegraph:36, recover:98, bulletCount:5, bulletSpeed:2.8, pressure:0.95, cue:'SHADOW DANCE', hint:'手里剑扇形三发，横移即可规避' },
       { name:'瞬杀连舞', hpPct:0.45, attack:'teleport_flurry', shootDelay:22, burstShots:3, burstRest:140, telegraph:42, recover:114, bulletCount:12, bulletSpeed:3.2, pressure:1.3, cue:'FLURRY STRIKE', hint:'连续瞬移背刺，注意360°手里剑环' },
     ]},
-  { name:'圣龛织者', color:'#864', turret:'#fd0', speed:0.10, hp:200, icon:'WEV', faction:'ash_church',
+  { name:'圣龛织者', color:'#864', turret:'#fd0', speed:0.10, hp:200, icon:'WEV', faction:'ash_church', tier:3,
     desc:'纯召唤Boss，不攻击但不断召唤精英护卫',
     phases:[
       { name:'织网召唤', hpPct:1.0, attack:'weave_summon', shootDelay:80, burstShots:1, burstRest:280, telegraph:48, recover:180, bulletCount:0, bulletSpeed:0, pressure:0.7, cue:'WEAVE PATTERN', hint:'先清小兵再打Boss，召唤间隔约6秒' },
       { name:'加速编织', hpPct:0.45, attack:'weave_frenzy', shootDelay:52, burstRest:240, burstShots:1, telegraph:38, recover:140, bulletCount:0, bulletSpeed:0, pressure:0.9, cue:'FRENZY WEAVE', hint:'小兵带追踪弹，召唤速度加快但上限降低' },
     ]},
-  { name:'灰域剑圣', color:'#411', turret:'#f84', speed:0.68, hp:130, icon:'BLD', faction:'moon_arsenal',
+  { name:'灰域剑圣', color:'#411', turret:'#f84', speed:0.68, hp:130, icon:'BLD', faction:'moon_arsenal', tier:3,
     desc:'近战武士Boss，能量巨刃+冲刺斩击',
     phases:[
       { name:'剑术三式', hpPct:1.0, attack:'blade_sweep', shootDelay:42, burstShots:3, burstRest:130, telegraph:44, recover:100, bulletCount:6, bulletSpeed:3.5, pressure:1.0, cue:'BLADE STANCE', hint:'扇形横扫范围大，保持距离后反击' },
       { name:'终焉剑舞', hpPct:0.48, attack:'blade_dance', shootDelay:38, burstShots:3, burstRest:170, telegraph:38, recover:120, bulletCount:10, bulletSpeed:3.8, pressure:1.35, cue:'FINAL DANCE', hint:'旋转斩后有短暂停顿，输出窗口' },
     ]},
-  { name:'陷阱师', color:'#542', turret:'#c84', speed:0.22, hp:155, icon:'TRP', faction:'graveyard',
+  { name:'陷阱师', color:'#542', turret:'#c84', speed:0.22, hp:155, icon:'TRP', faction:'graveyard', tier:2,
     desc:'陷阱Boss，布雷+减速带+弹射器',
     phases:[
       { name:'陷阱阵列', hpPct:1.0, attack:'trap_deploy', shootDelay:55, burstShots:1, burstRest:180, telegraph:42, recover:138, bulletCount:0, bulletSpeed:0, pressure:0.8, cue:'TRAP ARRAY', hint:'注意地面，踩中陷阱会减速和受伤' },
       { name:'雷区狂暴', hpPct:0.5, attack:'trap_frenzy', shootDelay:38, burstShots:1, burstRest:140, telegraph:32, recover:108, bulletCount:0, bulletSpeed:0, pressure:1.1, cue:'MINE FRENZY', hint:'追踪雷+密集地雷阵，小心移动' },
     ]},
-  { name:'镜像体', color:'#333', turret:'#999', speed:0.50, hp:120, icon:'MIR', faction:'void_cult',
+  { name:'镜像体', color:'#333', turret:'#999', speed:0.50, hp:120, icon:'MIR', faction:'void_cult', tier:2,
     desc:'复制型Boss，模仿玩家武器弹幕',
     phases:[
       { name:'完美镜像', hpPct:1.0, attack:'mirror_copy', shootDelay:44, burstShots:3, burstRest:140, telegraph:40, recover:110, bulletCount:6, bulletSpeed:2.5, pressure:1.0, cue:'MIRROR COPY', hint:'换不同坦克可打破镜像规律' },
       { name:'强化镜像', hpPct:0.5, attack:'mirror_enhance', shootDelay:34, burstShots:3, burstRest:120, telegraph:34, recover:90, bulletCount:8, bulletSpeed:3.0, pressure:1.25, cue:'ENHANCE', hint:'弹幕速度+20%，弹丸增大' },
     ]},
-  { name:'沙暴', color:'#864', turret:'#c84', speed:0.35, hp:145, icon:'SND', faction:'graveyard',
+  { name:'沙暴', color:'#864', turret:'#c84', speed:0.35, hp:145, icon:'SND', faction:'graveyard', tier:2,
     desc:'环境Boss，沙尘降可见度+沙虫突刺',
     phases:[
       { name:'沙尘帷幕', hpPct:1.0, attack:'sand_veil', shootDelay:48, burstShots:3, burstRest:156, telegraph:46, recover:128, bulletCount:10, bulletSpeed:1.6, pressure:0.9, cue:'SAND VEIL', hint:'注意沙尘中弹幕方向，靠小地图走位' },
       { name:'沙虫肆虐', hpPct:0.52, attack:'sand_worm', shootDelay:40, burstShots:3, burstRest:170, telegraph:52, recover:142, bulletCount:14, bulletSpeed:2.0, pressure:1.2, cue:'WORM STRIKE', hint:'地面预警圈即沙虫突刺位置' },
     ]},
-  { name:'重力锚', color:'#345', turret:'#8cf', speed:0.18, hp:175, icon:'GRV', faction:'moon_arsenal',
+  { name:'重力锚', color:'#345', turret:'#8cf', speed:0.18, hp:175, icon:'GRV', faction:'moon_arsenal', tier:3,
     desc:'引力操控Boss，重力井吸引+锚链裁决',
     phases:[
       { name:'重力井', hpPct:1.0, attack:'gravity_well', shootDelay:50, burstShots:3, burstRest:148, telegraph:52, recover:126, bulletCount:12, bulletSpeed:1.5, pressure:0.92, cue:'GRAVITY WELL', hint:'持续被拉向Boss，反向移动保持距离' },
       { name:'锚链裁决', hpPct:0.52, attack:'anchor_judgment', shootDelay:40, burstShots:3, burstRest:162, telegraph:48, recover:138, bulletCount:16, bulletSpeed:1.9, pressure:1.22, cue:'ANCHOR JUDGMENT', hint:'引力+追踪锚弹，利用障碍物阻挡追踪弹' },
     ]},
-  { name:'多头蛇', color:'#262', turret:'#4e4', speed:0.40, hp:155, icon:'HYD', faction:'void_cult',
+  { name:'多头蛇', color:'#262', turret:'#4e4', speed:0.40, hp:155, icon:'HYD', faction:'void_cult', tier:2,
     desc:'多头再生Boss，三头齐射+多头狂乱',
     phases:[
       { name:'三头齐射', hpPct:1.0, attack:'triple_strike', shootDelay:42, burstShots:3, burstRest:132, telegraph:44, recover:110, bulletCount:9, bulletSpeed:2.0, pressure:0.96, cue:'TRIPLE STRIKE', hint:'三方向弹幕各120°，找夹角空隙' },
