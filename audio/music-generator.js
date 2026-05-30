@@ -323,22 +323,20 @@ class CyberSynth {
   switchMode(mode, wave = 1) {
     this.currentMode = mode;
     this.currentWave = wave;
-    // Pick random track from pool for variety
-    if (mode === 'menu') {
-      this._activeTrack = this._menuTracks[Math.floor(Math.random() * this._menuTracks.length)];
-      this._bpm = 70;
-    } else if (mode === 'boss') {
-      this._activeTrack = this._bossTracks[Math.floor(Math.random() * this._bossTracks.length)];
-      this._bpm = 90 + wave * 1.5;
-    } else {
-      this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)];
-      this._bpm = 82 + Math.min(wave, 18) * 0.8;
-    }
-    this._fadeTarget = 0.18;
+    if (mode === 'menu') { this._bpm = 70; this._fadeTarget = 0.16; }
+    else if (mode === 'boss') { this._bpm = 88 + wave * 1.5; this._fadeTarget = 0.18; }
+    else { this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.14; }
     this._nextBeat = this.ctx.currentTime + 0.1;
     this._beat = 0;
+    this.intensity = 0.5;
   }
-
+  setIntensity(val) {
+    this.intensity = Math.max(0, Math.min(1, val));
+    if (this.currentMode === 'combat') {
+      this._bpm = 82 + Math.min(this.currentWave, 18) * 0.8 + this.intensity * 14;
+      this._fadeTarget = 0.10 + this.intensity * 0.08;
+    }
+  }
   _scheduleLoop() {
     if (!this._running) return;
     const bp = 60 / this._bpm;

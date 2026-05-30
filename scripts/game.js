@@ -11394,7 +11394,16 @@ function update() {
     if (comboTimer <= 0) comboCount = 0;
   }
   // Ambient battlefield particles
-  if (gameRunning) spawnAmbientParticles();
+  if (gameRunning) {
+    spawnAmbientParticles();
+    // Dynamic music intensity based on enemy count
+    if (musicSys && musicSys.currentMode === 'combat') {
+      const totalEnemies = enemies.length + (waveEnemiesToSpawn || 0);
+      const maxExpected = getWaveEnemyBudget(wave);
+      const intensity = Math.min(1, totalEnemies / Math.max(1, maxExpected));
+      musicSys.setIntensity(intensity);
+    }
+  }
 
   // Wave notification timer
   if (waveNotificationTimer > 0) {
