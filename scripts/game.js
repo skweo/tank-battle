@@ -1723,6 +1723,68 @@ let dualModePending = false;
 let dualP1Tank = null;
 let dualP2Tank = null;
 let dualSelectingFor = 'p1'; // 'p1' or 'p2' — which player is currently choosing
+let dualTankSelectGpPoll = null;
+function startTankSelectGamepadPolling() {
+  if (dualTankSelectGpPoll) clearInterval(dualTankSelectGpPoll);
+  if (!dualModePending) return;
+  // Inject focus style
+  if (!document.getElementById('gp-focus-style')) {
+    const style = document.createElement('style');
+    style.id = 'gp-focus-style';
+    style.textContent = '.tank-card.gp-focus { outline:3px solid #f80 !important; outline-offset:2px; transform:scale(1.04); z-index:5; }';
+    document.head.appendChild(style);
+  }
+  let prevA = false, prevLeft = false, prevRight = false, prevLB = false, prevRB = false;
+  dualTankSelectGpPoll = setInterval(() => {
+    const screen = document.getElementById('tank-select-screen');
+    if (!screen || screen.style.display === 'none') { clearInterval(dualTankSelectGpPoll); return; }
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gp = null;
+    for (const g of gamepads) { if (g && g.connected) { gp = g; break; } }
+    if (!gp) return;
+    const a = gp.buttons[0] && gp.buttons[0].pressed;
+    const left = gp.axes[0] < -0.5 || (gp.buttons[14] && gp.buttons[14].pressed);
+    const right = gp.axes[0] > 0.5 || (gp.buttons[15] && gp.buttons[15].pressed);
+    const lb = gp.buttons[4] && gp.buttons[4].pressed;
+    const rb = gp.buttons[5] && gp.buttons[5].pressed;
+    const start = gp.buttons[9] && gp.buttons[9].pressed;
+
+    // LB/RB: switch active player
+    if (lb && !prevLB) switchSelectingPlayer('p1');
+    if (rb && !prevRB) switchSelectingPlayer('p2');
+
+    // D-pad: highlight next/prev card
+    if ((right && !prevRight) || (left && !prevLeft)) {
+      const cards = screen.querySelectorAll('.tank-card:not(.locked-card)');
+      let focused = screen.querySelector('.tank-card.gp-focus');
+      let idx = focused ? Array.from(cards).indexOf(focused) : -1;
+      if (focused) focused.classList.remove('gp-focus');
+      if (right) idx = (idx + 1) % cards.length;
+      else if (left) idx = (idx - 1 + cards.length) % cards.length;
+      else idx = 0;
+      if (cards[idx]) {
+        cards[idx].classList.add('gp-focus');
+        cards[idx].scrollIntoView({behavior:'smooth', block:'nearest'});
+      }
+    }
+
+    // A button: select focused card
+    if (a && !prevA) {
+      const focused = screen.querySelector('.tank-card.gp-focus');
+      if (focused) {
+        const key = Array.from(focused.classList).find(c => c !== 'tank-card' && c !== 'gp-focus' && c !== 'p1-locked');
+        if (key) selectTankForDual(key);
+      }
+    }
+
+    // Start button: confirm
+    if (start && dualP1Tank && dualP2Tank && dualP1Tank !== dualP2Tank) {
+      startGame(currentDifficulty, dualP1Tank, {mode:selectedRunMode, dual:true, p2tank:dualP2Tank});
+    }
+
+    prevA = a; prevLeft = left; prevRight = right; prevLB = lb; prevRB = rb;
+  }, 120);
+}
 function toggleDualMode() {
   if (!dualModePending) {
     // Force refresh gamepad cache
@@ -1868,11 +1930,13 @@ function showTankSelect(difficulty) {
   }
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('tank-select-screen').style.display = 'flex';
+  if (dualModePending) startTankSelectGamepadPolling();
 }
 
 function hideTankSelect() {
   document.getElementById('tank-select-screen').style.display = 'none';
   document.getElementById('start-screen').style.display = 'flex';
+  if (dualTankSelectGpPoll) { clearInterval(dualTankSelectGpPoll); dualTankSelectGpPoll = null; }
   renderDifficultyButtons();
 }
 
@@ -5250,21 +5314,25 @@ class PlayerTank extends Tank {
       if (rMag > 0.15) {
         targetAngle = Math.atan2(gamepadState.rightY, gamepadState.rightX);
       } else {
-        // Auto-aim nearest enemy
-        let nearest = null, nearestDist = 300;
+        // Auto-aim: prioritize Boss > Elite > nearest enemy
+        let target = null, bestScore = -1;
         for (const enemy of enemies) {
           if (!enemy.alive) continue;
           const edx = enemy.x - this.x, edy = enemy.y - this.y;
-          const ed = Math.sqrt(edx*edx + edy*edy);
-          if (ed < nearestDist) { nearestDist = ed; nearest = enemy; }
+          const dist = Math.sqrt(edx*edx + edy*edy);
+          if (dist > 350) continue;
+          // Score: boss=1000, elite=500, normal=0 — minus distance
+          const score = (enemy.bossDef ? 1000 : enemy.isElite ? 500 : 0) - dist;
+          if (score > bestScore) { bestScore = score; target = enemy; }
         }
-        if (nearest) targetAngle = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+        if (target) targetAngle = Math.atan2(target.y - this.y, target.x - this.x);
         else targetAngle = this.turretAngle;
       }
     } else {
       targetAngle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
     }
-    const pSpeed = TURRET_SPEED_PLAYER[this.tankType] || 0.12;
+    let pSpeed = TURRET_SPEED_PLAYER[this.tankType] || 0.12;
+    if (this.inputSource === 'gamepad') pSpeed *= 2.0; // Faster tracking for gamepad
     this.turretAngle = rotateTurretToward(this.turretAngle, targetAngle, pSpeed);
 
     // Shooting
@@ -12698,12 +12766,19 @@ function update() {
   for (let i = powerUps.length - 1; i >= 0; i--) {
     powerUps[i].life--;
     if (powerUps[i].life <= 0) { powerUps.splice(i, 1); continue; }
-    const dx = player.x - powerUps[i].x;
-    const dy = player.y - powerUps[i].y;
     const pickupRange = buffs.magnet > 0 ? 80 : 30;
-    if (dx * dx + dy * dy < pickupRange * pickupRange) {
-      applyPowerUp(powerUps[i]);
-      powerUps.splice(i, 1);
+    let picked = false;
+    const pickups = [player];
+    if (isDualMode && player2 && player2.alive) pickups.push(player2);
+    for (const p of pickups) {
+      const dx = p.x - powerUps[i].x;
+      const dy = p.y - powerUps[i].y;
+      if (dx * dx + dy * dy < pickupRange * pickupRange) {
+        applyPowerUp(powerUps[i]);
+        powerUps.splice(i, 1);
+        picked = true;
+        break;
+      }
     }
   }
 
