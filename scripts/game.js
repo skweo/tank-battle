@@ -1630,13 +1630,13 @@ function renderDifficultyButtons() {
     autoBtn.style.cssText = 'margin-top:4px;padding:6px 18px;font:12px "Courier New";' +
       'background:#1a1a2a;color:#fa0;border:1px solid #fa0;border-radius:4px;cursor:pointer;';
     autoBtn.onclick = function() {
-      dualAutoAim = !dualAutoAim;
+      autoAimEnabled = !autoAimEnabled;
       renderDifficultyButtons();
     };
     document.getElementById('start-screen').appendChild(autoBtn);
   }
-  autoBtn.style.display = dualModePending ? 'inline-block' : 'none';
-  autoBtn.textContent = dualAutoAim ? '[AUTO] 自动索敌 (土豆兄弟式)' : '[MANUAL] 手动瞄准';
+  autoBtn.style.display = 'inline-block';
+  autoBtn.textContent = autoAimEnabled ? '[AUTO] 自动索敌 (土豆兄弟式)' : '[MANUAL] 手动瞄准';
 
   const classes = ['easy','normal','hard','extreme','nightmare'];
   container.innerHTML = DIFFICULTY_ORDER.map((key, idx) => {
@@ -1736,7 +1736,7 @@ function renderCodeIcon(code, title, tankType) {
 }
 
 let dualModePending = false;
-let dualAutoAim = true; // Auto-aim mode (Brotato-style): auto-target + auto-fire, movement only
+let autoAimEnabled = false; // Auto-aim mode (Brotato-style): auto-target + auto-fire, movement only
 let dualP1Tank = null;
 let dualP2Tank = null;
 let dualSelectingFor = 'p1'; // 'p1' or 'p2' — which player is currently choosing
@@ -5402,7 +5402,7 @@ class PlayerTank extends Tank {
 
     // Turret aiming
     let targetAngle;
-    if (isDualMode && dualAutoAim) {
+    if (autoAimEnabled) {
       // Auto-aim mode (Brotato-style): auto-target nearest threat
       let target = null, bestScore = -1;
       for (const enemy of enemies) {
@@ -5436,11 +5436,11 @@ class PlayerTank extends Tank {
       targetAngle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
     }
     let pSpeed = TURRET_SPEED_PLAYER[this.tankType] || 0.12;
-    if (this.inputSource === 'gamepad' || (isDualMode && dualAutoAim)) pSpeed *= 2.0;
+    if (this.inputSource === 'gamepad' || autoAimEnabled) pSpeed *= 2.0;
     this.turretAngle = rotateTurretToward(this.turretAngle, targetAngle, pSpeed);
 
     // Shooting: auto-fire in auto-aim mode, otherwise manual
-    const autoFire = isDualMode && dualAutoAim;
+    const autoFire = autoAimEnabled;
     const wantsToShoot2 = autoFire ? true : (this.inputSource === 'gamepad' ? gamepadState.shoot : wantsToShoot);
     if (!wantsToShoot2 && this.ammo < this.magSize && this.reloadTimer <= 0) {
       this.startReload(true);
