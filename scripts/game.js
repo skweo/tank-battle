@@ -7067,7 +7067,13 @@ const BOSS_TYPES = [
     phases:[
       { name:'电弧裁决', hpPct:1.0, attack:'arc_judgment', shootDelay:38, burstShots:3, burstRest:120, telegraph:40, recover:108, bulletCount:6, bulletSpeed:2.62, pressure:1.02, cue:'ARC JUDGMENT', hint:'电弧直线清晰可辨，横移躲避' },
       { name:'雷域展开', hpPct:0.55, attack:'storm_domain', shootDelay:36, burstShots:3, burstRest:156, telegraph:56, recover:136, bulletCount:10, bulletSpeed:2.48, pressure:1.35, cue:'DOMAIN EXPANSION', hint:'雷域边缘安全，但中心持续高压' },
-    ]}
+    ]},
+  { name:'轨道炮台', color:'#533', turret:'#f84', speed:0.12, hp:140, icon:'ORB', faction:'moon_arsenal',
+    desc:'远距狙击Boss，激光锁定+光束扫射',
+    phases:[
+      { name:'激光锁定', hpPct:1.0, attack:'laser_snipe', shootDelay:48, burstShots:1, burstRest:160, telegraph:90, recover:70, bulletCount:1, bulletSpeed:5.5, pressure:0.85, cue:'TARGET LOCK', hint:'躲开激光瞄准线' },
+      { name:'光束扫射', hpPct:0.55, attack:'beam_sweep', shootDelay:42, burstShots:3, burstRest:180, telegraph:60, recover:90, bulletCount:5, bulletSpeed:2.8, pressure:1.15, cue:'SWEEP ARRAY', hint:'光束间隙可闪避' },
+    ]},
 
 ];
 
@@ -7416,11 +7422,16 @@ class BossEnemy extends EliteEnemy {
       moveX += dx/dist * 0.65;
       moveY += dy/dist * 0.65;
     } else if (this.bossDef.name === '雷霆执政官') {
-      // Fast floating circles — swift strafing, keeps close-mid range
       moveX += -dy/dist * strafeDir * 0.82;
       moveY += dx/dist * strafeDir * 0.82;
       if (dist > 260) { moveX += dx/dist * 0.55; moveY += dy/dist * 0.55; }
       else if (dist < 100) { moveX -= dx/dist * 0.45; moveY -= dy/dist * 0.45; }
+    } else if (this.bossDef.name === '轨道炮台') {
+      // Long-range sniper — keeps 300+px, slow lateral drift
+      if (dist < 280) { moveX -= dx/dist * 0.6; moveY -= dy/dist * 0.6; }
+      else if (dist > 400) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
+      moveX += -dy/dist * strafeDir * 0.3;
+      moveY += dx/dist * strafeDir * 0.3;
     }
 
     const slowMul = this.currentPhase > 0 ? 1.18 : 1;
@@ -7773,6 +7784,26 @@ class BossEnemy extends EliteEnemy {
       }
       spawnExplosion(baseX, baseY, 26, '#6ff', '#fff');
       triggerShake(this.currentPhase > 0 ? 10 : 7, 10);
+    } else if (phase.attack === 'laser_snipe') {
+      // === ORBITAL CANNON P1: Single high-speed railgun snipe ===
+      const a = this.telegraphAngle;
+      const b = new Bullet(bx, by, a, phase.bulletSpeed + 3.0, '#f84', true, this.currentPhase > 0 ? 3 : 2);
+      b.radius = 3.5; b.railgun = true;
+      enemyBullets.push(b);
+      // Warning beam visual is handled by telegraph
+      triggerShake(3, 5);
+    } else if (phase.attack === 'beam_sweep') {
+      // === ORBITAL CANNON P2: Horizontal beam sweeps ===
+      const total = phase.bulletCount + bonusBullets;
+      for (let line = 0; line < 3; line++) {
+        const sweepAngle = this.telegraphAngle + (line - 1) * 0.35 + Math.sin(this.phaseTimer * 0.02 + line) * 0.15;
+        for (let i = 0; i < total; i++) {
+          const a = sweepAngle + (i - total/2) * 0.06;
+          const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + line * 0.3, '#f84', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = 2.5; enemyBullets.push(b);
+        }
+      }
+      triggerShake(4, 8);
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
@@ -7823,7 +7854,20 @@ class BossEnemy extends EliteEnemy {
       ctx.stroke();
     };
 
-    if (phase.attack === 'turret_salvo' || phase.attack === 'lightning_chain' || phase.attack === 'enrage' || phase.attack === 'gravity_wave') {
+    if (phase.attack === 'turret_salvo' || phase.attack === 'lightning_chain' || phase.attack === 'enrage' || phase.attack === 'gravity_wave' || phase.attack === 'laser_snipe') {
+      // Laser snipe: bright warning line along telegraph angle
+      if (phase.attack === 'laser_snipe') {
+        ctx.strokeStyle = 'rgba(255,80,40,' + (0.3 + progress * 0.4) + ')';
+        ctx.lineWidth = 2.5;
+        const lx = this.x + Math.cos(this.telegraphAngle) * 30;
+        const ly = this.y + Math.sin(this.telegraphAngle) * 30;
+        ctx.beginPath(); ctx.moveTo(lx, ly);
+        ctx.lineTo(lx + Math.cos(this.telegraphAngle) * W, ly + Math.sin(this.telegraphAngle) * H);
+        ctx.stroke();
+        // Laser dot at end
+        ctx.fillStyle = 'rgba(255,40,20,' + (0.5 + progress * 0.3) + ')';
+        ctx.beginPath(); ctx.arc(lx + Math.cos(this.telegraphAngle) * (200 + progress * 100), ly + Math.sin(this.telegraphAngle) * (200 + progress * 100), 6 + progress * 2, 0, Math.PI*2); ctx.fill();
+      }
       drawLineLane(18 + progress * 8, Math.max(W, H) * 0.8);
     } else if (phase.attack === 'clone_barrage' || phase.attack === 'thunder_storm') {
       const radius = phase.attack === 'thunder_storm' ? 110 + progress * 36 : 88 + progress * 28;
@@ -8183,6 +8227,35 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '轨道炮台') {
+      // === ORBITAL CANNON — long-range sniper platform ===
+      // Large cannon barrel
+      ctx.fillStyle = '#3a2020'; ctx.strokeStyle = accent; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(0, 0, 28, 18, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      // Massive barrel
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 6, -5, 36, 12, '#3a1818', accent, '#fff');
+      // Heat sink fins on barrel
+      for (let f = 0; f < 5; f++) {
+        ctx.strokeStyle = 'rgba(200,100,50,0.5)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(12 + f*5, -6); ctx.lineTo(12 + f*5, 6); ctx.stroke();
+      }
+      // Muzzle glow
+      ctx.fillStyle = 'rgba(255,120,40,0.4)';
+      ctx.beginPath(); ctx.arc(40, 0, 4, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+      // Targeting laser beam during telegraph
+      if (this.attackState === 'telegraph') {
+        ctx.strokeStyle = 'rgba(255,80,40,'+(0.3+Math.sin(brt*3)*0.15)+')';
+        ctx.lineWidth = 1.5; ctx.setLineDash([4, 8]);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(this.telegraphAngle)*W, Math.sin(this.telegraphAngle)*H);
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      // Heat sink glow
+      const heatGlow = Math.sin(brt*2) * 0.2 + 0.6;
+      ctx.fillStyle = 'rgba(255,100,30,'+heatGlow+')';
+      ctx.fillRect(-8, -22, 16, 6);
+      drawTechCore(ctx, -2, 0, 5, '#ffe0d0', accent);
     } else {
       // Fallback for any unnamed boss
       ctx.fillStyle='#0a0614';ctx.beginPath();ctx.moveTo(26,-26);ctx.lineTo(-24,-16);ctx.lineTo(-32,0);ctx.lineTo(-24,16);ctx.lineTo(26,26);ctx.lineTo(34,8);ctx.lineTo(34,-12);ctx.closePath();ctx.fill();
