@@ -2766,7 +2766,8 @@ function getDualModeEnemyMul() {
 function getWaveEnemyBudget(waveNo) {
   const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
   const base = Math.min(9, 2 + Math.floor(waveNo * 0.34) + Math.floor(waveNo * waveNo / 150));
-  return Math.max(2, Math.floor(base * (diff.waveBudgetMul || 1)));
+  const dualMul = isDualMode ? 1.3 : 1.0;
+  return Math.max(2, Math.floor(base * (diff.waveBudgetMul || 1) * dualMul));
 }
 
 const BOSS_WAVE_INTERVAL = 4;
@@ -12233,7 +12234,7 @@ function spawnEnemy() {
     const idx = Math.floor(rng() * (maxIdx + 1));
     const etype = eliteTypes[idx];
     const elite = new EliteEnemy(x, y, etype);
-    elite.hp += Math.floor(wave / 5);
+    elite.hp = Math.floor((elite.hp + Math.floor(wave / 5)) * getDualModeEnemyMul());
     elite.maxHp = elite.hp;
     elite.shootDelay = Math.max(36, Math.floor(elite.shootDelay * 0.92));
     enemies.push(elite);
@@ -12243,7 +12244,7 @@ function spawnEnemy() {
   const maxIdx = Math.min(enemyTypes.length - 1, Math.floor((wave + level) / 3));
   const idx = Math.floor(rng() * (maxIdx + 1));
   const type = enemyTypes[idx];
-  const hp = Math.max(5, type.hp + 4 + Math.floor(wave / 2.4) + Math.floor(level / 3) + diff.enemyHpBonus);
+  const hp = Math.max(5, Math.floor((type.hp + 4 + Math.floor(wave / 2.4) + Math.floor(level / 3) + diff.enemyHpBonus) * getDualModeEnemyMul()));
   const speedMul = diff.enemySpeedMul * (1 + Math.min(0.46, wave * 0.014));
   const enemy = new EnemyTank(x, y, type.color, type.turret, type.speed * speedMul, hp, type.kind);
   enemy.shootDelay = Math.max(42, Math.floor(enemy.shootDelay * (type.kind === 'brute' ? 1.12 : (type.kind === 'runner' ? 0.82 : 0.95))));
