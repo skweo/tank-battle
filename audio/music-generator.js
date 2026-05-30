@@ -182,10 +182,9 @@ class CyberSynth {
     if (sn % 3 === 0) this._piano(this._n(mel[sn%48], 0), t, 2.0, 0.045);
     // Bell accent — sparkle on top
     if (sn % 6 === 0) this._bell(this._n(mel[(sn+3)%48], 0), t+bp*0.15, 1.2, 0.02);
-    // Sparkle
-    if (sn % 8 === 1) {
-      const sp = section === 0 ? [7,11,14,11,12,14,11,7] : [5,10,12,10,7,12,10,5];
-      this._arp(this._n(sp[sn%8], 0), t+bp*0.2, 0.6, 0.015);
+    // Subtle bell accent — not arp
+    if (sn % 16 === 8) {
+      this._bell(this._n([7,11,14][(sn/16)%3], 0), t+bp*0.3, 1.5, 0.018);
     }
     if (sn === 0) {
       // String swell opening — Hollow Knight style
