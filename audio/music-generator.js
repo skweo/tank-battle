@@ -310,24 +310,42 @@ class CyberSynth {
   // ============================================
   _bossAbyss(n) {
     const t = this.ctx.currentTime, bp = 60 / this._bpm;
-    if (n % 2 === 0) this._kick(t, 0.15);
-    if (n % 2 === 1) this._snare(t, 0.05);
-    this._hat(t, 0.022);
-    if (n % 4 === 0) this._hat(t + bp * 0.5, 0.016);
-    const bl = [0, -5, -2, -3, 0, -5, -2, -3, 0, -5, 3, 0, -2, -5, -2, 0, 0, -5, -2, -3, 3, -5, -2, 0, 0, -5, 3, 0, -2, -5, 0, -5];
-    this._bass(this._n(bl[n % 32], -2), t, bp * 0.9, 0.15);
-    if (n % 8 === 0) this._chord([this._n(0, -1), this._n(3, -1), this._n(7, -1)], t, bp * 1.2, 0.032);
-    if (n % 8 === 4) this._chord([this._n(-5, -1), this._n(-2, -1), this._n(3, -1)], t, bp * 1.0, 0.028);
-    if (n % 2 === 0) {
-      const mel = [0, 5, 3, 7, 0, 10, 7, 11, 0, 5, 3, 0, -2, 3, 0, -5, 0, 5, 3, 7, 10, 12, 7, 8, 0, 5, 3, 0, -2, -5, 3, 0];
-      this._lead(this._n(mel[n % 32], 0), t, 0.4, 0.044);
-    }
-    const arp = [14, 10, 7, 3, 12, 7, 3, 0, 11, 7, 5, 2, 10, 5, 2, -2, 14, 10, 7, 3, 12, 7, 3, 0, 11, 7, 5, 2, 10, 5, 2, -2];
-    this._arp(this._n(arp[n % 32], 0), t + bp * 0.06, 0.15, 0.024);
-    if (n % 8 === 0) { this._osc('sawtooth', this._n(0, 1), t, bp, 0.04); this._osc('sawtooth', this._n(7, 0), t + 0.02, bp, 0.032); }
-    if (n % 16 === 0) this._pad([this._n(0, -1), this._n(3, -1), this._n(7, -1)], t, bp * 16, 0.03);
-  }
+    // YMO-style dense but groovy — interlocking rhythm layers
+    // Drum layer — urgent but with swing
+    if (n % 8 === 0) this._kick(t, 0.16);
+    if (n % 8 === 4) this._kick(t+bp*0.25, 0.12);
+    if (n % 4 === 2) this._snare(t, 0.05);
+    if (n % 16 === 12) this._snare(t, 0.06);
+    if (n % 3 === 1) this._hat(t, 0.02);
+    // Drum fill every 32
+    if (n % 32 === 28) { this._snare(t,0.05); this._snare(t+bp*0.5,0.04); this._snare(t+bp,0.03); }
 
+    // Bass — melodic + rhythmic (YMO style)
+    const bl = [0,-5,-2,-3, 0,-5,-2,-3, 0,-5,3,0, -2,-5,-2,0, 0,-5,-2,-3, 3,-5,-2,0, 0,-5,3,0, -2,-5,0,-5];
+    this._bass(this._n(bl[n%32], -2), t, bp*0.85, 0.16);
+
+    // Lead theme — filter-swept for evolving timbre
+    if (n % 4 === 0) {
+      const mel = [0,5,3,7,0,10,7,11, 0,5,3,0,-2,3,0,-5, 0,5,3,7,10,12,7,8, 0,5,3,0,-2,-5,3,0, 7,10,12,14,10,7,5,3, 0,5,3,7,10,7,5,3, 5,7,10,12,14,12,10,7, 5,3,0,-2,3,5,7,10];
+      this._lead(this._n(mel[n%64], 0), t, 0.4, 0.045);
+    }
+    // Second lead voice — call-response
+    if (n % 8 === 4) {
+      const mel2 = [7,10,14,10, 12,14,10,7, 5,7,10,12, 14,10,7,5, 10,7,5,3, 7,5,3,0, 3,5,7,10, 12,10,7,5];
+      this._arp(this._n(mel2[(n/4)%32], 0), t+bp*0.15, 0.2, 0.022);
+    }
+    // Rhythmic chord stabs — punchy
+    if (n % 4 === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*0.5, 0.03);
+    if (n % 8 === 4) this._chord([this._n(-5,-1),this._n(-2,-1),this._n(3,-1)], t, bp*0.4, 0.025);
+    // Vox layer — haunting
+    if (n % 12 === 0) this._vox(this._n([0,7,10,7][(n/12)%4], 0), t+bp*0.25, bp*6, 0.03);
+    // Bell accents — sparkle
+    if (n % 8 === 2) this._bell(this._n([14,10,7,3, 10,7,3,0][n%8], 0), t+bp*0.1, 0.3, 0.02);
+    // Alarm stab
+    if (n % 16 === 0) { this._osc('sawtooth',this._n(0,1),t,bp*0.8,0.04); this._osc('sawtooth',this._n(7,0),t+0.02,bp*0.6,0.03); }
+    // Dark pad
+    if (n % 32 === 0) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*32, 0.03);
+  }
   _bossJudgment(n) {
     const t = this.ctx.currentTime, bp = 60 / (this._bpm + 4);
     if (n % 2 === 0) this._kick(t, 0.16);
