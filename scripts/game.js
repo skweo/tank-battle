@@ -5623,14 +5623,25 @@ class EnemyTank extends Tank {
 
     this.aiTimer++;
 
-    // Movement AI
+    // Movement AI — periodic behavior change
     if (this.aiTimer % this.aiChangeTime < 2) {
       this.moveDir = rng() < 0.5 ? -1 : 1;
       this.moveAxis = rng() < 0.5 ? 'x' : 'y';
       this.strafeBias *= rng() < 0.72 ? 1 : -1;
-      this.preferredRange = (this.kind === 'runner' ? 118 : (this.kind === 'brute' ? 140 : (this.kind === 'artillery' ? 255 : (this.kind === 'sniper' ? 320 : (this.kind === 'buffer' ? 200 : (this.kind === 'sapper' ? 150 : 185)))))) + rng() * 46;
       this.aiChangeTime = 44 + rng() * 72;
     }
+
+    // Faction-based AI modifiers
+    const factionAI = {
+      observatory:    { prefRange: 280, strafe: 0.15, approachMul: 0.5,  lead: 18, retreatBias: 0.4 },
+      storm_cloister: { prefRange: 110, strafe: 0.85, approachMul: 0.9,  lead: 6,  retreatBias: -0.3 },
+      void_cult:      { prefRange: 190, strafe: 0.55, approachMul: 0.7,  lead: 12, retreatBias: 0.1 },
+      moon_arsenal:   { prefRange: 145, strafe: 0.25, approachMul: 1.0,  lead: 10, retreatBias: 0.0 },
+      ash_church:     { prefRange: 210, strafe: 0.30, approachMul: 0.5,  lead: 14, retreatBias: 0.2 },
+      graveyard:      { prefRange: 120, strafe: 0.10, approachMul: 0.8,  lead: 8,  retreatBias: -0.1 },
+    };
+    const fai = factionAI[this.faction] || factionAI.moon_arsenal;
+    this.preferredRange = fai.prefRange + rng() * 50;
 
     // Chase player
     const dx = player.x - this.x;
@@ -5638,7 +5649,7 @@ class EnemyTank extends Tank {
     const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
 
     // Turret aim at player
-    const leadFrames = this.kind === 'artillery' ? 20 : (this.kind === 'runner' ? 10 : 14);
+    const leadFrames = fai.lead + (this.kind === 'artillery' ? 6 : (this.kind === 'sniper' ? 10 : 0));
     const playerInput = getPlayerInputVector();
     const playerSpeed = getEffectiveSpeed();
     const predictedX = player.x + playerInput.x * playerSpeed * leadFrames;
@@ -5658,11 +5669,15 @@ class EnemyTank extends Tank {
       const rangeError = dist - this.preferredRange;
       const approach = Math.max(-0.72, Math.min(0.72, rangeError / 150));
       const coverProbe = lineOfSight ? 1 : (this.lostSightTimer > 35 ? 0.85 : 0.35);
-      moveX += (dx / dist) * approach * coverProbe;
-      moveY += (dy / dist) * approach * coverProbe;
-      const strafeStrength = this.kind === 'brute' ? 0.28 : (this.kind === 'runner' ? 0.72 : 0.48);
-      moveX += (-dy / dist) * this.strafeBias * strafeStrength * (lineOfSight ? 1 : 1.35);
-      moveY += (dx / dist) * this.strafeBias * strafeStrength * (lineOfSight ? 1 : 1.35);
+      moveX += (dx / dist) * approach * fai.approachMul * coverProbe;
+      moveY += (dy / dist) * approach * fai.approachMul * coverProbe;
+      moveX += (-dy / dist) * this.strafeBias * fai.strafe * (lineOfSight ? 1 : 1.35);
+      moveY += (dx / dist) * this.strafeBias * fai.strafe * (lineOfSight ? 1 : 1.35);
+      // Retreat bias for long-range types
+      if (fai.retreatBias > 0 && dist < this.preferredRange * 0.6) {
+        moveX -= (dx / dist) * fai.retreatBias;
+        moveY -= (dy / dist) * fai.retreatBias;
+      }
       if (!lineOfSight && this.lostSightTimer > 50) {
         moveX += (dx / dist) * 0.28;
         moveY += (dy / dist) * 0.28;
