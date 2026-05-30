@@ -10184,6 +10184,12 @@ const OBSTACLE_TYPES = {
   ruins:   { color:'#3a3428', stroke:'#6a6050', passable:false, slow:0,    minW:40, maxW:85, minH:30, maxH:60, weight:7  },
   reactor: { color:'#1a2828', stroke:'#2a8888', passable:false, slow:0,    minW:30, maxW:55, minH:30, maxH:55, weight:5  },
   spires:  { color:'#2a1a3a', stroke:'#5a3a7a', passable:false, slow:0,    minW:20, maxW:40, minH:30, maxH:65, weight:6  },
+  stone_sm:{ color:'#4a4a44', stroke:'#6a6a60', passable:true, slow:0.15, minW:12, maxW:20, minH:10, maxH:18, weight:15 },
+  stone_lg:{ color:'#3a3a38', stroke:'#5a5a50', passable:false, slow:0, minW:30, maxW:55, minH:25, maxH:45, weight:12 },
+  plank:   { color:'#6a4a2a', stroke:'#8a6a4a', passable:false, slow:0, minW:25, maxW:50, minH:10, maxH:16, weight:9, destructible:true },
+  iron:    { color:'#3a4048', stroke:'#6a7078', passable:false, slow:0, minW:30, maxW:65, minH:12, maxH:22, weight:8, spark:true },
+  gravel:  { color:'#3a3028', stroke:'#5a4840', passable:true, slow:0.4, minW:20, maxW:45, minH:15, maxH:35, weight:11 },
+  pipes:   { color:'#444440', stroke:'#6a6a50', passable:false, slow:0, minW:15, maxW:25, minH:30, maxH:55, weight:7 },
 };
 
 function refreshObstacles() {
@@ -10241,6 +10247,8 @@ function generateObstacles(countOverride) {
     if (def.explosive) obs.hp = 2;
     if (def.ricochet) obs.ricochet = true;
     if (def.conceal) obs.conceal = true;
+    if (def.destructible) obs.hp = 1;
+    if (def.spark) obs.spark = true;
     obstacles.push(obs);
 
     // 30% chance to spawn 1-2 smaller obstacles nearby (cluster effect)
@@ -10262,6 +10270,7 @@ function generateObstacles(countOverride) {
         const cobs = { x: cx, y: cy, w: cw, h: ch, type: ctype, passable: cd.passable, slow: cd.slow, color: cd.color, stroke: cd.stroke };
         if (cd.explosive) cobs.hp = 2;
         if (cd.ricochet) cobs.ricochet = true;
+        if (cd.destructible) cobs.hp = 1;
         obstacles.push(cobs);
       }
     }
@@ -10468,6 +10477,56 @@ function drawObstacles(ctx) {
         const gx = obs.x + 4 + g * (obs.w/5); const gy = obs.y + rng() * obs.h * 0.7;
         ctx.fillStyle = '#4a7a3a'; ctx.beginPath(); ctx.ellipse(gx, gy, 3, 8, rng(), 0, Math.PI*2); ctx.fill();
       }
+    } else if (obs.type === 'stone_sm') {
+      // Small gravel stones — irregular cluster
+      ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1;
+      for (let s = 0; s < 3; s++) {
+        const sx = obs.x + s * (obs.w/3) + rng() * 3;
+        const sy = obs.y + s * (obs.h/3) + rng() * 2;
+        const sr = 3 + rng() * 3;
+        ctx.beginPath(); ctx.arc(sx + sr, sy + sr, sr, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      }
+    } else if (obs.type === 'stone_lg') {
+      // Large boulder — rounded
+      ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(obs.x + obs.w/2, obs.y + obs.h/2, obs.w/2, obs.h/2, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.arc(obs.x + obs.w*0.3, obs.y + obs.h*0.35, obs.w*0.1, 0, Math.PI*2); ctx.stroke();
+    } else if (obs.type === 'plank') {
+      // Wooden planks — horizontal grain
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1.5; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = '#4a3a1a'; ctx.lineWidth = 0.5;
+      for (let g = 0; g < obs.w / 6; g++) {
+        ctx.beginPath(); ctx.moveTo(obs.x + g * 6, obs.y + 2); ctx.lineTo(obs.x + g * 6 + 3, obs.y + obs.h - 2); ctx.stroke();
+      }
+    } else if (obs.type === 'iron') {
+      // Rusted iron plate — spark effect
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2.5; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.fillStyle = '#5a3010'; ctx.fillRect(obs.x + 3, obs.y + 3, 8, 8);
+      ctx.fillStyle = '#7a4020'; ctx.fillRect(obs.x + obs.w - 10, obs.y + obs.h - 10, 6, 6);
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(obs.x, obs.y + obs.h/2); ctx.lineTo(obs.x + obs.w, obs.y + obs.h/2); ctx.stroke();
+    } else if (obs.type === 'gravel') {
+      // Loose gravel — many small dots
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.fillStyle = '#5a4840';
+      for (let d = 0; d < 8; d++) {
+        const dx = obs.x + 3 + ((d * 17) % obs.w); const dy = obs.y + 3 + ((d * 23) % obs.h);
+        ctx.beginPath(); ctx.arc(dx, dy, 1.5 + (d%3)*0.5, 0, Math.PI*2); ctx.fill();
+      }
+    } else if (obs.type === 'pipes') {
+      // Vertical industrial pipes
+      ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1.5;
+      const pipeW = obs.w / 3;
+      for (let p = 0; p < 3; p++) {
+        const px = obs.x + p * pipeW + 2;
+        ctx.fillRect(px, obs.y, pipeW - 4, obs.h); ctx.strokeRect(px, obs.y, pipeW - 4, obs.h);
+        ctx.fillStyle = '#222'; ctx.fillRect(px + 1, obs.y + 1, pipeW - 6, obs.h - 2);
+        ctx.fillStyle = obs.color;
+      }
     }
   }
 }
@@ -10476,13 +10535,21 @@ function bulletHitsObstacle(bullet) {
   for (const obs of obstacles) {
     if (bullet.x > obs.x && bullet.x < obs.x + obs.w &&
         bullet.y > obs.y && bullet.y < obs.y + obs.h) {
-      if (obs.explosive) {
+      if (obs.explosive || obs.destructible) {
         obs.hp = (obs.hp || 1) - 1;
         if (obs.hp <= 0) {
+          if (obs.explosive) {
+            spawnExplosion(obs.x + obs.w/2, obs.y + obs.h/2, 45, '#f80', '#ff0');
+            triggerShake(4, 6);
+          } else {
+            spawnExplosion(obs.x + obs.w/2, obs.y + obs.h/2, 12, '#a80', '#da0');
+          }
           obstacles.splice(obstacles.indexOf(obs), 1);
-          spawnExplosion(obs.x + obs.w/2, obs.y + obs.h/2, 45, '#f80', '#ff0');
-          triggerShake(4, 6);
-        } else { spawnExplosion(bullet.x, bullet.y, 5, '#f80', '#fc0'); }
+        } else { spawnExplosion(bullet.x, bullet.y, 5, obs.explosive ? '#f80' : '#a80', '#fc0'); }
+        return true;
+      }
+      if (obs.spark) {
+        spawnExplosion(bullet.x, bullet.y, 3, '#6af', '#fff');
         return true;
       }
       if (obs.ricochet) {
