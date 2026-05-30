@@ -1581,91 +1581,55 @@ function renderDifficultyButtons() {
     const activeBtn = modeSwitch.querySelector(selectedRunMode === 'endless' ? '.run-mode-btn:nth-child(2)' : '.run-mode-btn:nth-child(1)');
     if (activeBtn) activeBtn.classList.add('active');
   }
-  // Inject mode switch styles (match difficulty buttons)
-  if (!document.getElementById('mode-switch-style')) {
-    const style = document.createElement('style');
-    style.id = 'mode-switch-style';
-    style.textContent = `
-      #dual-mode-btn, #dual-auto-btn {
-        padding: 8px 60px; font-size: 14px; font-weight: 400; margin-top: 6px;
-        font-family: 'Segoe UI','Microsoft YaHei',sans-serif; letter-spacing: 4px; border: none;
-        background: rgba(18,24,34,0.7); color: #8a94a4;
-        cursor: pointer; transition: all 0.2s; position: relative;
-        clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
-      }
-      #dual-mode-btn::after, #dual-auto-btn::after {
-        content: ''; position: absolute; top: 1px; left: 1px; right: 1px; bottom: 1px;
-        border: 1px solid rgba(107,125,149,0.1);
-        clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
-        transition: border-color 0.2s;
-      }
-      #dual-mode-btn:hover, #dual-auto-btn:hover {
-        background: rgba(30,40,54,0.9); color: #e0e4ec;
-        transform: translateX(4px);
-        box-shadow: 0 0 20px rgba(244,152,0,0.1);
-      }
-      #dual-mode-btn:hover::after { border-color: rgba(120,200,255,0.45); }
-      #dual-auto-btn:hover::after { border-color: rgba(255,160,0,0.45); }
-      #dual-mode-btn.dual-active { color: #cdf; }
-      #dual-mode-btn.dual-active::after { border-color: rgba(120,200,255,0.55); }
-      #dual-auto-btn.auto-active { color: #fa0; }
-      #gamepad-status {
-        display: block; margin-top: 2px; padding: 0 4px;
-        font: 10px "Courier New"; color: #888; cursor: pointer; text-align: center;
-      }
-    `;
-    document.head.appendChild(style);
+  // Ensure dual mode / auto-aim links exist (achieve-link style, after daily challenge)
+  const dailyBtn = document.querySelector('#start-screen .daily-challenge-btn');
+  const insertAfter = dailyBtn || document.querySelector('#start-screen .protocol-link');
+  // Dual mode link
+  let dualLink = document.getElementById('dual-mode-link');
+  if (!dualLink && insertAfter) {
+    dualLink = document.createElement('p');
+    dualLink.id = 'dual-mode-link';
+    dualLink.className = 'achieve-link';
+    dualLink.onclick = toggleDualMode;
+    insertAfter.parentNode.insertBefore(dualLink, insertAfter.nextSibling);
   }
-  // Ensure dual mode button exists on start screen
-  let dualBtn = document.getElementById('dual-mode-btn');
-  if (!dualBtn) {
-    dualBtn = document.createElement('button');
-    dualBtn.id = 'dual-mode-btn';
-    dualBtn.onclick = toggleDualMode;
-    document.getElementById('start-screen').appendChild(dualBtn);
-    // Gamepad status indicator (clickable to force re-scan)
-    const gpStatus = document.createElement('span');
+  if (dualLink) dualLink.innerHTML = '<span class="menu-code">SOLO</span> ' + (dualModePending ? '双 人 模 式' : '单 人 模 式');
+  // Auto-aim link
+  let autoLink = document.getElementById('dual-auto-link');
+  if (!autoLink && dualLink) {
+    autoLink = document.createElement('p');
+    autoLink.id = 'dual-auto-link';
+    autoLink.className = 'achieve-link';
+    autoLink.onclick = function() { autoAimEnabled = !autoAimEnabled; renderDifficultyButtons(); };
+    dualLink.parentNode.insertBefore(autoLink, dualLink.nextSibling);
+  }
+  if (autoLink) autoLink.innerHTML = '<span class="menu-code">' + (autoAimEnabled ? 'AUTO' : 'MAN') + '</span> ' + (autoAimEnabled ? '自 动 索 敌' : '手 动 瞄 准');
+  // Gamepad status
+  let gpStatus = document.getElementById('gamepad-status');
+  if (!gpStatus && autoLink) {
+    gpStatus = document.createElement('p');
     gpStatus.id = 'gamepad-status';
-    gpStatus.title = '点击此处强制重新检测手柄';
-    gpStatus.onclick = function(e) {
-      e.stopPropagation();
-      dualBtn._lastGpPoll = 0;
-      renderDifficultyButtons();
-    };
-    dualBtn.parentNode.insertBefore(gpStatus, dualBtn.nextSibling);
+    gpStatus.style.cssText = 'color:#555;font-size:9px;cursor:pointer;letter-spacing:1px;margin-top:2px;';
+    gpStatus.title = '点击强制重新检测手柄';
+    gpStatus.onclick = function(e) { e.stopPropagation(); if (dualLink) dualLink._lastGpPoll = 0; renderDifficultyButtons(); };
+    autoLink.parentNode.insertBefore(gpStatus, autoLink.nextSibling);
   }
-  // Poll gamepad for status display (throttled to every 3s to avoid BT lag)
+  // Poll gamepad (throttled)
   const now = Date.now();
-  if (!dualBtn._lastGpPoll || now - dualBtn._lastGpPoll > 3000) {
-    dualBtn._lastGpPoll = now;
-    dualBtn._cachedGpName = '';
+  if (!dualLink) dualLink = {};
+  if (!dualLink._lastGpPoll || now - dualLink._lastGpPoll > 3000) {
+    dualLink._lastGpPoll = now;
+    dualLink._cachedGpName = '';
     try {
       const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-      for (const gp of gamepads) {
-        if (gp && gp.connected) { dualBtn._cachedGpName = gp.id; break; }
-      }
-    } catch(e) { /* ignore gamepad API errors */ }
+      for (const gp of gamepads) { if (gp && gp.connected) { dualLink._cachedGpName = gp.id; break; } }
+    } catch(e) {}
   }
-  const gpName = dualBtn._cachedGpName || '';
-  const gpStatus = document.getElementById('gamepad-status');
+  const gpName = dualLink._cachedGpName || '';
   if (gpStatus) {
-    gpStatus.textContent = gpName ? '\u{1F3AE} 已连接: ' + gpName.substring(0, 40) : '未检测到手柄';
-    gpStatus.style.color = gpName ? '#0f0' : '#888';
+    gpStatus.textContent = gpName ? '\u{1F3AE} ' + gpName.substring(0, 35) : '\u{1F3AE} 未检测到手柄';
+    gpStatus.style.color = gpName ? '#4a4' : '#555';
   }
-  dualBtn.textContent = dualModePending ? 'DUAL 双人模式' : 'SOLO 单人模式';
-
-  // Auto-aim toggle
-  let autoBtn = document.getElementById('dual-auto-btn');
-  if (!autoBtn) {
-    autoBtn = document.createElement('button');
-    autoBtn.id = 'dual-auto-btn';
-    autoBtn.onclick = function() {
-      autoAimEnabled = !autoAimEnabled;
-      renderDifficultyButtons();
-    };
-    document.getElementById('start-screen').appendChild(autoBtn);
-  }
-  autoBtn.textContent = autoAimEnabled ? 'AUTO 自动索敌' : 'MANUAL 手动瞄准';
 
   const classes = ['easy','normal','hard','extreme','nightmare'];
   container.innerHTML = DIFFICULTY_ORDER.map((key, idx) => {
@@ -1891,8 +1855,8 @@ function startTankSelectGamepadPolling() {
 function toggleDualMode() {
   if (!dualModePending) {
     // Force refresh gamepad cache
-    const btn = document.getElementById('dual-mode-btn');
-    if (btn) btn._lastGpPoll = 0;
+    const link = document.getElementById('dual-mode-link');
+    if (link) link._lastGpPoll = 0;
     // Check for gamepad before entering dual mode
     try {
       const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -1911,13 +1875,6 @@ function toggleDualMode() {
   }
   dualModePending = !dualModePending;
   dualP1Tank = null; dualP2Tank = null; dualSelectingFor = 'p1';
-  // Immediately update button UI
-  const btn = document.getElementById('dual-mode-btn');
-  if (btn) {
-    btn.classList.toggle('dual-active', dualModePending);
-    btn.textContent = dualModePending ? 'DUAL 双人模式' : 'SOLO 单人模式';
-    btn._lastGpPoll = 0; // Force re-poll next render
-  }
   renderDifficultyButtons();
 }
 function selectTankForDual(key) {
