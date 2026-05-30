@@ -297,7 +297,7 @@ class CyberSynth {
       const mel = [0, 5, 3, 7, 0, 10, 7, 11, 0, 3, 7, 10, 12, 10, 7, 5, 3, 7, 10, 14, 0, 5, 3, 0];
       this._lead(this._n(mel[(n/8)%24], 0), t, 0.45, 0.035);
     }
-    if (n % 16 === 8) this._bell(this._n([0, 7, 10][(n/16)%3], 0), t+bp*0.3, 2, 0.022);
+    if (n % 16 === 8) this._vox(this._n([0, 7, 10][(n/16)%3], 0), t+bp*0.3, bp*6, 0.02);
     if (n % 32 === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*8, 0.022);
     if (n % 64 === 0) this._pad([this._n(-2,-1),this._n(0,-1),this._n(3,-1)], t, bp*64, 0.02);
     if (n % 16 === 0) this._vox(this._n([0,3,7][(n/16)%3], 0), t+bp*0.3, bp*8, 0.02);
@@ -318,7 +318,7 @@ class CyberSynth {
       this._lead(this._n(mel[(n/8)%24], 0), t, 0.42, 0.04);
     }
     // Bell accent
-    if (n % 16 === 0) this._bell(this._n([0, 3, 7][(n/16)%3], 0), t+bp*0.2, 2, 0.025);
+    if (n % 16 === 0) this._vox(this._n([0, 3, 7][(n/16)%3], 0), t+bp*0.2, bp*6, 0.022);
     if (n % 24 === 0) this._chord([this._n(-5,-2),this._n(0,-1),this._n(3,-1)], t, bp*4, 0.024);
     if (n % 48 === 0) this._pad([this._n(-5,-1),this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*48, 0.026);
     if (n % 24 === 0) this._vox(this._n([0,3,7][(n/24)%3], 0), t+bp*0.2, bp*10, 0.02);
@@ -359,7 +359,7 @@ class CyberSynth {
     // Vox layer — haunting
     if (n % 12 === 0) this._vox(this._n([0,7,10,7][(n/12)%4], 0), t+bp*0.25, bp*6, 0.03);
     // Bell accents — sparkle
-    if (n % 8 === 2) this._bell(this._n([14,10,7,3, 10,7,3,0][n%8], 0), t+bp*0.1, 0.3, 0.02);
+    if (n % 8 === 2) this._vox(this._n([14,10,7,3, 10,7,3,0][n%8], 0), t+bp*0.1, bp*3, 0.025);
     // Alarm stab
     if (n % 16 === 0) { this._osc('sawtooth',this._n(0,1),t,bp*0.8,0.04); this._osc('sawtooth',this._n(7,0),t+0.02,bp*0.6,0.03); }
     // Dark pad
@@ -378,7 +378,7 @@ class CyberSynth {
       const mel = [0, 7, 5, 10, 7, 12, 10, 14, 0, 7, 5, 3, 7, 5, 3, 0, -2, 5, 3, 7, 5, 10, 7, 12, 0, -2, -5, -2, 0, 3, 5, 7];
       this._lead(this._n(mel[n % 32], 0), t, 0.38, 0.046);
     }
-    this._bell(this._n([7, 14, 10, 14, 7, 10, 3, 7][n % 8], 0), t + bp * 0.08, 0.28, 0.022);
+    this._vox(this._n([7, 14, 10, 14, 7, 10, 3, 7][n % 8], 0), t + bp * 0.08, bp*2, 0.028);
     this._arp(this._n([17, 14, 10, 7, 3, 7, 10, 14][n % 8], 0), t + bp * 0.05, 0.14, 0.022);
     if (n % 8 === 0) { this._osc('sawtooth', this._n(0, 1), t, bp * 1.1, 0.045); this._osc('triangle', this._n(4, 1), t + 0.02, bp, 0.028); }
     if (n % 16 === 0) this._pad([this._n(0, -1), this._n(4, -1), this._n(7, -1), this._n(11, -1)], t, bp * 16, 0.035);
@@ -435,7 +435,7 @@ class CyberSynth {
       const mel = [0,7,5,10,7,12,10,14, 0,7,5,3,7,5,3,0, -2,5,3,7,5,10,7,12, 0,-2,-5,3,0,3,5,7, 7,14,10,17,14,19,17,21, 7,14,10,7,14,12,10,7, 0,7,5,10,7,12,10,14, 0,7,5,3,0,-2,-5,-7];
       this._lead(this._n(mel[n%64], 0), t, 0.38, 0.05);
     }
-    this._bell(this._n([14,21,17,14,10,7,3,0, 7,14,10,7,0,3,7,10][n%16], 0), t+bp*0.1, 0.25, 0.025);
+    this._vox(this._n([14,21,17,14,10,7,3,0, 7,14,10,7,0,3,7,10][n%16], 0), t+bp*0.1, bp*2, 0.03);
     this._arp(this._n([21,17,14,10,7,3,0,3, 7,10,14,17,21,17,14,10][n%16], 0), t+bp*0.06, 0.16, 0.026);
     if (n % 8 === 0) { this._osc('sawtooth',this._n(0,1),t,bp*0.9,0.05); this._osc('triangle',this._n(4,1),t+0.02,bp*0.7,0.04); }
     if (n % 16 === 0) this._pad([this._n(0,-1),this._n(4,-1),this._n(7,-1),this._n(11,-1)], t, bp*16, 0.04);
