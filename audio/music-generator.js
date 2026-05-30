@@ -464,7 +464,7 @@ class CyberSynth {
     if (mode === 'menu') { this._activeTrack = this._menuTracks[Math.floor(Math.random() * this._menuTracks.length)]; this._bpm = 70; this._fadeTarget = 0.45; }
     else if (mode === 'boss') { this._activeTrack = this._bossTracks[Math.floor(Math.random() * this._bossTracks.length)]; this._bpm = 90 + wave * 1.5; this._fadeTarget = 0.48; }
     else { this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)]; this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.42; }
-    this._nextBeat = this.ctx.currentTime + 0.1; this._beat = 0; this.intensity = 0.5;
+    this._nextBeat = this.ctx.currentTime + 0.6; this._beat = 0; this.intensity = 0.5;
   }
   setIntensity(v) {
     this.intensity = Math.max(0, Math.min(1, v));
