@@ -7123,6 +7123,12 @@ const BOSS_TYPES = [
       { name:'织网召唤', hpPct:1.0, attack:'weave_summon', shootDelay:60, burstShots:1, burstRest:200, telegraph:40, recover:160, bulletCount:0, bulletSpeed:0, pressure:0.7, cue:'WEAVE PATTERN', hint:'先清小兵，再打Boss' },
       { name:'加速编织', hpPct:0.45, attack:'weave_frenzy', shootDelay:36, burstShots:1, burstRest:140, telegraph:30, recover:110, bulletCount:0, bulletSpeed:0, pressure:0.9, cue:'FRENZY WEAVE', hint:'小兵带追踪弹，尽快清除' },
     ]},
+  { name:'灰域剑圣', color:'#411', turret:'#f84', speed:0.68, hp:130, icon:'BLD', faction:'moon_arsenal',
+    desc:'近战武士Boss，能量巨刃+冲刺斩击',
+    phases:[
+      { name:'剑术三式', hpPct:1.0, attack:'blade_sweep', shootDelay:38, burstShots:3, burstRest:120, telegraph:44, recover:100, bulletCount:6, bulletSpeed:3.5, pressure:1.0, cue:'BLADE STANCE', hint:'扇形横扫范围大，保持距离后反击' },
+      { name:'终焉剑舞', hpPct:0.48, attack:'blade_dance', shootDelay:26, burstShots:3, burstRest:150, telegraph:38, recover:120, bulletCount:14, bulletSpeed:3.8, pressure:1.35, cue:'FINAL DANCE', hint:'旋转斩后有短暂停顿，输出窗口' },
+    ]},
 
 ];
 
@@ -7498,8 +7504,12 @@ class BossEnemy extends EliteEnemy {
       if (dist > 200) { moveX += dx/dist * 0.6; moveY += dy/dist * 0.6; }
       else if (dist < 60) { moveX -= dx/dist * 0.3; moveY -= dy/dist * 0.3; }
     } else if (this.bossDef.name === '圣龛织者') {
-      // Almost stationary — barely moves, lets summons do the work
       if (dist < 100) { moveX -= dx/dist * 0.15; moveY -= dy/dist * 0.15; }
+    } else if (this.bossDef.name === '灰域剑圣') {
+      // Aggressive charge — closes distance for melee
+      moveX += dx/dist * 0.8; moveY += dy/dist * 0.8;
+      if (dist < 80) moveX += -dy/dist * strafeDir * 0.3;
+      if (dist < 50) moveX += dx/dist * 0.5; // Even closer for the blade hit
     } else if (this.bossDef.name === '缝合巨兽') {
       moveX += dx/dist * 0.5 + (rng() - 0.5) * 0.15;
       moveY += dy/dist * 0.5 + (rng() - 0.5) * 0.15;
@@ -8026,6 +8036,42 @@ class BossEnemy extends EliteEnemy {
         }
       }
       spawnExplosion(this.x, this.y, 16, '#fd0', '#ff0');
+    } else if (phase.attack === 'blade_sweep') {
+      // === ASH BLADE P1: 120° sweep arc + dash slash ===
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total/2) * (Math.PI * 0.35 / total);
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#f84', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 3.2; enemyBullets.push(b);
+      }
+      // Dash forward — leave burning trail
+      const dashX = this.x + dx/dist * 60, dashY = this.y + dy/dist * 60;
+      for (let d = 0; d < 8; d++) {
+        const px = this.x + (dashX - this.x) * d/8, py = this.y + (dashY - this.y) * d/8;
+        spawnExplosion(px + rng()*8, py + rng()*8, 4, '#f80', '#fc0');
+      }
+      this.x = Math.max(40, Math.min(W-40, dashX));
+      this.y = Math.max(40, Math.min(H-40, dashY));
+    } else if (phase.attack === 'blade_dance') {
+      // === ASH BLADE P2: 360° spin + 3 energy rings ===
+      const total = phase.bulletCount + bonusBullets;
+      // Spin slash
+      for (let i = 0; i < total; i++) {
+        const a = (i / total) * Math.PI * 2 + this.phaseTimer * 0.08;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed, '#f84', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 3; enemyBullets.push(b);
+      }
+      // 3 expanding energy rings
+      for (let ring = 0; ring < 3; ring++) {
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          const dist = 15 + ring * 16 + this.phaseTimer * 0.5;
+          const b = new Bullet(this.x + Math.cos(a) * dist, this.y + Math.sin(a) * dist, a + Math.PI/2, 1.8 + ring * 0.3, '#f80', false, 1);
+          b.radius = 2.5; enemyBullets.push(b);
+        }
+      }
+      spawnExplosion(this.x, this.y, 22, '#f80', '#ff0');
+      triggerShake(6, 10);
     } else if (phase.attack === 'weave_frenzy') {
       // === WEAVER P2: Faster summon + tracking elites ===
       const count = 4 + Math.floor(rng() * 3);
@@ -8484,6 +8530,34 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '灰域剑圣') {
+      // === ASH BLADE — asymmetrical mecha with energy katana ===
+      ctx.fillStyle = '#200808';
+      ctx.beginPath(); ctx.moveTo(12, -14); ctx.lineTo(-16, -8); ctx.lineTo(-18, 4);
+      ctx.lineTo(-12, 14); ctx.lineTo(16, 12); ctx.lineTo(20, 0); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = accent; ctx.lineWidth = 2.5; ctx.stroke();
+      // Gold trim on armor
+      ctx.strokeStyle = 'rgba(255,200,80,0.3)'; ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(12, -14); ctx.lineTo(12, 12); ctx.stroke();
+      // Energy blade on front
+      const bladeAngle = this.turretAngle + 0.3;
+      ctx.save(); ctx.translate(6, 0); ctx.rotate(bladeAngle);
+      const bladeGlow = Math.sin(brt * 3) * 0.2 + 0.7;
+      ctx.strokeStyle = 'rgba(255,120,40,' + bladeGlow + ')';
+      ctx.lineWidth = 2; ctx.shadowColor = '#f80'; ctx.shadowBlur = 8 * bladeGlow;
+      ctx.beginPath(); ctx.moveTo(8, -3); ctx.lineTo(30, 0); ctx.lineTo(8, 3); ctx.closePath(); ctx.stroke();
+      ctx.shadowColor = '#fff'; ctx.shadowBlur = 4;
+      ctx.strokeStyle = 'rgba(255,255,255,' + (bladeGlow * 0.5) + ')';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(28, 0); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      // Scar marks on hull
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 0.5;
+      for (let sc = 0; sc < 3; sc++) {
+        ctx.beginPath(); ctx.moveTo(-10 + sc*5, -10); ctx.lineTo(-6 + sc*4, 8); ctx.stroke();
+      }
+      drawTechCore(ctx, -2, 0, 4.5, '#ffe0d0', accent);
     } else if (bname === '圣龛织者') {
       // === SANCTUM WEAVER — wide loom platform + golden threads ===
       ctx.fillStyle = '#3a2810'; ctx.strokeStyle = '#c90'; ctx.lineWidth = 3;
