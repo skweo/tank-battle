@@ -1865,8 +1865,14 @@ function toggleDualMode() {
   }
   dualModePending = !dualModePending;
   dualP1Tank = null; dualP2Tank = null; dualSelectingFor = 'p1';
+  // Immediately update button UI
   const btn = document.getElementById('dual-mode-btn');
-  if (btn) btn.classList.toggle('dual-active', dualModePending);
+  if (btn) {
+    btn.classList.toggle('dual-active', dualModePending);
+    btn.textContent = dualModePending ? '[ON]  双人模式 (手柄P2)' : '[OFF]  单人模式';
+    btn._lastGpPoll = 0; // Force re-poll next render
+  }
+  renderDifficultyButtons();
 }
 function selectTankForDual(key) {
   if (dualSelectingFor === 'p1') {
