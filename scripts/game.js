@@ -1702,7 +1702,7 @@ function toggleDualMode() {
     for (const gp of gamepads) { if (gp && gp.connected) { hasGamepad = true; break; } }
     if (!hasGamepad) {
       const info = document.getElementById('diff-info');
-      if (info) { info.textContent = '⚠ 未检测到手柄！请插入手柄后重试。P2需要手柄操作。'; info.style.color = '#f84'; }
+      if (info) { info.textContent = '⚠ 未检测到手柄！蓝牙手柄请摇一下唤醒，再点一次按钮。'; info.style.color = '#f84'; }
       return;
     }
   }
