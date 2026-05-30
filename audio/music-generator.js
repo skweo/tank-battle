@@ -4,7 +4,7 @@
 class CyberSynth {
   constructor(ctx) {
     this.ctx = ctx;
-    this.masterGain = ctx.createGain(); this.masterGain.gain.value = 0.22;
+    this.masterGain = ctx.createGain(); this.masterGain.gain.value = 0.28;
     this.masterGain.connect(ctx.destination);
     // Cathedral reverb — Hollow Knight style space
     this.preVerb = ctx.createGain(); this.preVerb.gain.value = 0.45;
@@ -24,7 +24,7 @@ class CyberSynth {
     this._activeTrack = 'menu_crystal';
     this.currentMode = 'menu'; this.currentWave = 1;
     this._running = false; this._nextBeat = 0; this._bpm = 70; this._beat = 0;
-    this._fadeTarget = 0.22; this._fadeCurrent = 0.16;
+    this._fadeTarget = 0.28; this._fadeCurrent = 0.22;
     this.intensity = 0.5;
   }
 
@@ -58,6 +58,24 @@ class CyberSynth {
     osc.connect(f); osc2.connect(f); f.connect(gain);
     gain.connect(this.masterGain); this._verb(gain);
     osc.start(t); osc2.start(t); osc.stop(t + dur + 0.05); osc2.stop(t + dur + 0.05);
+  }
+
+  // Nier-style vocal lead — sine with vibrato, emotional
+  _vox(freq, t, dur, g = 0.06) {
+    const osc = this.ctx.createOscillator(); osc.type = 'sine';
+    const vib = this.ctx.createOscillator(); vib.type = 'sine';
+    vib.frequency.value = 5.5; // Vibrato speed
+    const vibGain = this.ctx.createGain(); vibGain.gain.value = 2.5; // Vibrato depth
+    vib.connect(vibGain); vibGain.connect(osc.frequency);
+    const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2000; f.Q.value = 0.7;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(g, t + 0.15);
+    gain.gain.linearRampToValueAtTime(g * 0.8, t + dur * 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(f); f.connect(gain);
+    gain.connect(this.masterGain); this._verb(gain);
+    osc.start(t); vib.start(t); osc.stop(t + dur + 0.05); vib.stop(t + dur + 0.05);
   }
 
   // Rich lead — 3 osc detuned
@@ -340,9 +358,9 @@ class CyberSynth {
 
   switchMode(mode, wave = 1) {
     this.currentMode = mode; this.currentWave = wave;
-    if (mode === 'menu') { this._activeTrack = this._menuTracks[Math.floor(Math.random() * this._menuTracks.length)]; this._bpm = 70; this._fadeTarget = 0.22; }
-    else if (mode === 'boss') { this._activeTrack = this._bossTracks[Math.floor(Math.random() * this._bossTracks.length)]; this._bpm = 90 + wave * 1.5; this._fadeTarget = 0.24; }
-    else { this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)]; this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.20; }
+    if (mode === 'menu') { this._activeTrack = this._menuTracks[Math.floor(Math.random() * this._menuTracks.length)]; this._bpm = 70; this._fadeTarget = 0.28; }
+    else if (mode === 'boss') { this._activeTrack = this._bossTracks[Math.floor(Math.random() * this._bossTracks.length)]; this._bpm = 90 + wave * 1.5; this._fadeTarget = 0.30; }
+    else { this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)]; this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.26; }
     this._nextBeat = this.ctx.currentTime + 0.1; this._beat = 0; this.intensity = 0.5;
   }
   setIntensity(v) {
