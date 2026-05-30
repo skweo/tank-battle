@@ -1691,14 +1691,22 @@ function renderCodeIcon(code, title, tankType) {
 }
 
 let dualModePending = false;
+let dualP1Tank = null;
 function toggleDualMode() {
   dualModePending = !dualModePending;
+  dualP1Tank = null;
   const btn = document.getElementById('dual-mode-btn');
   if (btn) btn.classList.toggle('dual-active', dualModePending);
 }
-function showTankSelect(difficulty) {
+function showTankSelect(difficulty, forPlayer2) {
   currentDifficulty = difficulty;
-  document.getElementById('tank-select-screen').querySelector('h2').textContent = dualModePending ? '选择机体 (双人模式)' : '选择机体';
+  if (dualModePending && forPlayer2) {
+    document.getElementById('tank-select-screen').querySelector('h2').textContent = '\u{1F3AE} P2 手柄 选择机体';
+  } else if (dualModePending) {
+    document.getElementById('tank-select-screen').querySelector('h2').textContent = '\u{1F5B1}️ P1 键鼠 选择机体';
+  } else {
+    document.getElementById('tank-select-screen').querySelector('h2').textContent = '选择机体';
+  }
   const container = document.querySelector('#tank-select-screen .tank-cards');
   const tankKeys = ['spread','focus','wide','burst','sniper','homing','border','blade','scarlet','astral'];
   const tankNamesExtra = ['博丽灵梦式','雾雨魔理沙式','十六夜咲夜式','芙兰朵露式','八意永琳式','东风谷早苗式','境界结社式','魂魄妖梦式','斯卡雷特式','帕秋莉式'];
@@ -1710,7 +1718,12 @@ function showTankSelect(difficulty) {
     const unlocked = unlockedTanks.has(key);
     if (unlocked) {
       const cadence = '弹匣 ' + t.magSize + ' / 装填 ' + (t.reloadTime / 60).toFixed(1) + 's / 冷却 ' + t.shootDelay;
-      return `<div class="tank-card ${key}" onclick="startGame(currentDifficulty, '${key}', {mode:selectedRunMode, dual:dualModePending})">
+      const clickHandler = dualModePending && !dualP1Tank
+        ? `dualP1Tank='${key}';showTankSelect(currentDifficulty, true)`
+        : dualModePending
+          ? `startGame(currentDifficulty, dualP1Tank, {mode:selectedRunMode, dual:true, p2tank:'${key}'})`
+          : `startGame(currentDifficulty, '${key}', {mode:selectedRunMode})`;
+      return `<div class="tank-card ${key}" onclick="${clickHandler}">
         <span class="tank-icon">${tankIcons[i]}</span>
         <div class="tank-name">${t.name}</div>
         <div class="tank-subtitle">${tankNamesExtra[i]}</div>
@@ -11429,6 +11442,7 @@ function hideLeaderboard() {
 let player;
 let player2 = null;
 let isDualMode = false;
+let p2TankTypeGlobal = 'spread';
 let dualSharedLives = 0;
 let gamepadState = { leftX:0, leftY:0, rightX:0, rightY:0, shoot:false, connected:false };
 let dualReviveCooldown = 0;
@@ -12443,7 +12457,7 @@ function update() {
     } else {
       lives--;
       if (lives <= 0 && !player.alive) { endGame(); return; }
-      player2 = new PlayerTank(currentTankType, 'gamepad');
+      player2 = new PlayerTank(p2TankTypeGlobal, 'gamepad');
       player2.turretColor = '#ff8800';
       player2.color = '#331100';
       if (player.alive) {
@@ -13309,9 +13323,10 @@ function startGame(difficulty, tankType, options = {}) {
   }
   generateObstacles();
   isDualMode = options.dual || false;
+  p2TankTypeGlobal = options.p2tank || currentTankType;
   if (isDualMode) {
     player = new PlayerTank(currentTankType, 'kbm');
-    player2 = new PlayerTank(currentTankType, 'gamepad');
+    player2 = new PlayerTank(p2TankTypeGlobal, 'gamepad');
     dualSharedLives = Math.max(3, diff.lives * 2);
     lives = dualSharedLives;
     dualReviveCooldown = 0;
