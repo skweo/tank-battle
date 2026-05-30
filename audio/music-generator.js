@@ -223,56 +223,65 @@ class CyberSynth {
   // ============================================
   _combatPulse(n) {
     const t = this.ctx.currentTime, bp = 60 / this._bpm;
-    // Song structure: A(0-63) B(64-127) C(128-191) = 192 beats (~2.5min)
-    const section = Math.floor(n / 64) % 3; // 0=A, 1=B, 2=C
-    const sn = n % 64;
-    // === DRUMS (vary by section + fills) ===
-    if (sn % 4 === 0) this._kick(t, section > 0 ? 0.14 : 0.10);
-    if (sn % 4 === 2) this._snare(t, section > 0 ? 0.045 : 0.035);
-    if (sn % 2 === 1) this._hat(t, section > 0 ? 0.022 : 0.016);
-    if (section > 0 && sn % 8 === 0) this._hat(t + bp * 0.5, 0.014);
-    // Drum fills every 32 beats
-    if (sn % 32 === 30) { this._snare(t, 0.05); this._snare(t + bp * 0.5, 0.04); this._hat(t, 0.025); }
-    // === BASS (different per section) ===
-    const bassA = [0,0,0,0,-2,-2,0,-2,3,3,0,3,-4,-4,-2,0, 0,0,-2,0,3,3,0,-2,-4,0,-2,0,-5,-2,0,3];
-    const bassB = [0,-5,-2,-3,3,-5,-2,0, 0,-5,3,0,-2,-5,0,-3, 0,-5,-2,0,3,-5,-2,0, 0,0,3,3,-2,-2,-5,0];
-    const bassC = [-2,-2,-4,-4,0,0,-5,-5, 3,3,0,0,-2,-2,-5,-5, 0,0,-2,-2,3,3,0,0, -2,-2,-5,-5,0,0,3,3];
-    const bassLine = section === 0 ? bassA : section === 1 ? bassB : bassC;
-    if (sn % 2 === 0) this._bass(this._n(bassLine[sn % 32], -2), t, bp * 1.4, 0.1);
-    // === LEAD MELODY (128 notes — doubled for variety) ===
-    const melA = [0,2,3,5,7,5,3,2, 0,3,5,7,10,7,5,3, 0,-1,-2,0,2,3,5,3, 2,0,-1,0,3,2,0,-2, 0,2,3,5,7,5,3,2, 0,3,5,7,10,7,5,3, 2,0,-1,-2,0,2,3,5, 7,5,3,2,0,-1,0,2, 3,5,7,10,12,10,7,5, 3,2,0,-2,-4,-2,0,2, 5,7,10,12,14,12,10,7, 5,3,0,-2,-5,0,3,5, 0,2,4,5,7,5,4,2, 0,-2,0,2,4,2,0,-2, 3,5,7,10,7,5,3,2, 0,3,5,7,10,7,5,3];
-    const melB = [7,10,12,14,12,10,7,5, 3,7,10,12,14,12,10,7, 5,3,0,5,7,10,12,14, 10,7,5,3,0,-2,3,5, 7,10,12,14,12,10,7,5, 3,7,10,12,14,12,10,7, 5,7,10,14,17,14,10,7, 5,3,0,-2,-5,0,3,7, 10,12,14,17,14,12,10,7, 5,3,0,5,7,10,12,14, 12,10,7,5,3,0,-2,-5, 0,3,5,7,10,7,5,3, 7,10,14,17,14,10,7,5, 3,7,10,14,17,14,10,7, 5,3,0,-2,3,5,7,10, 12,10,7,5,3,0,-2,-5];
-    const melC = [3,2,0,2,3,0,-2,0, 3,5,3,2,0,2,3,5, 0,-2,-5,-2,0,3,0,-2, -5,-2,0,2,3,0,-2,-5, 3,2,0,2,3,0,-2,0, 3,5,7,5,3,2,0,-2, 0,3,5,7,10,7,5,3, 0,-2,0,2,3,0,-2,0, 7,5,3,2,0,-2,-5,-2, 0,3,5,7,5,3,0,-2, 10,7,5,3,0,-2,0,3, 5,3,0,-2,0,2,3,5, 3,0,-2,0,3,0,-2,-5, 0,3,5,7,3,0,-2,0, 7,5,3,0,-2,0,3,5, 10,7,5,3,0,-2,-5,-2];
-    const melody = section === 0 ? melA : section === 1 ? melB : melC;
-    if (sn % 2 === 0) {
-      // Random octave jump for variety
-      const oct = (sn % 8 === 0 && sn > 0) ? (Math.random() > 0.5 ? 1 : 0) : 0;
-      this._lead(this._n(melody[sn % 128], oct), t, 0.55, 0.035);
-    }
-    // === ARP (double layer) ===
-    const arpA = [7,11,14,11,7,4,7,4, 5,10,12,10,5,2,3,2, 7,11,14,11,7,4,3,4, 5,10,12,10,5,2,0,2];
-    const arpB = [14,11,7,4,0,4,7,11, 17,14,10,7,3,7,10,14, 12,10,5,2,-2,2,5,10, 14,11,7,4,0,4,7,11];
-    const arp = section !== 2 ? (section === 0 ? arpA : arpB) : arpA;
-    this._arp(this._n(arp[sn % 32], 0), t + bp * 0.1, 0.22, 0.018);
-    // Second arp layer — higher octave
-    this._arp(this._n(arp[(sn+4) % 32], 1), t + bp * 0.15, 0.14, 0.012);
-    // === CHORDS ===
-    if (sn % 8 === 0) this._chord([this._n(0,-1),this._n(2,-1),this._n(4,-1)], t, bp*2.5, section>0?0.025:0.018);
-    if (section > 0 && sn % 8 === 4) this._chord([this._n(-2,-1),this._n(0,-1),this._n(3,-1)], t, bp*2.5, 0.022);
-    // === VOX PADS (ambient vocal texture — varied frequency) ===
-    if (section < 2) {
-      if (sn % 16 === 0) this._vox(this._n(section===0?0:3, 0), t+bp*0.2, bp*6, 0.025);
-      if (sn % 12 === 3) this._vox(this._n([7,10,12,10][(sn/12)%4], 0), t+bp*0.3, bp*3, 0.018);
-      if (sn % 24 === 8) this._vox(this._n(section===0?5:7, 1), t+bp*0.15, bp*4, 0.015);
-    }
-    // === PAD ===
-    if (sn % 32 === 0) {
-      const cp = section === 0 ? [0,2,4,6] : section === 1 ? [0,3,5,7] : [-2,0,2,4];
-      this._pad(cp.map(c => this._n(c, -1)), t, bp * 32, 0.022);
-    }
-    if (sn === 0 && section > 0) this._string(this._n(0, -1), t, bp*12, 0.03);
-  }
+    const section = Math.floor(n / 72) % 3; // A(0-71) B(72-143) C(144-215)
+    const sn = n % 72;
 
+    // === SECTION A: Ambient intro — no drums, bell + vox ===
+    if (section === 0) {
+      if (sn === 0) this._pad([this._n(0,-1),this._n(2,-1),this._n(4,-1),this._n(6,-1)], t, bp*72, 0.04);
+      if (sn % 24 === 0) {
+        const bassNote = [0, -2, 3][sn/24];
+        this._bass(this._n(bassNote, -2), t, bp*8, 0.07);
+        this._string(this._n(bassNote, -1), t, bp*10, 0.03);
+      }
+      if (sn % 6 === 0) {
+        const bellMel = [0,2,4,5,7,5,4,2, 0,-2,0,2,4,2,0,-1, 0,3,5,7,10,7,5,3, 2,0,-1,-2,0,2,3,5];
+        this._bell(this._n(bellMel[(sn/6)%24], 0), t, 2.5, 0.04);
+      }
+      if (sn % 12 === 0) this._vox(this._n([0,3,5,7,10,7][(sn/12)%6], 0), t+bp*0.3, bp*5, 0.03);
+      if (sn % 24 === 0) this._kick(t, 0.06);
+      return;
+    }
+
+    if (section === 1) {
+      // Organic drums — NOT rigid grid
+      if ([0,6,12,18,24,30,36,42,48,54,60,66].includes(sn)) this._kick(t, 0.12);
+      if ([6,22,38,54].includes(sn)) this._snare(t, 0.04);
+      if (sn % 3 === 0 && sn > 4) this._hat(t, 0.018);
+      if (sn >= 66 && sn % 2 === 0) { this._snare(t, 0.05); this._hat(t, 0.022); }
+      // Bass
+      const bB = [0,0,0,0,-2,-2,-2,-2, 0,-5,-2,-3, 3,-5,-2,0, 0,-5,3,0, -2,-5,0,-3, 0,0,-2,-2, 3,3,0,0];
+      if (sn % 3 === 0) this._bass(this._n(bB[(sn/3)%28], -2), t, bp*1.2, 0.11);
+      // Lead
+      if (sn % 4 === 0 || sn % 4 === 2) {
+        const melB = [0,3,5,7,10,7,5,3, 0,-2,0,3,5,7,10,12, 7,10,12,14,17,14,12,10, 7,5,3,0,-2,3,5,7, 0,3,5,7,10,7,5,3, 2,0,-2,-5,0,3,5,7, 10,12,14,17,14,12,10,7, 5,3,0,-2,3,5,7,10];
+        this._lead(this._n(melB[(sn/2)%36], 0), t, 0.5, 0.04);
+      }
+      // Arp
+      const arpB = [7,11,14,11,7,4,0,4, 5,10,12,10,5,2,-2,2, 7,11,14,11,7,4,0,4, 3,7,10,7,3,0,-2,-5];
+      if (sn % 2 === 0) this._arp(this._n(arpB[(sn/2)%32], 0), t+bp*0.1, 0.18, 0.018);
+      if (sn % 12 === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*3, 0.025);
+      if (sn % 12 === 6) this._chord([this._n(-2,-1),this._n(0,-1),this._n(5,-1)], t, bp*3, 0.022);
+      if (sn % 18 === 0) this._vox(this._n([0,7,10][(sn/18)%3], 0), t+bp*0.2, bp*8, 0.022);
+      if (sn === 0) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*72, 0.025);
+      return;
+    }
+
+    // === SECTION C: Emotional — ambient, vox, no drums ===
+    if (sn === 0) {
+      this._pad([this._n(-2,-1),this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*72, 0.045);
+      this._string(this._n(0, -1), t, bp*20, 0.04);
+      this._string(this._n(3, -1), t+bp*3, bp*18, 0.03);
+    }
+    if (sn % 6 === 0) {
+      const voxMelC = [0,3,5,7,10,7,5,3, 0,-2,0,3,5,3,2,0, 7,5,3,2,0,-2,-5,-2, 0,3,5,7,5,3,0,-2];
+      this._vox(this._n(voxMelC[(sn/6)%24], 0), t, bp*4, 0.04);
+    }
+    if (sn % 8 === 4) this._bell(this._n([0,3,7,10,7,3][(sn/8)%6], 0), t+bp*0.3, 3, 0.03);
+    if (sn === 0) this._bass(this._n(-2, -2), t, bp*8, 0.06);
+    if (sn === 36) this._bass(this._n(0, -2), t, bp*8, 0.05);
+    if (sn % 36 === 0) this._kick(t, 0.05);
+  }
   _combatChase(n) {
     const t = this.ctx.currentTime, bp = 60 / (this._bpm + 3);
     if (n % 4 === 0) this._kick(t, 0.11);
