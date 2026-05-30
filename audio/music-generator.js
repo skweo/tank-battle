@@ -19,7 +19,7 @@ class CyberSynth {
     this.vOut.connect(this.masterGain);
 
     this._menuTracks = ['menu_crystal','menu_void','menu_echo', 'menu_pulse','menu_chase','menu_siege'];
-    this._combatTracks = ['boss_abyss', 'boss_judgment'];
+    this._combatTracks = ['boss_abyss', 'boss_judgment', 'combat_strike', 'combat_assault'];
     this._bossTracks = ['boss_onslaught', 'boss_cataclysm'];
     this._activeTrack = 'menu_crystal';
     this.currentMode = 'menu'; this.currentWave = 1;
@@ -444,6 +444,65 @@ class CyberSynth {
     if (n % 8 === 0) { this._osc('sawtooth',this._n(0,1),t,bp*0.9,0.05); this._osc('triangle',this._n(4,1),t+0.02,bp*0.7,0.04); }
     if (n % 16 === 0) this._pad([this._n(0,-1),this._n(4,-1),this._n(7,-1),this._n(11,-1)], t, bp*16, 0.04);
     if (n % 8 === 0) this._vox(this._n([14,7,0][(n/8)%3], 1), t+bp*0.15, bp*5, 0.035);
+  }
+  _combatStrike(n) {
+    const t = this.ctx.currentTime, bp = 60 / this._bpm;
+    // === NO PAD, NO BELL opening — clean piano + vox ===
+    // Opening: just a single kick hit, then vox melody enters
+    if (n === 0) this._kick(t, 0.15);
+    if (n >= 4 && n % 8 === 0) {
+      const mel = [0,3,5,7, 3,2,0,-2, 0,3,7,10, 7,5,3,2, 5,7,10,12, 10,7,5,3, 7,10,12,14, 12,10,7,5];
+      this._lead(this._n(mel[(n/4)%32], 0), t, 0.45, 0.038);
+    }
+    // Vox — main melodic voice, replaces bell
+    if (n >= 8 && n % 6 === 0) {
+      const voxMel = [0,3,5,7,10,7,5,3, 0,-2,0,3,5,3,2,0, 7,10,12,14,17,14,10,7, 5,3,0,-2,3,5,7,10];
+      this._vox(this._n(voxMel[(n/6)%32], 0), t+bp*0.2, bp*4, 0.035);
+    }
+    // Drums enter gradually
+    if (n >= 16 && n % 8 === 0) this._kick(t, 0.13);
+    if (n >= 32 && n % 8 === 4) this._kick(t+bp*0.3, 0.10);
+    if (n >= 24 && n % 16 === 12) this._snare(t, 0.04);
+    // Bass — enters after vox establishes
+    if (n >= 16 && n % 8 === 0) {
+      const bP = [0, -2, 3, -4, 0, -2, -5, 3];
+      this._bass(this._n(bP[(n/8)%8], -2), t, bp*2, 0.10);
+    }
+    // Pad — ONLY after 32 beats, very subtle
+    if (n === 32) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*96, 0.02);
+    // Chords — sparse
+    if (n >= 16 && n % 32 === 16) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*6, 0.02);
+  }
+
+  _combatAssault(n) {
+    const t = this.ctx.currentTime, bp = 60 / (this._bpm + 4);
+    // === AGGRESSIVE but clean opening — NO drone ===
+    // Opening: double kick hit, then lead immediately
+    if (n === 0) { this._kick(t, 0.16); this._kick(t+bp*0.25, 0.14); }
+    // Lead — aggressive, immediate
+    if (n % 4 === 0) {
+      const mel = [0,5,3,7, 0,10,7,11, 5,10,12,14, 10,7,5,3, 0,5,3,7, 10,12,7,8, 5,3,0,-2, 3,5,7,10, 7,10,12,14, 17,14,10,7, 5,7,10,12, 14,12,10,7, 0,5,3,7, 10,7,5,3, 0,-2,3,5, 7,10,12,14];
+      this._lead(this._n(mel[n%64], 0), t, 0.4, 0.042);
+    }
+    // Vox — urgent
+    if (n % 6 === 0) {
+      this._vox(this._n([7,10,14,17,14,10,7,5, 3,7,10,14,17,14,10,7][(n/6)%16], 0), t+bp*0.15, bp*3, 0.03);
+    }
+    // Drums — dense but clean
+    if (n % 8 === 0) this._kick(t, 0.14);
+    if (n % 8 === 4) this._kick(t+bp*0.3, 0.11);
+    if (n % 8 === 2 || n % 8 === 6) this._snare(t, 0.045);
+    if (n % 32 === 28) { this._snare(t,0.05); this._snare(t+bp*0.5,0.04); }
+    // Bass — driving
+    if (n % 4 === 0) {
+      const bP = [0, -5, -2, -3, 3, -5, -2, 0, 0, -5, 3, 0, -2, -5, -2, 0];
+      this._bass(this._n(bP[(n/2)%16], -2), t, bp*1.2, 0.12);
+    }
+    // Chords — punchy
+    if (n % 8 === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*1.5, 0.028);
+    if (n % 8 === 4) this._chord([this._n(-5,-1),this._n(-2,-1),this._n(3,-1)], t, bp*1.2, 0.024);
+    // Pad — VERY late, very subtle
+    if (n === 48) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*48, 0.018);
   }  _playBeat(n) {
     switch (this._activeTrack) {
       case 'menu_crystal': this._menuCrystal(n); break;
@@ -453,7 +512,7 @@ class CyberSynth {
       case 'menu_chase': this._menuChase(n); break;
       case 'menu_siege': this._menuSiege(n); break;
       case 'boss_abyss': this._bossAbyss(n); break;
-      case 'boss_judgment': this._bossJudgment(n); break; case 'boss_onslaught': this._bossOnslaught(n); break; case 'boss_cataclysm': this._bossCataclysm(n); break; case 'boss_onslaught': this._bossOnslaught(n); break; case 'boss_cataclysm': this._bossCataclysm(n); break;
+      case 'boss_judgment': this._bossJudgment(n); break; case 'boss_onslaught': this._bossOnslaught(n); break; case 'boss_cataclysm': this._bossCataclysm(n); break; case 'combat_strike': this._combatStrike(n); break; case 'combat_assault': this._combatAssault(n); break; case 'boss_onslaught': this._bossOnslaught(n); break; case 'boss_cataclysm': this._bossCataclysm(n); break;
     }
   }
 
