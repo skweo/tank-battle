@@ -5311,7 +5311,7 @@ class PlayerTank extends Tank {
     if (this.inputSource === 'gamepad') {
       // Right stick aim or auto-aim nearest enemy
       const rMag = Math.sqrt(gamepadState.rightX*gamepadState.rightX + gamepadState.rightY*gamepadState.rightY);
-      if (rMag > 0.15) {
+      if (rMag > 0.08) {
         targetAngle = Math.atan2(gamepadState.rightY, gamepadState.rightX);
       } else {
         // Auto-aim: prioritize Boss > Elite > nearest enemy
@@ -12545,13 +12545,29 @@ function updateGamepadInput() {
   let found = false;
   for (const gp of gamepads) {
     if (gp && gp.connected) {
-      // Apply deadzone
-      const dz = (v) => Math.abs(v) < 0.12 ? 0 : v;
+      const dz = (v) => Math.abs(v) < 0.06 ? 0 : v; // Lower deadzone for precision
       gamepadState.connected = true;
-      gamepadState.leftX = dz(gp.axes[0] || 0);
-      gamepadState.leftY = dz(gp.axes[1] || 0);
-      gamepadState.rightX = dz(gp.axes[2] || 0);
-      gamepadState.rightY = dz(gp.axes[3] || 0);
+      // Standard mapping: axes[0,1]=left stick, axes[2,3]=right stick
+      // PlayStation/other: right stick may be at axes[2,5] or axes[3,4]
+      const ax = gp.axes;
+      if (gp.mapping === 'standard' || ax.length <= 4) {
+        gamepadState.leftX = dz(ax[0] || 0);
+        gamepadState.leftY = dz(ax[1] || 0);
+        gamepadState.rightX = dz(ax[2] || 0);
+        gamepadState.rightY = dz(ax[3] || 0);
+      } else {
+        // Non-standard: check all axes and use the two largest-magnitude pairs after left stick
+        gamepadState.leftX = dz(ax[0] || 0);
+        gamepadState.leftY = dz(ax[1] || 0);
+        // Find right stick among remaining axes
+        let bestR = 0, bestRX = 0, bestRY = 0;
+        for (let i = 2; i < ax.length - 1; i += 2) {
+          const mag = Math.abs(ax[i]||0) + Math.abs(ax[i+1]||0);
+          if (mag > bestR) { bestR = mag; bestRX = dz(ax[i]||0); bestRY = dz(ax[i+1]||0); }
+        }
+        gamepadState.rightX = bestRX;
+        gamepadState.rightY = bestRY;
+      }
       gamepadState.shoot = (gp.buttons[7] && gp.buttons[7].value > 0.2) || (gp.buttons[0] && gp.buttons[0].pressed);
       found = true;
       break;
