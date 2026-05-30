@@ -1724,6 +1724,50 @@ let dualP1Tank = null;
 let dualP2Tank = null;
 let dualSelectingFor = 'p1'; // 'p1' or 'p2' — which player is currently choosing
 let dualTankSelectGpPoll = null;
+function handleTankSelectKeyboard(e) {
+  const screen = document.getElementById('tank-select-screen');
+  if (!screen || screen.style.display === 'none') return false;
+  const cards = screen.querySelectorAll('.tank-card:not(.locked-card)');
+  if (!cards.length) return false;
+  let focused = screen.querySelector('.tank-card.gp-focus');
+  let idx = focused ? Array.from(cards).indexOf(focused) : -1;
+
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (focused) focused.classList.remove('gp-focus');
+    if (idx < 0) idx = 0;
+    if (e.key === 'ArrowRight') idx = Math.min(cards.length - 1, idx + 1);
+    else if (e.key === 'ArrowLeft') idx = Math.max(0, idx - 1);
+    else if (e.key === 'ArrowUp') idx = Math.max(0, idx - 5);
+    else if (e.key === 'ArrowDown') idx = Math.min(cards.length - 1, idx + 5);
+    if (cards[idx]) {
+      cards[idx].classList.add('gp-focus');
+      cards[idx].scrollIntoView({behavior:'smooth', block:'nearest'});
+    }
+    return true;
+  }
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    if (dualModePending) {
+      const bothReady = dualP1Tank && dualP2Tank && dualP1Tank !== dualP2Tank;
+      if (bothReady) {
+        startGame(currentDifficulty, dualP1Tank, {mode:selectedRunMode, dual:true, p2tank:dualP2Tank});
+        return true;
+      }
+    }
+    if (focused && idx >= 0) {
+      const cls = Array.from(focused.classList).filter(c => c !== 'tank-card' && c !== 'gp-focus' && c !== 'p1-locked');
+      if (dualModePending && cls[0]) { selectTankForDual(cls[0]); return true; }
+      else if (cls[0]) { startGame(currentDifficulty, cls[0], {mode:selectedRunMode}); return true; }
+    }
+  }
+  if (dualModePending && e.key === 'Tab') {
+    e.preventDefault();
+    switchSelectingPlayer(dualSelectingFor === 'p1' ? 'p2' : 'p1');
+    return true;
+  }
+  return false;
+}
 function startTankSelectGamepadPolling() {
   if (dualTankSelectGpPoll) clearInterval(dualTankSelectGpPoll);
   if (!dualModePending) return;
@@ -3742,6 +3786,7 @@ let mouse = { x: W/2, y: H/2 };
 let mouseDown = false;
 
 window.addEventListener('keydown', e => {
+  if (handleTankSelectKeyboard(e)) return;
   keys[e.key.toLowerCase()] = true;
   if (e.key.toLowerCase() === 'r' && gameOverFlag) quickRestart();
   if (e.key.toLowerCase() === 'p') {
