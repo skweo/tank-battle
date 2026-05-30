@@ -3540,37 +3540,47 @@ function returnHomeFromPause() {
 // --- Floating Damage Numbers ---
 const dmgNumbers = [];
 class DamageNumber {
-  constructor(x, y, value, color) {
-    this.x = x + (Math.random() - 0.5) * 20;
+  constructor(x, y, value, type) {
+    this.x = x + (Math.random() - 0.5) * 16;
     this.y = y;
     this.value = value;
-    this.color = color || '#ff0';
-    this.life = 45;
-    this.vy = -1.5;
-    this.alpha = 1;
+    this.type = type || 'normal'; // normal/crit/pierce/explosive/freeze/bounce
+    this.life = 50;
+    this.maxLife = 50;
+    this.vy = -1.2 - value * 0.12;
+    this.scale = 1 + Math.min(value * 0.04, 0.6); // bigger damage = bigger text
   }
   update() {
     this.y += this.vy;
+    this.vy *= 0.96;
     this.life--;
-    if (this.life < 15) this.alpha = this.life / 15;
+    if (this.life < 20) this.scale = Math.max(0.3, this.scale * 0.95);
   }
   draw(ctx) {
+    const colors = { normal:'#ffffff', crit:'#ffdd00', pierce:'#88ccff', explosive:'#ff8844', freeze:'#88eeff', bounce:'#aaddff', heal:'#88ff88' };
+    const color = colors[this.type] || colors.normal;
+    const size = 12 + Math.min(this.value * 0.8, 10);
     ctx.save();
-    ctx.globalAlpha = this.alpha;
-    ctx.font = 'bold 15px "Courier New", monospace';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 3;
-    ctx.fillStyle = this.color;
-    ctx.textAlign = 'center';
-    ctx.fillText(this.value, this.x, this.y);
+    ctx.globalAlpha = Math.min(1, this.life / 25);
+    ctx.translate(this.x, this.y);
+    ctx.scale(this.scale, this.scale);
+    if (this.type === 'crit') {
+      ctx.shadowColor = '#ff0'; ctx.shadowBlur = 8;
+    } else if (this.type === 'explosive') {
+      ctx.shadowColor = '#f80'; ctx.shadowBlur = 6;
+    }
+    ctx.font = 'bold ' + size + 'px "Courier New", monospace';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(this.value, 0, 0);
     ctx.shadowBlur = 0;
     ctx.restore();
   }
 }
-function spawnDamageNumber(x, y, value, isCrit) {
+function spawnDamageNumber(x, y, value, type) {
   if (isNaN(value) || value <= 0) return;
-  const color = isCrit ? '#ff0' : '#fff';
-  dmgNumbers.push(new DamageNumber(x, y, (isCrit ? '★' : '') + value, color));
+  const t = type || (value >= 3 ? 'crit' : 'normal');
+  dmgNumbers.push(new DamageNumber(x, y, value, t));
 }
 
 // --- Particles ---
@@ -5580,7 +5590,7 @@ class PlayerTank extends Tank {
     gotHitThisLevel = true;
     sessionGotHit = true;
     spawnExplosion(this.x, this.y, 8, '#f80', '#ff0');
-    spawnDamageNumber(this.x, this.y - 10, 1, false);
+    
     sfxPlayerHurt();
     if (this.hp <= 0) {
       this.alive = false;
@@ -6062,7 +6072,9 @@ class EnemyTank extends Tank {
       return false;
     }
     const dmg = bullet && bullet.damage ? bullet.damage : 1;
+    const dmgType = bullet && bullet.railgun ? 'pierce' : (bullet && bullet.explosive ? 'explosive' : (bullet && bullet.freeze ? 'freeze' : (dmg >= 3 ? 'crit' : 'normal')));
     this.hp -= dmg;
+    this.hitFlash = 6; // Brief white flash
     if (bullet && bullet.freeze && !this.frozen) {
       const freezeBonus = player && player._tankDef ? (player._tankDef.freezeDurationBonus || 0) : 0;
       const freezeMul = player && player._tankDef ? (player._tankDef.freezeDurationMul || 1) : 1;
@@ -6071,8 +6083,14 @@ class EnemyTank extends Tank {
       spawnExplosion(this.x, this.y, 8, '#8cf', '#fff');
       sfxStatus('freeze');
     }
-    spawnExplosion(this.x, this.y, 5, '#f80', '#ff0');
-    spawnDamageNumber(this.x, this.y - 10, dmg, dmg >= 3);
+    // Hit impact particles
+    const pColors = { normal:'#ff0', crit:'#ff8', pierce:'#8cf', explosive:'#f80', freeze:'#8ff', bounce:'#aff' };
+    const pCol = pColors[dmgType] || '#ff0';
+    for (let p = 0; p < Math.min(dmg * 3, 8); p++) {
+      particles.push(new Particle(this.x + (rng()-0.5)*12, this.y + (rng()-0.5)*12, pCol, 1.5 + dmg * 0.3));
+    }
+    spawnExplosion(this.x, this.y, 5 + Math.min(dmg, 4), pCol, '#fff');
+    spawnDamageNumber(this.x, this.y - 10, dmg, dmgType);
     sfxEnemyHit();
     if (this.hp <= 0) {
       this.alive = false;
@@ -11076,7 +11094,7 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         if (fromPlayer) recordEnemyHit(tank, bullet, Math.max(0, hpBeforeHit - (tank.hp || 0)));
         if (bullet.drainOnHit > 0 && fromPlayer && player && player.alive && rng() < bullet.drainOnHit) {
           player.hp = Math.min(player.maxHp, player.hp + 1);
-          spawnDamageNumber(player.x, player.y - 22, 1, false);
+          
           sfxStatus('drain');
           bullet.drainOnHit = 0;
         }
