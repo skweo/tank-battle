@@ -11116,6 +11116,14 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         const hpBeforeHit = tank.hp || 0;
         if (!fromPlayer && tank === player) recordPlayerHit(bullet);
         if (!bullet.railgun && !bullet.pierce) bullet.alive = false;
+        // Multi-hit protection: successive bullets from same volley do reduced damage to bosses
+        if (fromPlayer && tank.bossDef) {
+          const now = performance.now();
+          if (now - (tank._lastHitTime || 0) < 120) {
+            bullet.damage = Math.max(1, Math.floor((bullet.damage || 1) * 0.5));
+          }
+          tank._lastHitTime = now;
+        }
         // Proximity damage scaling: point-blank shots do less to bosses
         if (fromPlayer && tank.bossDef) {
           const pdx = player.x - tank.x, pdy = player.y - tank.y;
