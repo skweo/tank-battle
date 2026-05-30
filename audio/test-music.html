@@ -1,39 +1,108 @@
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>BGM Test</title>
 <style>
-  body { background:#0a0e14; color:#ccc; font-family:'Segoe UI',sans-serif; text-align:center; padding:40px; }
-  button { margin:8px; padding:12px 24px; font-size:14px; cursor:pointer; border:1px solid #444; background:#1a1e28; color:#ddd; border-radius:4px; }
-  button:hover { background:#2a2e38; }
-  button.active { border-color:#f49800; color:#f49800; }
-  .info { color:#888; font-size:12px; margin-top:20px; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#080c14; color:#ccc; font-family:'Segoe UI',sans-serif; padding:30px; min-height:100vh; }
+  h2 { color:#f49800; margin-bottom:6px; letter-spacing:3px; }
+  .section { margin-bottom:20px; }
+  .section h3 { color:#8ce8ff; font-size:13px; letter-spacing:2px; margin-bottom:8px; border-bottom:1px solid rgba(140,232,255,0.15); padding-bottom:4px; }
+  .tracks { display:flex; flex-wrap:wrap; gap:6px; }
+  button { padding:10px 18px; font-size:12px; cursor:pointer; border:1px solid rgba(107,125,149,0.2); background:#10141c; color:#aaa; letter-spacing:1px; transition:all 0.15s; }
+  button:hover { border-color:rgba(244,152,0,0.4); color:#ddd; }
+  button.active { border-color:#f49800; color:#f49800; background:rgba(244,152,0,0.1); }
+  button.stop-btn { border-color:rgba(255,80,80,0.3); color:#f66; }
+  .progress-wrap { margin-top:16px; display:flex; align-items:center; gap:12px; }
+  .progress-bar { flex:1; height:4px; background:rgba(255,255,255,0.06); position:relative; border-radius:2px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg, #f49800, #8ce8ff); width:0%; transition:width 0.3s; border-radius:2px; }
+  .progress-time { color:#666; font:11px monospace; min-width:90px; text-align:right; }
+  .info { color:#555; font-size:11px; margin-top:20px; }
 </style></head><body>
-<h2>BGM Test Panel</h2>
-<div id="btns">
-  <button onclick="play('menu')">Menu</button>
-  <button onclick="play('combat')">Combat (wave1)</button>
-  <button onclick="play('combat_high')">Combat (wave15)</button>
-  <button onclick="play('boss')">Boss</button>
-  <button onclick="stop()">Stop</button>
+<h2>BGM TEST PANEL</h2>
+<div class="section"><h3>MENU (6 tracks)</h3><div class="tracks" id="menu-tracks"></div></div>
+<div class="section"><h3>COMBAT (2 tracks)</h3><div class="tracks" id="combat-tracks"></div></div>
+<div class="section"><h3>BOSS (2 tracks)</h3><div class="tracks" id="boss-tracks"></div></div>
+<button class="stop-btn" onclick="doStop()">STOP</button>
+<div class="progress-wrap">
+  <div class="progress-bar"><div class="progress-fill" id="bar"></div></div>
+  <div class="progress-time" id="time">--:--</div>
 </div>
-<div class="info">Click any button (browser needs user gesture for audio)</div>
+<div class="info">Click any track to preview. Progress bar shows position in current loop cycle.</div>
+
 <script src="music-generator.js"></script>
 <script>
-let ms;
-function ensure() {
-  if (ms) return;
-  const ctx = new (window.AudioContext||window.webkitAudioContext)();
-  ms = new CyberSynth(ctx);
-  ms.start();
+let ms, ctx, activeBtn, trackName, trackBpm, trackBeats;
+const TRACKS = {
+  menu: [
+    {id:'menu_crystal', label:'Crystal', bpm:70, beats:96},
+    {id:'menu_void', label:'Void', bpm:70, beats:72},
+    {id:'menu_echo', label:'Echo', bpm:65, beats:80},
+    {id:'menu_pulse', label:'Pulse', bpm:82, beats:128},
+    {id:'menu_chase', label:'Chase', bpm:85, beats:128},
+    {id:'menu_siege', label:'Siege', bpm:80, beats:96},
+  ],
+  combat: [
+    {id:'boss_abyss', label:'Abyss', bpm:90, beats:64},
+    {id:'boss_judgment', label:'Judgment', bpm:94, beats:64},
+  ],
+  boss: [
+    {id:'boss_onslaught', label:'Onslaught', bpm:100, beats:64},
+    {id:'boss_cataclysm', label:'Cataclysm', bpm:106, beats:64},
+  ],
+};
+
+function init() {
+  Object.entries(TRACKS).forEach(([cat, tracks]) => {
+    const el = document.getElementById(cat+'-tracks');
+    tracks.forEach(t => {
+      const btn = document.createElement('button');
+      btn.textContent = t.label;
+      btn.onclick = () => playTrack(cat, t, btn);
+      el.appendChild(btn);
+    });
+  });
 }
-function play(mode) {
-  ensure();
-  if (mode==='combat') ms.switchMode('combat', 1);
-  else if (mode==='combat_high') ms.switchMode('combat', 15);
-  else if (mode==='boss') ms.switchMode('boss', 8);
-  else ms.switchMode('menu');
-  document.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
+
+function ensureCtx() {
+  if (!ctx) { ctx = new (window.AudioContext||window.webkitAudioContext)(); }
+  if (!ms) { ms = new CyberSynth(ctx); ms.start(); }
 }
-function stop() { if(ms) ms.stop(); ms=null; }
+
+function playTrack(cat, track, btn) {
+  ensureCtx();
+  if (activeBtn) activeBtn.classList.remove('active');
+  btn.classList.add('active'); activeBtn = btn;
+  trackName = track.label; trackBpm = track.bpm; trackBeats = track.beats;
+  ms.switchMode(cat === 'menu' ? 'menu' : cat === 'combat' ? 'combat' : 'boss');
+  // Override track selection
+  ms._activeTrack = track.id;
+  ms._bpm = track.bpm;
+  ms._nextBeat = ctx.currentTime + 0.1;
+  ms._beat = 0;
+  updateProgress();
+}
+
+function doStop() {
+  if (ms) { ms.stop(); ms = null; }
+  if (ctx) { ctx.close(); ctx = null; }
+  if (activeBtn) { activeBtn.classList.remove('active'); activeBtn = null; }
+  trackName = null;
+  document.getElementById('bar').style.width = '0%';
+  document.getElementById('time').textContent = '--:--';
+}
+
+function updateProgress() {
+  if (!ms || !trackName) { requestAnimationFrame(updateProgress); return; }
+  const totalBeats = trackBeats || 64;
+  const bp = 60 / (trackBpm || 80);
+  const cycleTime = totalBeats * bp;
+  const elapsed = (ctx.currentTime - ms._nextBeat + ms._beat * bp) % cycleTime;
+  const pct = Math.min(100, (elapsed / cycleTime) * 100);
+  document.getElementById('bar').style.width = pct + '%';
+  const remain = Math.max(0, cycleTime - elapsed);
+  document.getElementById('time').textContent = Math.floor(remain/60)+':'+String(Math.floor(remain%60)).padStart(2,'0');
+  requestAnimationFrame(updateProgress);
+}
+
+init();
 </script>
 </body></html>
