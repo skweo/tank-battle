@@ -8216,7 +8216,7 @@ class BossEnemy extends EliteEnemy {
       for (let i = 0; i < homingCount; i++) {
         const a = this.turretAngle + (i - (homingCount-1)/2) * 0.35;
         const b = new Bullet(bx, by, a, 1.3 + rng()*0.5, '#adf', true, 2);
-        b.radius = 3.8; b.homingStrength = 0.025; b.homingLife = 200;
+        b.radius = 3.8; b.homingStrength = 0.025;
         enemyBullets.push(b);
       }
     } else if (phase.attack === 'triple_strike') {
@@ -8249,7 +8249,7 @@ class BossEnemy extends EliteEnemy {
         const a = rng() * Math.PI * 2;
         const spd = 0.6 + rng() * 0.8;
         const b = new Bullet(this.x + rng()*40-20, this.y + rng()*40-20, a, spd, '#060', false, 1);
-        b.radius = 2.2; b.life = 300 + rng() * 200; enemyBullets.push(b);
+        b.radius = 2.2; enemyBullets.push(b);
       }
     } else if (phase.attack === 'mirror_enhance') {
       // === MIRROR SHELL P2: Enhanced copy — faster + bigger ===
@@ -9353,16 +9353,14 @@ class BossEnemy extends EliteEnemy {
     this.hitFlash = 6;
     if (dead && this.bossDef.name === '沙暴' && weatherOverridden) {
       weatherOverridden = false;
-      weatherType = savedWeatherType;
-      weatherIntensity = savedWeatherIntensity;
       weatherParticles = [];
       const safeWave = Math.max(1, Number.isFinite(wave) ? wave : 1);
       const biome = (safeWave - 1) % 8;
       const weatherMap = { 0:'clear', 1:'rain', 2:'fog', 3:'dust', 4:'sparks', 5:'snow', 6:'ash', 7:'ion' };
       const restoreType = weatherMap[biome] || 'clear';
+      weatherType = restoreType;
+      weatherIntensity = restoreType === 'clear' ? 0 : 0.18 + safeWave * 0.012;
       if (restoreType !== 'clear') {
-        weatherType = restoreType;
-        weatherIntensity = 0.18 + safeWave * 0.012;
         const count = restoreType === 'fog' ? 60 : restoreType === 'dust' ? 80 : restoreType === 'ash' ? 70 : restoreType === 'snow' ? 50 : restoreType === 'ion' ? 40 : 40;
         for (let i = 0; i < count; i++) {
           weatherParticles.push({
@@ -12589,7 +12587,6 @@ function drawMinimap(ctx) {
   if (mines.length > 0) {
     ctx.fillStyle = 'rgba(200,100,30,0.5)';
     for (const m of mines) {
-      if (!m.alive) continue;
       ctx.fillRect(mx(m.x) - 1, my(m.y) - 1, 2, 2);
     }
   }
