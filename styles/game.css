@@ -468,8 +468,8 @@ canvas { display: block; background: #0a0f18; }
 #achievements-screen .achieve-grid::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
 #achievements-screen .achieve-grid::-webkit-scrollbar-thumb { background: rgba(244,152,0,0.35); border-radius: 3px; }
 #achievements-screen .achieve-row {
-  display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px;
-  min-height: 48px;
+  display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 16px;
+  min-height: 56px;
   border-bottom: 1px solid rgba(107,125,149,0.06);
   position: relative; overflow: hidden;
   transition: background 0.2s;
@@ -478,7 +478,7 @@ canvas { display: block; background: #0a0f18; }
 #achievements-screen .achieve-row:first-child { border-top: none; }
 #achievements-screen .ach-group-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 14px 6px; margin-bottom: 3px;
+  padding: 18px 16px 8px; margin-bottom: 4px;
   font: bold 14px "Segoe UI","Microsoft YaHei",sans-serif;
   letter-spacing: 3px;
 }
@@ -528,7 +528,7 @@ canvas { display: block; background: #0a0f18; }
   box-shadow: none;
 }
 #achievements-screen .achieve-row .ach-info { min-width: 0; }
-#achievements-screen .ach-topline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+#achievements-screen .ach-topline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
 #achievements-screen .ach-code,
 #achievements-screen .ach-rarity,
 #achievements-screen .ach-status {
@@ -544,9 +544,9 @@ canvas { display: block; background: #0a0f18; }
   border-color: color-mix(in srgb, var(--ach-accent, #f49800) 38%, rgba(255,255,255,0.08));
 }
 #achievements-screen .ach-status { color: rgba(246,229,170,0.62); }
-#achievements-screen .achieve-row .ach-name { color: #dce3ed; font-size: 14px; font-weight: 600; letter-spacing: 1px; }
+#achievements-screen .achieve-row .ach-name { color: #dce3ed; font-size: 14px; font-weight: 600; letter-spacing: 1px; margin-bottom: 2px; }
 #achievements-screen .achieve-row.locked .ach-name { color: #5e6f84; }
-#achievements-screen .achieve-row .ach-desc { color: #7d8fa5; font-size: 11px; margin-top: 2px; line-height: 1.45; }
+#achievements-screen .achieve-row .ach-desc { color: #7d8fa5; font-size: 11px; margin-top: 4px; line-height: 1.5; }
 #achievements-screen .achieve-row.locked .ach-desc { color: #3e4b5b; }
 #achievements-screen .ach-lore {
   max-height: 0;
