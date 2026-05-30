@@ -1590,6 +1590,22 @@ function renderDifficultyButtons() {
       'background:#1a1a2a;color:#8cf;border:1px solid #8cf;border-radius:4px;cursor:pointer;';
     dualBtn.onclick = toggleDualMode;
     document.getElementById('start-screen').appendChild(dualBtn);
+    // Gamepad status indicator
+    const gpStatus = document.createElement('span');
+    gpStatus.id = 'gamepad-status';
+    gpStatus.style.cssText = 'display:block;margin-top:2px;font:10px "Courier New";color:#888;';
+    dualBtn.parentNode.insertBefore(gpStatus, dualBtn.nextSibling);
+  }
+  // Poll gamepad for status display
+  let gpName = '';
+  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (const gp of gamepads) {
+    if (gp && gp.connected) { gpName = gp.id; break; }
+  }
+  const gpStatus = document.getElementById('gamepad-status');
+  if (gpStatus) {
+    gpStatus.textContent = gpName ? '\u{1F3AE} 已连接: ' + gpName.substring(0, 40) : '未检测到手柄';
+    gpStatus.style.color = gpName ? '#0f0' : '#888';
   }
   dualBtn.textContent = dualModePending ? '[ON]  双人模式 (手柄P2)' : '[OFF]  单人模式';
 
