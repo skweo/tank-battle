@@ -10203,27 +10203,40 @@ const OBSTACLE_TYPES = {
 };
 
 function refreshObstacles() {
-  // Remove ~20% of existing obstacles, favoring ones far from player
-  const removeCount = Math.max(3, Math.floor(obstacles.length * 0.2));
-  for (let i = 0; i < removeCount && obstacles.length > 5; i++) {
-    // Remove obstacles farthest from center
+  // Remove ~5% of obstacles far from player
+  const removeCount = Math.max(1, Math.floor(obstacles.length * 0.05));
+  for (let i = 0; i < removeCount; i++) {
     let bestIdx = 0, bestDist = 0;
     for (let j = 0; j < obstacles.length; j++) {
-      const dx = obstacles[j].x + obstacles[j].w/2 - W/2;
-      const dy = obstacles[j].y + obstacles[j].h/2 - H/2;
-      const dist = dx*dx + dy*dy;
-      // Prefer removing obstacles far from player
       const pdx = player ? (obstacles[j].x + obstacles[j].w/2 - player.x) : 0;
       const pdy = player ? (obstacles[j].y + obstacles[j].h/2 - player.y) : 0;
       const pDist = pdx*pdx + pdy*pdy;
-      const score = dist * 0.3 + pDist * 0.7;
-      if (score > bestDist) { bestDist = score; bestIdx = j; }
+      if (pDist > bestDist) { bestDist = pDist; bestIdx = j; }
     }
-    obstacles.splice(bestIdx, 1);
+    if (obstacles.length > 8) obstacles.splice(bestIdx, 1);
   }
-  // Add ~20% new obstacles
-  const addCount = Math.max(4, Math.floor(15 + wave * 1.5));
-  generateObstacles(addCount);
+  // Add 5% new obstacles — never near player
+  const addCount = Math.max(1, Math.floor(obstacles.length * 0.05));
+  for (let i = 0; i < addCount; i++) {
+    const defKeys = Object.keys(OBSTACLE_TYPES);
+    const def = OBSTACLE_TYPES[defKeys[Math.floor(rng() * defKeys.length)]];
+    let attempts = 0;
+    let ox, oy, ow, oh;
+    do {
+      ox = 50 + rng() * (W - 100);
+      oy = 50 + rng() * (H - 100);
+      ow = def.minW + rng() * (def.maxW - def.minW);
+      oh = def.minH + rng() * (def.maxH - def.minH);
+      attempts++;
+    } while (attempts < 10 && player &&
+      Math.abs((ox + ow/2) - player.x) < 80 && Math.abs((oy + oh/2) - player.y) < 80);
+    if (attempts >= 10) continue;
+    const obs = { x: ox, y: oy, w: ow, h: oh, type: defKeys[Math.floor(rng() * defKeys.length)],
+      passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke };
+    if (def.explosive) obs.hp = 2;
+    if (def.destructible) obs.hp = 1;
+    obstacles.push(obs);
+  }
 }
 
 function generateObstacles(countOverride) {
