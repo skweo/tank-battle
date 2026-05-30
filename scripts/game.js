@@ -7439,10 +7439,10 @@ class BossEnemy extends EliteEnemy {
 
     this.advanceAttackState(phase);
 
-    if (dist < 40) {
+    if (dist < 50) {
       triggerShake(8, 10);
       player.hit('Boss 近身撞击');
-      const knock = 18;
+      const knock = 35;
       this.pushPlayer((dx / dist) * knock, (dy / dist) * knock);
     }
   }
