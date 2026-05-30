@@ -1590,10 +1590,16 @@ function renderDifficultyButtons() {
       'background:#1a1a2a;color:#8cf;border:1px solid #8cf;border-radius:4px;cursor:pointer;';
     dualBtn.onclick = toggleDualMode;
     document.getElementById('start-screen').appendChild(dualBtn);
-    // Gamepad status indicator
+    // Gamepad status indicator (clickable to force re-scan)
     const gpStatus = document.createElement('span');
     gpStatus.id = 'gamepad-status';
-    gpStatus.style.cssText = 'display:block;margin-top:2px;font:10px "Courier New";color:#888;';
+    gpStatus.style.cssText = 'display:block;margin-top:2px;font:10px "Courier New";color:#888;cursor:pointer;';
+    gpStatus.title = '点击此处强制重新检测手柄';
+    gpStatus.onclick = function(e) {
+      e.stopPropagation();
+      dualBtn._lastGpPoll = 0; // Force re-poll
+      renderDifficultyButtons();
+    };
     dualBtn.parentNode.insertBefore(gpStatus, dualBtn.nextSibling);
   }
   // Poll gamepad for status display (throttled to every 3s to avoid BT lag)
@@ -1719,6 +1725,9 @@ let dualP2Tank = null;
 let dualSelectingFor = 'p1'; // 'p1' or 'p2' — which player is currently choosing
 function toggleDualMode() {
   if (!dualModePending) {
+    // Force refresh gamepad cache
+    const btn = document.getElementById('dual-mode-btn');
+    if (btn) btn._lastGpPoll = 0;
     // Check for gamepad before entering dual mode
     try {
       const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
