@@ -7111,6 +7111,12 @@ const BOSS_TYPES = [
       { name:'交叉弹幕', hpPct:1.0, attack:'gemini_cross', shootDelay:40, burstShots:3, burstRest:130, telegraph:44, recover:106, bulletCount:8, bulletSpeed:2.0, pressure:1.0, cue:'MIRROR DANCE', hint:'两体弹幕交织成网，找网眼穿行' },
       { name:'镜像狂暴', hpPct:0.0, attack:'gemini_rage', shootDelay:28, burstShots:3, burstRest:90, telegraph:30, recover:70, bulletCount:18, bulletSpeed:2.6, pressure:1.45, cue:'RAGE AWAKENING', hint:'一体死亡后另一体狂暴，弹幕密度×3' },
     ]},
+  { name:'迅影', color:'#123', turret:'#4ff', speed:0.92, hp:90, icon:'SWF', faction:'storm_cloister',
+    desc:'忍者刺客Boss，手里剑+瞬移背刺',
+    phases:[
+      { name:'影舞', hpPct:1.0, attack:'shuriken_fan', shootDelay:34, burstShots:3, burstRest:112, telegraph:36, recover:98, bulletCount:5, bulletSpeed:2.8, pressure:0.95, cue:'SHADOW DANCE', hint:'手里剑扇形三发，横移即可规避' },
+      { name:'瞬杀连舞', hpPct:0.45, attack:'teleport_flurry', shootDelay:22, burstShots:3, burstRest:140, telegraph:42, recover:114, bulletCount:12, bulletSpeed:3.2, pressure:1.3, cue:'FLURRY STRIKE', hint:'连续瞬移背刺，注意360°手里剑环' },
+    ]},
 
 ];
 
@@ -7476,13 +7482,17 @@ class BossEnemy extends EliteEnemy {
       else if (dist > 300) { moveX += dx/dist * 0.3; moveY += dy/dist * 0.3; }
       moveX += -dy/dist * strafeDir * 0.4; moveY += dx/dist * strafeDir * 0.4;
     } else if (this.bossDef.name === '双子坦克') {
-      // Mirror movement — one goes left, twin goes right
-      const isTwin = !!this.geminiMaster; // Twin moves opposite
+      const isTwin = !!this.geminiMaster;
       const side = isTwin ? -1 : 1;
       if (dist < 130) { moveX -= dx/dist * 0.4; moveY -= dy/dist * 0.4; }
       else if (dist > 240) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
-      moveX += -dy/dist * strafeDir * 0.6 * side;
-      moveY += dx/dist * strafeDir * 0.6 * side;
+      moveX += -dy/dist * strafeDir * 0.6 * side; moveY += dx/dist * strafeDir * 0.6 * side;
+    } else if (this.bossDef.name === '迅影') {
+      // Hyper-aggressive — circles player at close range
+      moveX += -dy/dist * strafeDir * 0.9;
+      moveY += dx/dist * strafeDir * 0.9;
+      if (dist > 200) { moveX += dx/dist * 0.6; moveY += dy/dist * 0.6; }
+      else if (dist < 60) { moveX -= dx/dist * 0.3; moveY -= dy/dist * 0.3; }
     } else if (this.bossDef.name === '缝合巨兽') {
       moveX += dx/dist * 0.5 + (rng() - 0.5) * 0.15;
       moveY += dy/dist * 0.5 + (rng() - 0.5) * 0.15;
@@ -7982,6 +7992,31 @@ class BossEnemy extends EliteEnemy {
         }
       }
       spawnExplosion(this.x, this.y, 12, '#a4f', '#f0f');
+    } else if (phase.attack === 'shuriken_fan') {
+      // === SWIFT SHADOW P1: Fan of 3 shurikens + smoke ===
+      for (let s = -1; s <= 1; s++) {
+        const a = this.turretAngle + s * 0.15;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + Math.abs(s) * 0.5, '#4ff', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 2.2; enemyBullets.push(b);
+      }
+      // Smoke — reduce player visibility briefly
+      if (player && rng() < 0.5) {
+        spawnExplosion(this.x + (rng()-0.5)*40, this.y + (rng()-0.5)*40, 15, '#888', '#aaa');
+      }
+    } else if (phase.attack === 'teleport_flurry') {
+      // === SWIFT SHADOW P2: Teleport + 360 shuriken ring ===
+      const safePoint = this.findTeleportPoint(this.currentPhase > 0 ? 150 : 120);
+      if (safePoint) {
+        spawnExplosion(this.x, this.y, 12, '#4ff', '#8ff');
+        this.x = safePoint.x; this.y = safePoint.y;
+      }
+      // 360° shuriken ring at new position
+      for (let i = 0; i < phase.bulletCount + bonusBullets; i++) {
+        const a = (i / (phase.bulletCount + bonusBullets)) * Math.PI * 2;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed * 0.8, '#4ff', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 2; enemyBullets.push(b);
+      }
+      spawnExplosion(this.x, this.y, 10, '#4ff', '#fff');
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
@@ -8410,6 +8445,33 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '迅影') {
+      // === SWIFT SHADOW — slim diamond + energy shuriken wings ===
+      const swiftBody = ctx.createLinearGradient(-16, -10, 16, -10);
+      swiftBody.addColorStop(0, '#081828'); swiftBody.addColorStop(0.5, '#0c2a3a'); swiftBody.addColorStop(1, '#081828');
+      ctx.fillStyle = swiftBody;
+      ctx.beginPath(); ctx.moveTo(24, 0); ctx.lineTo(4, -12); ctx.lineTo(-14, -4);
+      ctx.lineTo(-16, 0); ctx.lineTo(-14, 4); ctx.lineTo(4, 12); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#4ff'; ctx.lineWidth = 2; ctx.stroke();
+      // Energy shurikens on sides
+      for (let s of [-1, 1]) {
+        for (let d = 0; d < 3; d++) {
+          ctx.save(); ctx.translate(s * 10 + d * 3, -10 + d * 8);
+          ctx.rotate(brt * 3 + d + s);
+          ctx.strokeStyle = 'rgba(80,255,255,' + (0.4 + d * 0.15) + ')'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(3, 0); ctx.lineTo(0, 5); ctx.lineTo(-2, 0); ctx.closePath(); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      // Afterimage trail
+      ctx.strokeStyle = 'rgba(80,255,255,0.12)'; ctx.lineWidth = 1;
+      for (let t = 1; t <= 2; t++) {
+        ctx.beginPath(); ctx.moveTo(24 - t*5, 0); ctx.lineTo(4, -12); ctx.lineTo(-14, -4); ctx.lineTo(-16 + t*3, 0); ctx.closePath(); ctx.stroke();
+      }
+      drawTechCore(ctx, 2, 0, 4, '#e0ffff', '#4ff');
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 3, -1.5, 10, 3, '#081828', '#4ff', '#e0ffff');
+      ctx.restore();
     } else if (bname === '双子坦克') {
       const isDark = !!this.geminiMaster;
       const gemColor = isDark ? '#624' : '#426';
