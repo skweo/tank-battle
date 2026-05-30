@@ -10518,12 +10518,17 @@ function drawObstacles(ctx) {
         ctx.stroke();
       }
     } else if (obs.type === 'rubble') {
-      ctx.fillStyle = '#443322'; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-      ctx.fillStyle = obs.color;
-      ctx.beginPath(); ctx.moveTo(obs.x, obs.y + obs.h);
-      ctx.lineTo(obs.x + obs.w * 0.3, obs.y); ctx.lineTo(obs.x + obs.w * 0.7, obs.y + obs.h * 0.4);
-      ctx.lineTo(obs.x + obs.w, obs.y); ctx.lineTo(obs.x + obs.w * 0.6, obs.y + obs.h);
-      ctx.closePath(); ctx.fill();
+      // Irregular rubble pile — jagged polygon
+      ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      const pts = 5 + Math.floor(rng() * 3);
+      for (let p = 0; p < pts; p++) {
+        const a = (p / pts) * Math.PI * 2;
+        const rx = obs.x + obs.w/2 + Math.cos(a) * (obs.w/2 - 3 + rng() * 6);
+        const ry = obs.y + obs.h/2 + Math.sin(a) * (obs.h/2 - 3 + rng() * 4);
+        if (p === 0) ctx.moveTo(rx, ry); else ctx.lineTo(rx, ry);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1; ctx.stroke();
     } else if (obs.type === 'crate') {
       ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
@@ -10533,20 +10538,18 @@ function drawObstacles(ctx) {
       ctx.beginPath(); ctx.moveTo(obs.x + obs.w, obs.y); ctx.lineTo(obs.x, obs.y + obs.h); ctx.stroke();
       ctx.fillStyle = '#aa8a5a'; ctx.fillRect(obs.x + obs.w/2 - 4, obs.y + obs.h/2 - 4, 8, 8);
     } else if (obs.type === 'crystal') {
-      // Diamond-shaped crystal
-      ctx.fillStyle = obs.color; ctx.beginPath();
-      ctx.moveTo(obs.x + obs.w/2, obs.y);
-      ctx.lineTo(obs.x + obs.w, obs.y + obs.h/2);
-      ctx.lineTo(obs.x + obs.w/2, obs.y + obs.h);
-      ctx.lineTo(obs.x, obs.y + obs.h/2);
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.3;
-      ctx.beginPath(); ctx.arc(obs.x + obs.w/2, obs.y + obs.h/3, 3, 0, Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 1;
-    } else if (obs.type === 'metal') {
-      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      for (let s = 0; s < 6; s++) {
+        const sa = (s/6)*Math.PI*2 - Math.PI/2;
+        const sr = obs.w/2 * (0.35 + (s%3)*0.25);
+        const sx = obs.x + obs.w/2 + Math.cos(sa)*sr;
+        const sy = obs.y + obs.h/2 + Math.sin(sa)*sr;
+        ctx.lineTo(obs.x+obs.w/2, obs.y+obs.h/2); ctx.lineTo(sx, sy);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.beginPath();
+      ctx.arc(obs.x+obs.w*0.35, obs.y+obs.h*0.3, obs.w*0.1, 0, Math.PI*2); ctx.fill();
       // Rivets
       ctx.fillStyle = '#8899aa';
       for (let rx = obs.x + 6; rx < obs.x + obs.w; rx += 14) {
