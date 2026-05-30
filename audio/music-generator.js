@@ -4,7 +4,7 @@
 class CyberSynth {
   constructor(ctx) {
     this.ctx = ctx;
-    this.masterGain = ctx.createGain(); this.masterGain.gain.value = 0.28;
+    this.masterGain = ctx.createGain(); this.masterGain.gain.value = 0.35;
     this.masterGain.connect(ctx.destination);
     // Cathedral reverb — Hollow Knight style space
     this.preVerb = ctx.createGain(); this.preVerb.gain.value = 0.45;
@@ -24,7 +24,7 @@ class CyberSynth {
     this._activeTrack = 'menu_crystal';
     this.currentMode = 'menu'; this.currentWave = 1;
     this._running = false; this._nextBeat = 0; this._bpm = 70; this._beat = 0;
-    this._fadeTarget = 0.28; this._fadeCurrent = 0.22;
+    this._fadeTarget = 0.35; this._fadeCurrent = 0.28;
     this.intensity = 0.5;
   }
 
@@ -243,19 +243,27 @@ class CyberSynth {
     const melC = [3,2,0,2,3,0,-2,0, 3,5,3,2,0,2,3,5, 0,-2,-5,-2,0,3,0,-2, -5,-2,0,2,3,0,-2,-5, 3,2,0,2,3,0,-2,0, 3,5,7,5,3,2,0,-2, 0,3,5,7,10,7,5,3, 0,-2,0,2,3,0,-2,0];
     const melody = section === 0 ? melA : section === 1 ? melB : melC;
     if (sn % 2 === 0) this._lead(this._n(melody[sn % 64], 0), t, 0.55, 0.035);
-    // === ARP ===
+    // === ARP (double layer) ===
     const arpA = [7,11,14,11,7,4,7,4, 5,10,12,10,5,2,3,2, 7,11,14,11,7,4,3,4, 5,10,12,10,5,2,0,2];
     const arpB = [14,11,7,4,0,4,7,11, 17,14,10,7,3,7,10,14, 12,10,5,2,-2,2,5,10, 14,11,7,4,0,4,7,11];
     const arp = section !== 2 ? (section === 0 ? arpA : arpB) : arpA;
     this._arp(this._n(arp[sn % 32], 0), t + bp * 0.1, 0.22, 0.018);
+    // Second arp layer — higher octave
+    this._arp(this._n(arp[(sn+4) % 32], 1), t + bp * 0.15, 0.14, 0.012);
     // === CHORDS ===
     if (sn % 8 === 0) this._chord([this._n(0,-1),this._n(2,-1),this._n(4,-1)], t, bp*2.5, section>0?0.025:0.018);
     if (section > 0 && sn % 8 === 4) this._chord([this._n(-2,-1),this._n(0,-1),this._n(3,-1)], t, bp*2.5, 0.022);
+    // === VOX PADS (ambient vocal texture) ===
+    if (sn % 16 === 0 && section < 2) {
+      this._vox(this._n(section===0?0:3, 0), t+bp*0.2, bp*6, 0.025);
+    }
     // === PAD ===
     if (sn % 32 === 0) {
       const cp = section === 0 ? [0,2,4,6] : section === 1 ? [0,3,5,7] : [-2,0,2,4];
       this._pad(cp.map(c => this._n(c, -1)), t, bp * 32, 0.022);
     }
+    // === STRING SWELL (section transitions) ===
+    if (sn === 0 && section > 0) this._string(this._n(0, -1), t, bp*12, 0.03);
   }
 
   _combatChase(n) {
@@ -358,9 +366,9 @@ class CyberSynth {
 
   switchMode(mode, wave = 1) {
     this.currentMode = mode; this.currentWave = wave;
-    if (mode === 'menu') { this._activeTrack = this._menuTracks[Math.floor(Math.random() * this._menuTracks.length)]; this._bpm = 70; this._fadeTarget = 0.28; }
-    else if (mode === 'boss') { this._activeTrack = this._bossTracks[Math.floor(Math.random() * this._bossTracks.length)]; this._bpm = 90 + wave * 1.5; this._fadeTarget = 0.30; }
-    else { this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)]; this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.26; }
+    if (mode === 'menu') { this._activeTrack = this._menuTracks[Math.floor(Math.random() * this._menuTracks.length)]; this._bpm = 70; this._fadeTarget = 0.35; }
+    else if (mode === 'boss') { this._activeTrack = this._bossTracks[Math.floor(Math.random() * this._bossTracks.length)]; this._bpm = 90 + wave * 1.5; this._fadeTarget = 0.38; }
+    else { this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)]; this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.32; }
     this._nextBeat = this.ctx.currentTime + 0.1; this._beat = 0; this.intensity = 0.5;
   }
   setIntensity(v) {
