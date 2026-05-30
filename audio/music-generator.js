@@ -6,12 +6,12 @@ class CyberSynth {
     this.ctx = ctx;
     this.masterGain = ctx.createGain(); this.masterGain.gain.value = 0.16;
     this.masterGain.connect(ctx.destination);
-    // Reverb
-    this.preVerb = ctx.createGain(); this.preVerb.gain.value = 0.3;
-    this.d1 = ctx.createDelay(0.22); this.d2 = ctx.createDelay(0.38);
-    this.f1 = ctx.createGain(); this.f1.gain.value = 0.1;
-    this.f2 = ctx.createGain(); this.f2.gain.value = 0.06;
-    this.vOut = ctx.createGain(); this.vOut.gain.value = 0.55;
+    // Cathedral reverb — Hollow Knight style space
+    this.preVerb = ctx.createGain(); this.preVerb.gain.value = 0.45;
+    this.d1 = ctx.createDelay(0.28); this.d2 = ctx.createDelay(0.52);
+    this.f1 = ctx.createGain(); this.f1.gain.value = 0.15;
+    this.f2 = ctx.createGain(); this.f2.gain.value = 0.08;
+    this.vOut = ctx.createGain(); this.vOut.gain.value = 0.7;
     this.preVerb.connect(this.d1); this.preVerb.connect(this.d2);
     this.d1.connect(this.f1); this.f1.connect(this.d1);
     this.d2.connect(this.f2); this.f2.connect(this.d2);
@@ -43,6 +43,21 @@ class CyberSynth {
     gain.connect(this.masterGain);
     if (verb) this._verb(gain);
     osc.start(t); osc.stop(t + dur + 0.05);
+  }
+
+  // String swell — slow attack, orchestral feel
+  _string(freq, t, dur, g = 0.05) {
+    const osc = this.ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = freq;
+    const osc2 = this.ctx.createOscillator(); osc2.type = 'triangle'; osc2.frequency.value = freq * 1.006;
+    const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600; f.Q.value = 0.5;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(g, t + 0.4); // Slow fade in
+    gain.gain.linearRampToValueAtTime(g * 0.7, t + dur * 0.6);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(f); osc2.connect(f); f.connect(gain);
+    gain.connect(this.masterGain); this._verb(gain);
+    osc.start(t); osc2.start(t); osc.stop(t + dur + 0.05); osc2.stop(t + dur + 0.05);
   }
 
   // Rich lead — 3 osc detuned
@@ -143,8 +158,13 @@ class CyberSynth {
       const sp = section === 0 ? [7,11,14,11,12,14,11,7] : [5,10,12,10,7,12,10,5];
       this._arp(this._n(sp[sn%8], 0), t+bp*0.2, 0.6, 0.015);
     }
-    if (sn % 48 === 0) this._osc('sine', this._n(0, -2), t, 3.5, 0.022, 0, false);
-    if (sn % 24 === 12) this._chord([this._n(0,-1),this._n(2,-1),this._n(5,-1)], t+bp*0.3, bp*4, 0.016);
+    if (sn === 0) {
+      // String swell opening — Hollow Knight style
+      this._string(this._n(section===0?0:-4, -1), t, bp*12, 0.04);
+      this._string(this._n(section===0?4:-2, -1), t+bp*0.5, bp*12, 0.03);
+    }
+    if (sn % 48 === 24) this._osc('sine', this._n(0, -2), t, 3.5, 0.02, 0, false);
+    if (sn % 24 === 12) this._chord([this._n(0,-1),this._n(2,-1),this._n(5,-1)], t+bp*0.3, bp*4, 0.014);
   }
 
   _menuVoid(n) {
