@@ -10357,8 +10357,17 @@ function drawObstacles(ctx) {
       ctx.strokeStyle = '#556678'; ctx.lineWidth = 1;
       ctx.strokeRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h - 6);
     } else if (obs.type === 'bunker') {
-      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 3; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      if (rng() < 0.35) {
+        // L-shaped bunker variant
+        ctx.fillStyle = obs.color;
+        ctx.beginPath(); ctx.moveTo(obs.x, obs.y); ctx.lineTo(obs.x + obs.w, obs.y);
+        ctx.lineTo(obs.x + obs.w, obs.y + obs.h * 0.4); ctx.lineTo(obs.x + obs.w * 0.4, obs.y + obs.h * 0.4);
+        ctx.lineTo(obs.x + obs.w * 0.4, obs.y + obs.h); ctx.lineTo(obs.x, obs.y + obs.h); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2.5; ctx.stroke();
+      } else {
+        ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+        ctx.strokeStyle = obs.stroke; ctx.lineWidth = 3; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      }
       // Gun slit
       ctx.fillStyle = '#111';
       ctx.fillRect(obs.x + obs.w/2 - 12, obs.y - 2, 24, 6);
@@ -10498,10 +10507,11 @@ function drawObstacles(ctx) {
       }
     } else if (obs.type === 'stone_lg') {
       // Large boulder — rounded
-      ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2;
+      ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.ellipse(obs.x + obs.w/2, obs.y + obs.h/2, obs.w/2, obs.h/2, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 0.5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.8;
       ctx.beginPath(); ctx.arc(obs.x + obs.w*0.3, obs.y + obs.h*0.35, obs.w*0.1, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(obs.x + obs.w*0.65, obs.y + obs.h*0.6, obs.w*0.07, 0, Math.PI*2); ctx.stroke();
     } else if (obs.type === 'plank') {
       // Wooden planks — horizontal grain
       ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
@@ -10511,13 +10521,18 @@ function drawObstacles(ctx) {
         ctx.beginPath(); ctx.moveTo(obs.x + g * 6, obs.y + 2); ctx.lineTo(obs.x + g * 6 + 3, obs.y + obs.h - 2); ctx.stroke();
       }
     } else if (obs.type === 'iron') {
-      // Rusted iron plate — spark effect
-      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2.5; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      // Rusted iron plate — spark effect + triangular shard variant
+      if (rng() < 0.4) {
+        // Triangular scrap shard
+        ctx.fillStyle = obs.color; ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(obs.x + obs.w/2, obs.y);
+        ctx.lineTo(obs.x, obs.y + obs.h); ctx.lineTo(obs.x + obs.w, obs.y + obs.h); ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else {
+        ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+        ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2.5; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      }
       ctx.fillStyle = '#5a3010'; ctx.fillRect(obs.x + 3, obs.y + 3, 8, 8);
       ctx.fillStyle = '#7a4020'; ctx.fillRect(obs.x + obs.w - 10, obs.y + obs.h - 10, 6, 6);
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.5;
-      ctx.beginPath(); ctx.moveTo(obs.x, obs.y + obs.h/2); ctx.lineTo(obs.x + obs.w, obs.y + obs.h/2); ctx.stroke();
     } else if (obs.type === 'gravel') {
       // Loose gravel — many small dots
       ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
