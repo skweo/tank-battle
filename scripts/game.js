@@ -11116,6 +11116,16 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         const hpBeforeHit = tank.hp || 0;
         if (!fromPlayer && tank === player) recordPlayerHit(bullet);
         if (!bullet.railgun && !bullet.pierce) bullet.alive = false;
+        // Proximity damage scaling: point-blank shots do less to bosses
+        if (fromPlayer && tank.bossDef) {
+          const pdx = player.x - tank.x, pdy = player.y - tank.y;
+          const pDist = Math.sqrt(pdx * pdx + pdy * pdy);
+          const minRange = 80;
+          if (pDist < minRange) {
+            const scale = 0.35 + (pDist / minRange) * 0.65;
+            bullet.damage = Math.max(1, Math.ceil((bullet.damage || 1) * scale));
+          }
+        }
         const originalDamage = bullet.damage;
         if (fromPlayer && tank.bossDef && playerBossDamageMul > 1) {
           bullet.damage = Math.max(1, Math.ceil((bullet.damage || 1) * playerBossDamageMul));
