@@ -7086,6 +7086,12 @@ const BOSS_TYPES = [
       { name:'星轨共鸣', hpPct:1.0, attack:'star_rings', shootDelay:44, burstShots:3, burstRest:150, telegraph:52, recover:122, bulletCount:14, bulletSpeed:1.2, pressure:0.92, cue:'STAR HARMONY', hint:'三层旋转环，逆向观察找稳定空隙' },
       { name:'星座阵列', hpPct:0.5, attack:'constellation', shootDelay:40, burstShots:3, burstRest:168, telegraph:56, recover:140, bulletCount:18, bulletSpeed:1.55, pressure:1.2, cue:'CONSTELLATION', hint:'弹幕排列成几何图形，识破图案找突破口' },
     ]},
+  { name:'缝合巨兽', color:'#543', turret:'#c84', speed:0.18, hp:195, icon:'PTC', faction:'graveyard',
+    desc:'吸收进化Boss，碎片散射+吞噬爆发',
+    phases:[
+      { name:'碎片回收', hpPct:1.0, attack:'patchwork_swarm', shootDelay:52, burstShots:3, burstRest:148, telegraph:50, recover:126, bulletCount:12, bulletSpeed:1.5, pressure:0.88, cue:'SALVAGE SWARM', hint:'碎片不规则散射，保持移动可规避' },
+      { name:'吞噬爆发', hpPct:0.5, attack:'devour_burst', shootDelay:44, burstShots:3, burstRest:172, telegraph:58, recover:152, bulletCount:16, bulletSpeed:1.85, pressure:1.22, cue:'DEVOUR BURST', hint:'吞噬尸体后释放冲击波，远离Boss中心' },
+    ]},
 
 ];
 
@@ -7447,10 +7453,25 @@ class BossEnemy extends EliteEnemy {
       else if (dist > 220) { moveX += dx/dist * 0.25; moveY += dy/dist * 0.25; }
       moveX += -dy/dist * strafeDir * 0.15; moveY += dx/dist * strafeDir * 0.15;
     } else if (this.bossDef.name === '星象仪') {
-      // Medium distance, slow orbiting movement — elegant, predictable
       if (dist < 180) { moveX -= dx/dist * 0.4; moveY -= dy/dist * 0.4; }
       else if (dist > 300) { moveX += dx/dist * 0.3; moveY += dy/dist * 0.3; }
       moveX += -dy/dist * strafeDir * 0.4; moveY += dx/dist * strafeDir * 0.4;
+    } else if (this.bossDef.name === '缝合巨兽') {
+      // Slow lurching advance — never backs off, slightly erratic
+      moveX += dx/dist * 0.5 + (rng() - 0.5) * 0.15;
+      moveY += dy/dist * 0.5 + (rng() - 0.5) * 0.15;
+      // Absorb nearby dead enemies to heal
+      if (this.zoneTimer % 120 === 0) {
+        for (const e of enemies) {
+          if (!e.alive && e !== this && e.hp <= 0) {
+            const edx = this.x - e.x, edy = this.y - e.y;
+            if (Math.sqrt(edx*edx + edy*edy) < 80) {
+              this.hp = Math.min(this.maxHp, this.hp + 8);
+              spawnExplosion(e.x, e.y, 10, '#c84', '#964');
+            }
+          }
+        }
+      }
     }
 
     const slowMul = this.currentPhase > 0 ? 1.18 : 1;
@@ -7858,7 +7879,6 @@ class BossEnemy extends EliteEnemy {
         }
       });
     } else if (phase.attack === 'constellation') {
-      // === ASTROLABE P2: Geometric constellation patterns ===
       const shapes = ['cross', 'triangle', 'hexagon'];
       const shape = shapes[this.attackBurstShots % 3];
       const pts = shape === 'cross' ? 4 : shape === 'triangle' ? 3 : 6;
@@ -7877,6 +7897,47 @@ class BossEnemy extends EliteEnemy {
         const a = (i / centerCount) * Math.PI * 2;
         const b = new Bullet(cx, cy, a, 1.3, '#0ff', false, 1);
         b.radius = 2.2; enemyBullets.push(b);
+      }
+    } else if (phase.attack === 'patchwork_swarm') {
+      // === PATCHWORK P1: Irregular debris scatter ===
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total/2) * 0.25 + (rng() - 0.5) * 0.15;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed + rng() * 0.4, '#c84', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 2.5 + rng() * 2; enemyBullets.push(b);
+      }
+      // Random scatter from weld seams
+      for (let i = 0; i < 6; i++) {
+        const a = this.phaseTimer * 0.07 + (i / 6) * Math.PI * 2;
+        const b = new Bullet(this.x + Math.cos(a) * 22, this.y + Math.sin(a) * 22, a + rng() * 0.5, 1.4, '#964', false, 1);
+        b.radius = 3; enemyBullets.push(b);
+      }
+    } else if (phase.attack === 'devour_burst') {
+      // === PATCHWORK P2: Devour + shockwave burst ===
+      // Heal from nearby corpses
+      let healed = false;
+      for (const e of enemies) {
+        if (!e.alive && e !== this) {
+          const ed = Math.sqrt((this.x-e.x)**2 + (this.y-e.y)**2);
+          if (ed < 100) { this.hp = Math.min(this.maxHp, this.hp + 5); healed = true; }
+        }
+      }
+      if (healed) {
+        // Shockwave ring
+        for (let i = 0; i < 20; i++) {
+          const a = (i / 20) * Math.PI * 2;
+          const b = new Bullet(this.x, this.y, a, 2.2, '#f84', false, 2);
+          b.radius = 3.5; enemyBullets.push(b);
+        }
+        spawnExplosion(this.x, this.y, 28, '#c84', '#ff0');
+        triggerShake(8, 10);
+      }
+      // Normal scatter
+      const total = phase.bulletCount + bonusBullets;
+      for (let i = 0; i < total; i++) {
+        const a = this.turretAngle + (i - total/2) * 0.2;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#f84', false, this.currentPhase > 0 ? 2 : 1);
+        b.radius = 3; enemyBullets.push(b);
       }
     }
     const fireSlow = getEnemyFireSlowProfile(this);
@@ -8301,6 +8362,42 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '缝合巨兽') {
+      // === PATCHWORK BEHEMOTH — asymmetrical junk mech ===
+      // Left side: scavenged scout tracks
+      drawTankTracks(ctx, -28, 18, -16, 28, 6, '#1a0e08', '#5a2818');
+      // Right side: brute heavy treads
+      drawTankTracks(ctx, 14, 20, 24, 32, 8, '#150825', '#3a1e5a');
+      // Main body — welded plates with different colors
+      ctx.fillStyle = '#3a1a08';
+      ctx.beginPath(); ctx.moveTo(22, -22); ctx.lineTo(-28, -14); ctx.lineTo(-32, 4); ctx.lineTo(-22, 18); ctx.lineTo(24, 24); ctx.lineTo(30, 6); ctx.lineTo(30, -12); ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#c84'; ctx.lineWidth = 3; ctx.stroke();
+      // Weld seam lines — messy
+      ctx.strokeStyle = 'rgba(200,140,80,0.3)'; ctx.lineWidth = 0.8;
+      for (let w = 0; w < 5; w++) {
+        ctx.beginPath(); ctx.moveTo(-24 + w*10, -16 + w*2); ctx.lineTo(-20 + w*10, 16 - w*2); ctx.stroke();
+      }
+      // Patchwork plates — different colors from different tanks
+      ctx.fillStyle = '#502020'; ctx.fillRect(-16, -14, 10, 14); // red — from brute
+      ctx.fillStyle = '#204060'; ctx.fillRect(4, -10, 12, 12); // blue — from sniper
+      ctx.fillStyle = '#506010'; ctx.fillRect(-12, 4, 14, 10); // green — from artillery
+      // Left: cobbled chain ball
+      const ballAngle = Math.sin(brt * 0.6) * 0.35;
+      ctx.save(); ctx.translate(-26, 8); ctx.rotate(ballAngle);
+      ctx.strokeStyle = '#886'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-16, 12); ctx.stroke();
+      ctx.fillStyle = '#544'; ctx.strokeStyle = '#c84'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(-16, 12, 7, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      // Right: scavenged barrel
+      ctx.fillStyle = '#3a2010'; ctx.strokeStyle = '#c84'; ctx.lineWidth = 1.5;
+      ctx.fillRect(16, -6, 16, 10); ctx.strokeRect(16, -6, 16, 10);
+      // Rusty core
+      drawArmorPanel(ctx, -6, -5, 12, 10, 'rgba(20,8,4,0.9)', '#c84', 3);
+      ctx.fillStyle = '#c84'; ctx.globalAlpha = eyePulse * 0.7;
+      ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
     } else if (bname === '星象仪') {
       // === ASTROLABE — rotating armillary rings ===
       ctx.fillStyle = '#0a1a28'; ctx.strokeStyle = '#4ce'; ctx.lineWidth = 2.5;
