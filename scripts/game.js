@@ -10384,26 +10384,34 @@ function refreshObstacles() {
     }
     if (obstacles.length > 8) obstacles.splice(bestIdx, 1);
   }
-  // Add 5% new obstacles — never near player
+  // Add 5% new obstacles — never near player, weighted random
   const addCount = Math.max(1, Math.floor(obstacles.length * 0.05));
+  const allTypes = Object.entries(OBSTACLE_TYPES);
+  const totalWeight = allTypes.reduce((s, [,d]) => s + d.weight, 0);
   for (let i = 0; i < addCount; i++) {
-    const defKeys = Object.keys(OBSTACLE_TYPES);
-    const def = OBSTACLE_TYPES[defKeys[Math.floor(rng() * defKeys.length)]];
-    let attempts = 0;
-    let ox, oy, ow, oh;
+    // Weighted random selection
+    const roll = rng() * totalWeight;
+    let cumulative = 0, obsKey = 'wall';
+    for (const [key, d] of allTypes) {
+      cumulative += d.weight;
+      if (roll < cumulative) { obsKey = key; break; }
+    }
+    const def = OBSTACLE_TYPES[obsKey];
+    let attempts = 0, ox, oy, ow, oh;
     do {
-      ox = 50 + rng() * (W - 100);
-      oy = 50 + rng() * (H - 100);
+      ox = 50 + rng() * (W - 100); oy = 50 + rng() * (H - 100);
       ow = def.minW + rng() * (def.maxW - def.minW);
       oh = def.minH + rng() * (def.maxH - def.minH);
       attempts++;
     } while (attempts < 10 && player &&
       Math.abs((ox + ow/2) - player.x) < 80 && Math.abs((oy + oh/2) - player.y) < 80);
     if (attempts >= 10) continue;
-    const obs = { x: ox, y: oy, w: ow, h: oh, type: defKeys[Math.floor(rng() * defKeys.length)],
+    const obs = { x: ox, y: oy, w: ow, h: oh, type: obsKey,
       passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke };
     if (def.explosive) obs.hp = 2;
+    if (def.ricochet) obs.ricochet = true;
     if (def.destructible) obs.hp = 1;
+    if (def.spark) obs.spark = true;
     obstacles.push(obs);
   }
 }
