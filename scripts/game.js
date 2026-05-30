@@ -7080,6 +7080,12 @@ const BOSS_TYPES = [
       { name:'圣光帷幕', hpPct:1.0, attack:'holy_barrage', shootDelay:50, burstShots:3, burstRest:140, telegraph:48, recover:112, bulletCount:12, bulletSpeed:1.35, pressure:0.9, cue:'SANCTUM LIGHT', hint:'圣光规律密集可读，穿行间隙' },
       { name:'圣盾反制', hpPct:0.52, attack:'shield_counter', shootDelay:46, burstShots:3, burstRest:170, telegraph:54, recover:136, bulletCount:8, bulletSpeed:1.95, pressure:1.1, cue:'SHIELD RETORT', hint:'护盾展开时反弹子弹，关闭后自愈' },
     ]},
+  { name:'星象仪', color:'#1a2a3a', turret:'#4ce', speed:0.30, hp:128, icon:'AST', faction:'observatory',
+    desc:'几何弹幕Boss，星轨旋转环+星座阵列',
+    phases:[
+      { name:'星轨共鸣', hpPct:1.0, attack:'star_rings', shootDelay:44, burstShots:3, burstRest:150, telegraph:52, recover:122, bulletCount:14, bulletSpeed:1.2, pressure:0.92, cue:'STAR HARMONY', hint:'三层旋转环，逆向观察找稳定空隙' },
+      { name:'星座阵列', hpPct:0.5, attack:'constellation', shootDelay:40, burstShots:3, burstRest:168, telegraph:56, recover:140, bulletCount:18, bulletSpeed:1.55, pressure:1.2, cue:'CONSTELLATION', hint:'弹幕排列成几何图形，识破图案找突破口' },
+    ]},
 
 ];
 
@@ -7437,10 +7443,14 @@ class BossEnemy extends EliteEnemy {
       else if (dist > 400) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
       moveX += -dy/dist * strafeDir * 0.3; moveY += dx/dist * strafeDir * 0.3;
     } else if (this.bossDef.name === '圣龛守卫') {
-      // Slow defensive — keeps medium range, minimal strafe
       if (dist < 140) { moveX -= dx/dist * 0.35; moveY -= dy/dist * 0.35; }
       else if (dist > 220) { moveX += dx/dist * 0.25; moveY += dy/dist * 0.25; }
       moveX += -dy/dist * strafeDir * 0.15; moveY += dx/dist * strafeDir * 0.15;
+    } else if (this.bossDef.name === '星象仪') {
+      // Medium distance, slow orbiting movement — elegant, predictable
+      if (dist < 180) { moveX -= dx/dist * 0.4; moveY -= dy/dist * 0.4; }
+      else if (dist > 300) { moveX += dx/dist * 0.3; moveY += dy/dist * 0.3; }
+      moveX += -dy/dist * strafeDir * 0.4; moveY += dx/dist * strafeDir * 0.4;
     }
 
     const slowMul = this.currentPhase > 0 ? 1.18 : 1;
@@ -7827,17 +7837,47 @@ class BossEnemy extends EliteEnemy {
         b.radius = 3.2; enemyBullets.push(b);
       }
     } else if (phase.attack === 'shield_counter') {
-      // === SANCTUM GUARD P2: Shield bounce + self-heal ===
-      // Spread shot
       const total = phase.bulletCount + bonusBullets;
       for (let i = 0; i < total; i++) {
         const a = this.turretAngle + (i - total/2) * 0.15;
         const b = new Bullet(bx, by, a, phase.bulletSpeed, '#fd0', false, this.currentPhase > 0 ? 2 : 1);
         b.radius = 3.5; enemyBullets.push(b);
       }
-      // Self-heal during recover phase (3 HP)
       if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + 3);
       spawnExplosion(this.x, this.y, 14, '#fd0', '#fff');
+    } else if (phase.attack === 'star_rings') {
+      // === ASTROLABE P1: 3 concentric rotating rings ===
+      const rings = [{count: 10, speed: 0.04, dist: 10, dir: 1},
+                     {count: 14, speed: -0.03, dist: 22, dir: -1},
+                     {count: 18, speed: 0.025, dist: 35, dir: 1}];
+      rings.forEach(ring => {
+        for (let i = 0; i < ring.count; i++) {
+          const a = this.phaseTimer * ring.speed * ring.dir + (i / ring.count) * Math.PI * 2;
+          const b = new Bullet(this.x + Math.cos(a) * ring.dist, this.y + Math.sin(a) * ring.dist, a + Math.PI/2 * ring.dir, phase.bulletSpeed, '#4ce', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = 2.5; enemyBullets.push(b);
+        }
+      });
+    } else if (phase.attack === 'constellation') {
+      // === ASTROLABE P2: Geometric constellation patterns ===
+      const shapes = ['cross', 'triangle', 'hexagon'];
+      const shape = shapes[this.attackBurstShots % 3];
+      const pts = shape === 'cross' ? 4 : shape === 'triangle' ? 3 : 6;
+      const cx = this.x, cy = this.y;
+      for (let i = 0; i < pts; i++) {
+        const a = this.phaseTimer * 0.02 + (i / pts) * Math.PI * 2;
+        const dist = shape === 'hexagon' ? 28 : 35;
+        const dx = cx + Math.cos(a) * dist, dy = cy + Math.sin(a) * dist;
+        for (let j = 0; j < 4; j++) {
+          const b = new Bullet(dx, dy, a + j * 0.08, phase.bulletSpeed, '#0ee', false, this.currentPhase > 0 ? 2 : 1);
+          b.radius = 2.8; enemyBullets.push(b);
+        }
+      }
+      const centerCount = Math.floor((phase.bulletCount + bonusBullets) / 2);
+      for (let i = 0; i < centerCount; i++) {
+        const a = (i / centerCount) * Math.PI * 2;
+        const b = new Bullet(cx, cy, a, 1.3, '#0ff', false, 1);
+        b.radius = 2.2; enemyBullets.push(b);
+      }
     }
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
@@ -8261,6 +8301,43 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
       // No barrel — emission from wings/halo
+    } else if (bname === '星象仪') {
+      // === ASTROLABE — rotating armillary rings ===
+      ctx.fillStyle = '#0a1a28'; ctx.strokeStyle = '#4ce'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      // 3 rotating metal rings at different angles
+      const ringData = [
+        { tilt: 0.2, speed: 0.3, r: 20, alpha: 0.5 },
+        { tilt: -0.15, speed: -0.25, r: 16, alpha: 0.6 },
+        { tilt: 0.35, speed: 0.2, r: 22, alpha: 0.35 },
+      ];
+      ringData.forEach((rd, idx) => {
+        ctx.save();
+        ctx.rotate(rd.tilt + brt * rd.speed);
+        ctx.strokeStyle = 'rgba(80,220,240,' + rd.alpha + ')';
+        ctx.lineWidth = 1.5 - idx * 0.3;
+        ctx.beginPath(); ctx.ellipse(0, 0, rd.r, rd.r * 0.4, 0, 0, Math.PI*2); ctx.stroke();
+        if (idx === 0) {
+          ctx.strokeStyle = 'rgba(80,220,240,' + (rd.alpha + 0.2) + ')';
+          ctx.beginPath(); ctx.ellipse(0, 0, rd.r, rd.r * 0.4, 0, Math.PI, Math.PI); ctx.stroke();
+        }
+        ctx.restore();
+      });
+      // Bright central star core
+      const corePulse = Math.sin(brt * 1.8) * 0.2 + 0.7;
+      drawTechCore(ctx, 0, 0, 6, '#e0f8ff', '#4ce');
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI*2); ctx.fill();
+      // Tiny projection dots on rings
+      for (let d = 0; d < 5; d++) {
+        const da = brt * 0.4 + d * Math.PI*2/5;
+        ctx.fillStyle = 'rgba(80,240,255,0.5)';
+        ctx.beginPath(); ctx.arc(Math.cos(da)*18, Math.sin(da)*18, 1.5, 0, Math.PI*2); ctx.fill();
+      }
+      // Small barrel
+      ctx.save(); ctx.rotate(this.turretAngle);
+      drawWeaponBarrel(ctx, 3, -2, 12, 4, '#0a1a28', '#4ce', '#e0f8ff');
+      ctx.restore();
     } else if (bname === '圣龛守卫') {
       // === SANCTUM GUARD — church stained glass + halo ===
       // Wide hexagonal chassis — like a cathedral platform
