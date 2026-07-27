@@ -206,7 +206,7 @@ function initAudio() {
   // Category gains (mix hierarchy from game-audio skill)
   const sfxGain = audioCtx.createGain(); sfxGain.gain.value = 0.7; sfxGain.connect(masterGain);
   const uiGain = audioCtx.createGain(); uiGain.gain.value = 1.0; uiGain.connect(masterGain);
-  const musicGain = audioCtx.createGain(); musicGain.gain.value = 0.15; musicGain.connect(masterGain);
+  const musicGain = audioCtx.createGain(); musicGain.gain.value = 0.45; musicGain.connect(masterGain);
   audioNodes = { masterGain, sfxGain, uiGain, musicGain };
   return audioCtx;
 }
@@ -844,30 +844,28 @@ function musicTick() {
 
 let audioUnlocked = false;
 document.addEventListener('click', () => {
-  if (audioUnlocked) return;
+  const firstUnlock = !audioUnlocked;
   audioUnlocked = true;
   ensureMusicSystem();
-  if (musicSys) { musicSys.switchMode('menu'); }
+  if (firstUnlock && musicSys) { musicSys.switchMode('menu'); }
 }, { once: false });
 
 function ensureMusicSystem() {
-  if (musicSys) return;
-  if (typeof CyberSynth === 'undefined') return;
   const actx = initAudio();
-  if (!actx) return;
-  musicSys = new CyberSynth(actx);
+  if (musicSys || typeof CyberSynth === 'undefined' || !actx) return;
+  musicSys = new CyberSynth(actx, audioNodes.musicGain || null);
   musicSys.start();
 }
 
 function startMusic() {
   ensureMusicSystem();
-  if (musicSys) { musicSys.switchMode('combat', wave); musicSys.fadeIn(0.08); }
-  if (!audioCtx || musicTimeout) return;
+  if (musicSys) { musicSys.switchMode('combat', wave); musicSys.fadeIn(0.38); }
+  if (musicSys || !audioCtx || musicTimeout) return;
   musicTick();
 }
 function startBossMusic() {
   ensureMusicSystem();
-  if (musicSys) { musicSys.switchMode('boss', wave); musicSys.fadeIn(0.09); }
+  if (musicSys) { musicSys.switchMode('boss', wave); musicSys.fadeIn(0.48); }
 }
 
 function stopMusic() {
@@ -885,16 +883,25 @@ function rotateTurretToward(current, target, maxSpeed) {
   if (Math.abs(diff) < maxSpeed) return target;
   return current + Math.sign(diff) * maxSpeed;
 }
+function getRotatedBoxBounds(w, h, angle) {
+  const c = Math.abs(Math.cos(angle || 0));
+  const s = Math.abs(Math.sin(angle || 0));
+  return {
+    w: w * c + h * s,
+    h: w * s + h * c,
+  };
+}
+function worldDeltaToRotatedScaledLocal(dx, dy, angle, scaleX = 1, scaleY = 1) {
+  const c = Math.cos(-(angle || 0));
+  const s = Math.sin(-(angle || 0));
+  return {
+    x: (dx * c - dy * s) / (scaleX || 1),
+    y: (dx * s + dy * c) / (scaleY || 1),
+  };
+}
 // Turret rotation speeds (radians per frame)
-const TURRET_SPEED_FACTION = {
-  observatory: 0.16, storm_cloister: 0.10, void_cult: 0.07,
-  moon_arsenal: 0.05, ash_church: 0.03, graveyard: 0.015,
-};
-const TURRET_SPEED_PLAYER = {
-  sniper: 0.25, scarlet: 0.25, homing: 0.17, astral: 0.17,
-  focus: 0.12, blade: 0.12, spread: 0.07, burst: 0.07,
-  wide: 0.03, border: 0.03,
-};
+const TURRET_SPEED_FACTION = TankConfig.TURRET_SPEED_FACTION;
+const TURRET_SPEED_PLAYER = TankConfig.TURRET_SPEED_PLAYER;
 function getDailySeed() {
   const d = new Date();
   const dateStr = d.getFullYear() + '-' + (d.getMonth()+1).toString().padStart(2,'0') + '-' + d.getDate().toString().padStart(2,'0');
@@ -1479,14 +1486,8 @@ let seededRandom = null;
 let isDailyChallenge = false;
 
 // --- Difficulty Settings ---
-const difficultySettings = {
-  easy:     { lives: 5, spawnRate: 470, enemyHpBonus: 1,  playerHp: 12, enemySpeedMul: 0.66, enemyBulletSpeedMul: 0.72, waveBudgetMul: 0.62, eliteChanceMul: 0.45, bossHpMul: 1.55, unlockScore: 0,     clearWave: 20, bossRequired: 5,  label: '简单' },
-  normal:   { lives: 3, spawnRate: 410, enemyHpBonus: 2,  playerHp: 10, enemySpeedMul: 0.94, enemyBulletSpeedMul: 0.96, waveBudgetMul: 0.76, eliteChanceMul: 0.82, bossHpMul: 2.05, unlockScore: 2800,  clearWave: 28, bossRequired: 7,  label: '普通' },
-  hard:     { lives: 2, spawnRate: 335, enemyHpBonus: 4,  playerHp: 8,  enemySpeedMul: 1.18, enemyBulletSpeedMul: 1.12, waveBudgetMul: 0.86, eliteChanceMul: 1.10, bossHpMul: 2.55, unlockScore: 7200,  clearWave: 36, bossRequired: 9,  label: '困难' },
-  extreme:  { lives: 2, spawnRate: 280, enemyHpBonus: 6,  playerHp: 7,  enemySpeedMul: 1.42, enemyBulletSpeedMul: 1.24, waveBudgetMul: 0.94, eliteChanceMul: 1.34, bossHpMul: 3.05, unlockScore: 12800, clearWave: 44, bossRequired: 12, label: '极限' },
-  nightmare:{ lives: 1, spawnRate: 235, enemyHpBonus: 8,  playerHp: 6,  enemySpeedMul: 1.62, enemyBulletSpeedMul: 1.36, waveBudgetMul: 1.02, eliteChanceMul: 1.65, bossHpMul: 3.65, unlockScore: 20500, clearWave: 56, bossRequired: 15, label: '梦魇' },
-};
-const DIFFICULTY_ORDER = ['easy','normal','hard','extreme','nightmare'];
+const difficultySettings = DifficultyConfig.difficultySettings;
+const DIFFICULTY_ORDER = DifficultyConfig.DIFFICULTY_ORDER;
 
 // --- Tank Types ---
 const tankTypes = {
@@ -1503,74 +1504,21 @@ tankTypes.blade = { name:'斩魂型', color:'#3fd5da', turret:'#bdfcff', speed:1
 tankTypes.scarlet = { name:'红枪型', color:'#8f1024', turret:'#ff5d73', speed:1.02, hpBonus:1, shootDelay:46, magSize:4, reloadTime:150, bulletCount:1, spreadAngle:0, bulletSpeed:3.65, bulletDamage:2, desc:'低弹匣高压血枪', specialInterval:4, specialType:'blood_lance' };
 tankTypes.astral = { name:'星仪型', color:'#285a8f', turret:'#9fe2ff', speed:0.82, hpBonus:1, shootDelay:50, magSize:5, reloadTime:138, bulletCount:3, spreadAngle:0.12, bulletSpeed:1.85, bulletDamage:1, desc:'星仪轨道控场', specialInterval:5, specialType:'astral_orbit' };
 
-const TANK_FORM_FACTORS = {
-  spread: { visual:[1.00,1.04,1.08], hit:[1.00,1.03,1.06] },
-  focus:  { visual:[0.96,0.92,0.90], hit:[0.94,0.90,0.88] },
-  wide:   { visual:[1.05,1.10,1.15], hit:[1.05,1.08,1.12] },
-  burst:  { visual:[1.06,1.12,1.16], hit:[1.06,1.10,1.14] },
-  sniper: { visual:[0.92,0.90,0.88], hit:[0.90,0.88,0.86] },
-  homing: { visual:[0.98,1.00,0.96], hit:[0.96,0.96,0.94] },
-  border: { visual:[1.00,0.96,0.92], hit:[0.98,0.94,0.90] },
-  blade:  { visual:[0.94,0.90,0.88], hit:[0.92,0.89,0.86] },
-  scarlet:{ visual:[1.03,1.08,1.10], hit:[1.02,1.06,1.08] },
-  astral: { visual:[1.02,1.05,1.04], hit:[1.00,1.02,1.00] },
-};
+const TANK_FORM_FACTORS = TankConfig.TANK_FORM_FACTORS;
 
 function getTankFormFactor(tankType, evoLevel, kind) {
-  const factors = TANK_FORM_FACTORS[tankType] || TANK_FORM_FACTORS.spread;
-  const arr = factors[kind] || factors.visual || [1, 1, 1];
-  const idx = Math.max(0, Math.min(arr.length - 1, evoLevel || 0));
-  return arr[idx] || 1;
+  return TankConfig.getTankFormFactor(tankType, evoLevel, kind);
 }
 let currentTankType = 'spread';
 
-const FACTIONS = {
-  moon_arsenal: {
-    name: '月核军械库',
-    code: 'MOON-ARS',
-    color: '#ff9b4a',
-    lore: '最早把月光石铸成武器的技术官僚。它们相信一切灾厄都能被归档、编号，然后装进炮膛。'
-  },
-  ash_church: {
-    name: '灰烬圣城',
-    code: 'ASH-CHURCH',
-    color: '#f6e5aa',
-    lore: '圣城在末日后仍维持钟声与审判。护教军不宣称胜利，只宣称“秩序仍在”。'
-  },
-  observatory: {
-    name: '第七观测站',
-    code: 'OBS-7',
-    color: '#8ce8ff',
-    lore: '观测站曾监测碎月潮汐，后来开始监测人心。它们的兵器总像在记录某种证词。'
-  },
-  graveyard: {
-    name: '灰域残骸群',
-    code: 'GRAVE-NET',
-    color: '#9ca8ff',
-    lore: '无人认领的战车、矿机与城防炮在废土中彼此接驳，形成没有司令部的军队。'
-  },
-  void_cult: {
-    name: '虚月教团',
-    code: 'VOID-RITE',
-    color: '#d9b6ff',
-    lore: '他们崇拜月背的空洞，认为边界不是墙，而是可以被献祭、折叠与重新命名的门。'
-  },
-  storm_cloister: {
-    name: '雷霆修会',
-    code: 'STORM-CLO',
-    color: '#76fcff',
-    lore: '气象塔倒塌后，修会接管了天候算法。雷声成为它们的祷词，闪电成为它们的签名。'
-  }
-};
+const FACTIONS = FactionConfig.FACTIONS;
 
 function getFactionInfo(id) {
-  return FACTIONS[id] || FACTIONS.graveyard;
+  return FactionConfig.getFactionInfo(id);
 }
 
 function appendFactionLore(baseLore, factionId) {
-  const faction = getFactionInfo(factionId);
-  if (!faction) return baseLore || '';
-  return (baseLore || '') + ' / 阵营记录：' + faction.lore;
+  return FactionConfig.appendFactionLore(baseLore, factionId);
 }
 
 function renderDifficultyButtons() {
@@ -1639,7 +1587,12 @@ function renderDifficultyButtons() {
     if (unlocked) {
       return `<button class="diff-btn ${cls}" onclick="showTankSelect('${key}')">${diff.label}</button>`;
     } else {
-      return `<button class="diff-btn ${cls} locked" disabled>LOCK ${diff.label}<br><span class="lock-hint">${diff.label}模式获得${diff.unlockScore}分解锁</span></button>`;
+      const previousKey = DIFFICULTY_ORDER[idx - 1];
+      const previousLabel = difficultySettings[previousKey]?.label;
+      const unlockHint = previousLabel
+        ? `${previousLabel}模式获得${diff.unlockScore}分解锁${diff.label}`
+        : `获得${diff.unlockScore}分解锁${diff.label}`;
+      return `<button class="diff-btn ${cls} locked" disabled>LOCK ${diff.label}<br><span class="lock-hint">${unlockHint}</span></button>`;
     }
   }).join('');
   // Update info text
@@ -1647,8 +1600,9 @@ function renderDifficultyButtons() {
   info.innerHTML = DIFFICULTY_ORDER.map((key) => {
     const d = difficultySettings[key];
     const unlocked = unlockedDifficulties.has(key);
+    const clearTargetWave = getDifficultyClearWaveTarget(d);
     return unlocked
-      ? `${d.label}: ${d.lives}条命 · 通关第${d.clearWave}波 · 敌HP+${d.enemyHpBonus} · 速度×${d.enemySpeedMul}`
+      ? `${d.label}: ${d.lives}条命 · 通关第${clearTargetWave}波 · 敌HP+${d.enemyHpBonus} · 速度×${d.enemySpeedMul}`
       : `<span class="locked-info">${d.label}: LOCK · 需分数${d.unlockScore}解锁</span>`;
   }).join('<br>') + '<br><span class="run-mode-hint">'
     + (selectedRunMode === 'endless'
@@ -2862,15 +2816,22 @@ function onEnemyKilled(enemyOrElite) {
   const killedEnemy = typeof enemyOrElite === 'object' ? enemyOrElite : null;
   // Gemini rage: when one twin dies, the other enrages
   if (killedEnemy && killedEnemy.bossDef && killedEnemy.bossDef.name === '双子坦克') {
-    const twin = killedEnemy.geminiTwin;
-    if (twin && twin.alive) {
-      twin.currentPhase = 1; // Force P2 rage mode
-      twin.speed *= 2;
-      twin.shootDelay = Math.max(20, Math.floor(twin.shootDelay * 0.5));
-      twin.phaseFlash = 120;
-      spawnExplosion(twin.x, twin.y, 30, '#a4f', '#f0f');
+    const twin = killedEnemy.getGeminiPartner ? killedEnemy.getGeminiPartner() : (killedEnemy.geminiTwin || killedEnemy.geminiMaster);
+    if (twin && twin.alive && !twin.geminiEnraged) {
+      const phase = twin.bossDef.phases[1] || twin.bossDef.phases[0];
+      const isDark = twin.isGeminiDark ? twin.isGeminiDark() : !!twin.geminiMaster;
+      twin.geminiEnraged = true;
+      twin.currentPhase = 1;
+      twin.shootDelay = Math.max(20, Math.floor((phase.shootDelay || twin.shootDelay) * (isDark ? 0.82 : 0.9)));
+      twin.attackCycleLength = phase.burstRest || twin.attackCycleLength;
+      twin.baseSpeed = Math.max(twin.baseSpeed, (twin.geminiBaseSpeed || twin.baseSpeed) * (isDark ? 1.5 : 1.36));
+      twin.speed = twin.baseSpeed;
+      twin.phaseFlash = 150;
+      twin.transitionLock = Math.max(twin.transitionLock || 0, 18);
+      twin.setAttackState?.('telegraph', (twin.getBossTelegraphDuration ? twin.getBossTelegraphDuration(phase) : 32) + 8);
+      spawnExplosion(twin.x, twin.y, 34, isDark ? '#d8f' : '#a4f', isDark ? '#f0c8ff' : '#f0f');
       triggerShake(6, 8);
-      showWaveNotification('REVENGE', '双子·狂暴 — 弹幕密度三倍');
+      showWaveNotification('REVENGE', isDark ? '暗双子·轨环狂暴 — 追踪碎片展开' : '光双子·棱枪狂暴 — 精准交叉压制');
     }
   }
   const isElite = killedEnemy ? !!killedEnemy.isElite : !!enemyOrElite;
@@ -2967,34 +2928,31 @@ function getWaveEnemyBudget(waveNo) {
   return Math.max(2, Math.floor(base * (diff.waveBudgetMul || 1) * dualMul));
 }
 
-const BOSS_WAVE_INTERVAL = 4;
-function getBossArchiveFinalWave() {
-  return BOSS_TYPES.length * BOSS_WAVE_INTERVAL;
+const BOSS_WAVE_INTERVAL = BossPacing.BOSS_WAVE_INTERVAL;
+function getBossArchiveFinalWave(diff = difficultySettings[currentDifficulty] || difficultySettings.normal) {
+  return BossPacing.getBossArchiveFinalWave(diff);
 }
 function getBossWaveIndex(waveNo) {
-  return waveNo >= BOSS_WAVE_INTERVAL && waveNo % BOSS_WAVE_INTERVAL === 0
-    ? Math.floor(waveNo / BOSS_WAVE_INTERVAL) - 1
-    : -1;
+  return BossPacing.getBossWaveIndex(waveNo);
 }
 function isBossWaveNumber(waveNo) {
-  return getBossWaveIndex(waveNo) >= 0;
+  return BossPacing.isBossWaveNumber(waveNo);
 }
-function isBossArchiveWave(waveNo) {
-  const idx = getBossWaveIndex(waveNo);
-  return idx >= 0 && idx < BOSS_TYPES.length;
+function isBossArchiveWave(waveNo, diff = difficultySettings[currentDifficulty] || difficultySettings.normal) {
+  return BossPacing.isBossArchiveWave(waveNo, diff);
 }
 function getDifficultyClearWaveTarget(diff = difficultySettings[currentDifficulty] || difficultySettings.normal) {
-  return Math.max(diff.clearWave || getBossArchiveFinalWave(), getBossArchiveFinalWave());
+  return BossPacing.getDifficultyClearWaveTarget(diff);
 }
 function getBossDuelHpMultiplier(waveNo = wave) {
   return currentRunMode === 'clear' && isBossArchiveWave(waveNo) ? 1.1 : 1;
 }
 
 function getBossSupportCount(waveNo) {
-  if (isBossArchiveWave(waveNo)) return 0;
-  if (waveNo <= getBossArchiveFinalWave()) return 0;
-  const cap = currentRunMode === 'clear' ? 1 : 2;
-  return Math.min(cap, 1 + Math.floor((waveNo - getBossArchiveFinalWave()) / 20));
+  return BossPacing.getBossSupportCount(waveNo, {
+    diff: difficultySettings[currentDifficulty] || difficultySettings.normal,
+    runMode: currentRunMode,
+  });
 }
 
 function getWaveSpawnBurst(waveNo) {
@@ -3048,17 +3006,22 @@ function selectBossForWave(waveNo) {
   return pool[Math.floor(rng() * pool.length)] || BOSS_TYPES[0];
 }
 
-function getRequiredBossDefeats() {
-  const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
-  return diff.bossRequired || 5;
+function getRequiredBossDefeats(diff = difficultySettings[currentDifficulty] || difficultySettings.normal) {
+  return BossPacing.getRequiredBossDefeats(diff);
 }
 function hasSeenAllRunBosses() {
-  return runBossesSeen.size >= getRequiredBossDefeats();
+  return BossPacing.hasRequiredBossDefeats(runBossesSeen.size, difficultySettings[currentDifficulty] || difficultySettings.normal);
 }
 
 function shouldClearDifficulty() {
   const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
-  return currentRunMode === 'clear' && !isDailyChallenge && wave >= getDifficultyClearWaveTarget(diff) && hasSeenAllRunBosses();
+  return BossPacing.shouldClearDifficulty({
+    runMode: currentRunMode,
+    isDailyChallenge,
+    wave,
+    diff,
+    seenBossCount: runBossesSeen.size,
+  });
 }
 
 function getEndingStory() {
@@ -3108,8 +3071,9 @@ function startNextWave() {
     const bossDef = selectBossForWave(wave);
     lastBossName = bossDef.name;
     runBossesSeen.add(bossDef.name);
+    const bossBody = getBossBodyProfile(bossDef);
     const bossSpawn = findSafeTankSpawn({
-      w: 54, h: 54, minPlayerDist: 210,
+      w: bossBody.obstacleW, h: bossBody.obstacleH, minPlayerDist: 210,
       preferred: [
         { x: W/2, y: H/3 }, { x: W/2, y: H*0.26 },
         { x: W*0.33, y: H*0.28 }, { x: W*0.67, y: H*0.28 },
@@ -3120,11 +3084,13 @@ function startNextWave() {
     waveEnemiesRemaining = 1 + bossSupportCount;
     waveEnemiesToSpawn = bossSupportCount;
     wavePause = 0; spawnTimer = 0;
-    // Trigger warning phase (2 seconds)
-    bossWarningTimer = 120;
+    // Trigger warning phase (3 seconds)
+    bossWarningTimer = BOSS_WARNING_DURATION;
     bossWarningDef = bossDef;
     bossWarningSpawn = bossSpawn;
-    showWaveNotification('WARNING', bossDef.name + ' 即将进入战场');
+    triggerShake(4, 8);
+    const faction = getFactionInfo(bossDef.faction);
+    showWaveNotification('BOSS SIGNAL', bossDef.name + ' / ' + faction.name + ' 即将进入战场');
     return;
   }
 
@@ -3149,12 +3115,8 @@ function startNextWave() {
 }
 
 // --- Power-ups ---
-const ITEM_TIER_CONFIG = {
-  basic: { weight: 68, durationMul: 0.9, descSuffix: ' [I]', glowColor: null, size: 10, label: 'T1 基础模块', code: 'T1' },
-  advanced: { weight: 25, durationMul: 1.12, descSuffix: ' [II]', glowColor: '#6af', size: 12, label: 'T2 强化模块', code: 'T2' },
-  relic: { weight: 7, durationMul: 1.35, descSuffix: ' [III]', glowColor: '#fd0', size: 14, label: 'T3 圣遗物协议', code: 'T3' },
-};
-const RARITY_CONFIG = ITEM_TIER_CONFIG;
+const ITEM_TIER_CONFIG = ItemConfig.ITEM_TIER_CONFIG;
+const RARITY_CONFIG = ItemConfig.RARITY_CONFIG;
 const powerUpDefs = [
   { type: 'speed',    name: '加强履带', icon: 'DRV', color: '#4af', desc: '移速×1.12', duration: 660, tier: 'basic' },
   { type: 'railgun',  name: '电磁炮',   icon: 'RAIL', color: '#a4f', desc: '短时穿透脉冲', duration: 540, tier: 'advanced' },
@@ -3177,10 +3139,7 @@ const powerUpDefs = [
   { type: 'goldrush', name: '黄金时刻', icon: 'GLD', color: '#fd0', desc: '分数和碎片×2', duration: 300, tier: 'relic' },
 ];
 function normalizeItemTier(tier) {
-  if (tier === 'common') return 'basic';
-  if (tier === 'rare') return 'advanced';
-  if (tier === 'legendary') return 'relic';
-  return ITEM_TIER_CONFIG[tier] ? tier : 'basic';
+  return ItemConfig.normalizeItemTier(tier);
 }
 function pickItemTier(weights = ITEM_TIER_CONFIG) {
   const total = Object.values(weights).reduce((sum, cfg) => sum + (cfg.weight || 0), 0);
@@ -3494,6 +3453,89 @@ function getEnemyBulletSpeedMul() {
   return (diff.enemyBulletSpeedMul || 1) * timeMul;
 }
 
+let achievementsTab = 'combat';
+let achievementFilter = 'all';
+const ACHIEVEMENT_FILTERS = [
+  { key: 'all', label: '全部' },
+  { key: 'claimable', label: '可领取' },
+  { key: 'unlocked', label: '已解锁' },
+  { key: 'locked', label: '未完成' },
+];
+
+function getAchievementState(def) {
+  const unlocked = !!def && unlockedAchievements.has(def.id);
+  const claimed = !!def && claimedAchievementRewards.has(def.id);
+  return {
+    unlocked,
+    claimed: unlocked && claimed,
+    claimable: unlocked && !claimed,
+  };
+}
+
+function getAchievementStats(items) {
+  const stats = { total: 0, unlocked: 0, locked: 0, claimed: 0, claimable: 0, rewardAvailable: 0 };
+  (items || []).forEach(def => {
+    if (!def) return;
+    const state = getAchievementState(def);
+    stats.total++;
+    if (state.unlocked) stats.unlocked++;
+    else stats.locked++;
+    if (state.claimed) stats.claimed++;
+    if (state.claimable) {
+      stats.claimable++;
+      stats.rewardAvailable += getAchievementReward(def);
+    }
+  });
+  return stats;
+}
+
+function getAchievementPercent(stats) {
+  return stats && stats.total ? Math.round((stats.unlocked / stats.total) * 100) : 0;
+}
+
+function matchesAchievementFilter(def, filter = achievementFilter) {
+  const state = getAchievementState(def);
+  if (filter === 'claimable') return state.claimable;
+  if (filter === 'unlocked') return state.unlocked;
+  if (filter === 'locked') return !state.unlocked;
+  return true;
+}
+
+function setAchievementFilter(filter) {
+  if (!ACHIEVEMENT_FILTERS.some(f => f.key === filter)) return;
+  achievementFilter = filter;
+  renderAchievements();
+}
+
+function renderAchievementSummary(totalStats, groupStats, activeGroup) {
+  const color = activeGroup.color || '#f49800';
+  const totalPct = getAchievementPercent(totalStats);
+  const groupPct = getAchievementPercent(groupStats);
+  return `
+    <div class="ach-summary-card primary" style="--ach-accent:${escapeHtml(color)}">
+      <span class="ach-summary-label">总进度</span>
+      <strong>${totalStats.unlocked}/${totalStats.total}</strong>
+      <small>${totalPct}% 已解锁</small>
+      <div class="ach-progress"><span style="width:${totalPct}%"></span></div>
+    </div>
+    <div class="ach-summary-card claimable" style="--ach-accent:${escapeHtml(color)}">
+      <span class="ach-summary-label">可领取</span>
+      <strong>${totalStats.rewardAvailable}</strong>
+      <small>${totalStats.claimable} 项月光石奖励</small>
+    </div>
+    <div class="ach-summary-card" style="--ach-accent:${escapeHtml(color)}">
+      <span class="ach-summary-label">当前分类</span>
+      <strong>${groupStats.unlocked}/${groupStats.total}</strong>
+      <small>${escapeHtml(activeGroup.label)} · ${groupPct}%</small>
+      <div class="ach-progress"><span style="width:${groupPct}%"></span></div>
+    </div>
+    <div class="ach-summary-card" style="--ach-accent:${escapeHtml(color)}">
+      <span class="ach-summary-label">待完成</span>
+      <strong>${groupStats.locked}</strong>
+      <small>本类剩余目标</small>
+    </div>`;
+}
+
 function renderAchievements() {
   // Inject category icon styles once
   if (!document.getElementById('ach-cat-icon-style')) {
@@ -3504,19 +3546,9 @@ function renderAchievements() {
   }
   const grid = document.getElementById('achieve-grid');
   const groups = getAchievementGroups();
-  const tabsEl = document.getElementById('achieve-tabs');
-  if (tabsEl) {
-    let tabsHtml = '';
-    for (const [key, cfg] of Object.entries(groups)) {
-      const activeCls = key === achievementsTab ? ' active' : '';
-      const total = cfg.ids.length;
-      const unlocked = cfg.ids.filter(id => unlockedAchievements.has(id)).length;
-      tabsHtml += `<button class="achieve-tab${activeCls}" data-tab="${key}" onclick="switchAchievementsTab('${key}')">${cfg.label} <span class="achieve-tab-code">${unlocked}/${total}</span></button>`;
-    }
-    tabsEl.innerHTML = tabsHtml;
-  }
-  const activeGroup = groups[achievementsTab];
-  if (!activeGroup) return;
+  const activeGroup = groups[achievementsTab] || groups.combat;
+  achievementsTab = Object.prototype.hasOwnProperty.call(groups, achievementsTab) ? achievementsTab : 'combat';
+  if (!grid || !activeGroup) return;
   const allItems = activeGroup.ids.map(id => achievementsDef.find(a => a.id === id)).filter(Boolean);
   const diffRank = t => (t === 'mythic' ? 3 : t === 'elite' ? 2 : 1);
   allItems.sort((a, b) => {
@@ -3524,14 +3556,46 @@ function renderAchievements() {
     if (ra !== rb) return ra - rb;
     return (getAchievementReward(a) || 0) - (getAchievementReward(b) || 0);
   });
-  const unlockedCount = allItems.filter(a => unlockedAchievements.has(a.id)).length;
+  const totalStats = getAchievementStats(achievementsDef);
+  const groupStats = getAchievementStats(allItems);
+  const summaryEl = document.getElementById('achieve-summary');
+  if (summaryEl) summaryEl.innerHTML = renderAchievementSummary(totalStats, groupStats, activeGroup);
+  const tabsEl = document.getElementById('achieve-tabs');
+  if (tabsEl) {
+    let tabsHtml = '';
+    for (const [key, cfg] of Object.entries(groups)) {
+      const activeCls = key === achievementsTab ? ' active' : '';
+      const tabItems = cfg.ids.map(id => achievementsDef.find(a => a.id === id)).filter(Boolean);
+      const tabStats = getAchievementStats(tabItems);
+      const claimCls = tabStats.claimable ? ' has-claimable' : '';
+      const claimBadge = tabStats.claimable ? `<span class="achieve-tab-claim">${tabStats.claimable}</span>` : '';
+      tabsHtml += `<button class="achieve-tab${activeCls}${claimCls}" data-tab="${key}" onclick="switchAchievementsTab('${key}')">${escapeHtml(cfg.label)} <span class="achieve-tab-code">${tabStats.unlocked}/${tabStats.total}</span>${claimBadge}</button>`;
+    }
+    tabsEl.innerHTML = tabsHtml;
+  }
+  const filtersEl = document.getElementById('achieve-filters');
+  if (filtersEl) {
+    filtersEl.innerHTML = ACHIEVEMENT_FILTERS.map(filter => {
+      const count = allItems.filter(a => matchesAchievementFilter(a, filter.key)).length;
+      const activeCls = filter.key === achievementFilter ? ' active' : '';
+      return `<button class="ach-filter-tab${activeCls}" id="ach-filter-${escapeHtml(filter.key)}" onclick="setAchievementFilter('${escapeHtml(filter.key)}')">${escapeHtml(filter.label)} <span>${count}</span></button>`;
+    }).join('');
+  }
+  const visibleItems = allItems.filter(a => matchesAchievementFilter(a));
   const color = activeGroup.color || '#888';
   let html = `<div class="ach-group-header" style="--hdr-color:${color}">
-    <span style="color:${color}">&#9656; ${activeGroup.label}</span>
-    <span class="ach-count">${unlockedCount}/${allItems.length}</span>
+    <span style="color:${color}">&#9656; ${escapeHtml(activeGroup.label)}</span>
+    <span class="ach-count">${groupStats.unlocked}/${allItems.length}</span>
   </div>`;
-  for (const a of allItems) {
-    const unlocked = unlockedAchievements.has(a.id); const claimed = claimedAchievementRewards.has(a.id);
+  if (!visibleItems.length) {
+    html += `<div class="ach-empty">
+      <div class="ach-empty-title">没有符合条件的战绩</div>
+      <div class="ach-empty-copy">切换分类或筛选状态查看其他记录。</div>
+    </div>`;
+  }
+  for (const a of visibleItems) {
+    const state = getAchievementState(a);
+    const unlocked = state.unlocked; const claimed = state.claimed;
     const reward = getAchievementReward(a); const rarity = getAchievementRarity(a);
     const code = getAchievementCode(a); const seal = getAchievementSeal(a);
     const categoryIcon = getAchievementCategoryIcon(achievementsTab);
@@ -3540,22 +3604,27 @@ function renderAchievements() {
       ? tankIcon
       : '<span class="ach-cat-icon">' + categoryIcon + '</span>';
     const tierName = rarity.label + ' · 奖励 ' + reward + ' 月光石';
+    const statusClass = state.claimable ? 'ready' : claimed ? 'claimed' : 'locked';
+    const statusText = state.claimable ? '可领取' : claimed ? '已领取' : '未完成';
     const rewardHtml = unlocked
-      ? (claimed ? `<button class="ach-reward claimed" disabled>已领</button>` : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">+${reward}</button>`)
-      : `<span class="ach-reward locked-reward">+${reward}</span>`;
-    html += `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'}" style="--ach-accent:${escapeHtml(color)}">
+      ? (claimed ? `<button class="ach-reward claimed" disabled>已领</button>` : `<button class="ach-reward ready" onclick="claimAchievementReward('${escapeHtml(a.id)}')">领取 +${reward}</button>`)
+      : `<span class="ach-reward locked-reward">奖励 +${reward}</span>`;
+    const loreHtml = unlocked && ACHIEVEMENT_LORE[a.id]
+      ? `<div class="ach-lore"><span>档案</span>${escapeHtml(ACHIEVEMENT_LORE[a.id])}</div>`
+      : '';
+    html += `<div class="achieve-row ${unlocked ? 'unlocked' : 'locked'}" tabindex="0" style="--ach-accent:${escapeHtml(color)}">
       <div class="ach-medal"><span class="ach-icon">${medalIcon}</span></div>
       <div class="ach-info">
-        <div class="ach-topline"><span class="ach-code">${escapeHtml(code)}</span><span class="ach-rarity">${escapeHtml(tierName)}</span></div>
+        <div class="ach-topline"><span class="ach-code">${escapeHtml(code)}</span><span class="ach-rarity">${escapeHtml(tierName)}</span><span class="ach-status ${statusClass}">${escapeHtml(statusText)}</span></div>
         <div class="ach-name">${unlocked ? escapeHtml(a.name) : '???'}</div>
-        <div class="ach-desc">${unlocked ? a.desc : '完成条件隐藏'}</div>
+        <div class="ach-desc">${unlocked ? escapeHtml(a.desc) : '完成条件隐藏'}</div>
+        ${loreHtml}
       </div>
       <div class="ach-claim">${rewardHtml}</div>
     </div>`;
   }
   grid.innerHTML = html;
 }
-let achievementsTab = 'combat';
 function getAchievementCategoryIcon(groupKey) {
   const icons = {
     combat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg>',
@@ -3601,28 +3670,14 @@ function hideAchievements() {
 
 // --- Bestiary ---
 let bestiaryTab = 'items_basic';
-const BESTIARY_DISCOVERY_KEY = 'tankbattle_bestiary_discovered';
-const BESTIARY_TAB_IDS = ['items_basic', 'items_fusion', 'enemies_normal', 'enemies_elite', 'enemies_boss'];
+const BESTIARY_DISCOVERY_KEY = BestiaryConfig.BESTIARY_DISCOVERY_KEY;
+const BESTIARY_TAB_IDS = BestiaryConfig.BESTIARY_TAB_IDS;
 let bestiarySection = 'items';
-const BESTIARY_SECTIONS = {
-  items: {
-    label: '道具档案',
-    tabs: ['items_basic', 'items_fusion'],
-    summary: '道具档案记录月光石补给、战术模块与禁忌融合协议。拾取或触发后，档案会逐步解密。'
-  },
-  enemies: {
-    label: '敌人档案',
-    tabs: ['enemies_normal', 'enemies_elite', 'enemies_boss'],
-    summary: '敌人档案按威胁阶级封存普通单位、精英单位与首领敌人。遭遇后才会公开真实记录。'
-  }
-};
-const BESTIARY_TAB_META = {
-  items_basic: { label: '基础模块', code: 'MODULE' },
-  items_fusion: { label: '融合协议', code: 'FUSION' },
-  enemies_normal: { label: '普通单位', code: 'COMMON' },
-  enemies_elite: { label: '精英单位', code: 'ELITE' },
-  enemies_boss: { label: '首领敌人', code: 'BOSS' },
-};
+const BESTIARY_SECTIONS = BestiaryConfig.BESTIARY_SECTIONS;
+const BESTIARY_TAB_META = BestiaryConfig.BESTIARY_TAB_META;
+let bestiarySearchQuery = '';
+let bestiaryUnlockFilter = 'all';
+let bestiaryControlsBound = false;
 let discoveredBestiary = {
   powerups: new Set(),
   fusions: new Set(),
@@ -3694,7 +3749,7 @@ function renderBestiaryNavigation() {
   const tabs = document.getElementById('bestiary-tabs');
   if (tabs) {
     tabs.innerHTML = section.tabs.map(tab => {
-      const meta = BESTIARY_TAB_META[tab] || { label: tab, code: 'ARC' };
+      const meta = BestiaryConfig.getBestiaryTabMeta(tab);
       const active = bestiaryTab === tab ? 'active' : '';
       const id = 'tab-' + tab.replace('_', '-');
       return `<button class="best-tab ${active}" id="${id}" onclick="switchBestiaryTab('${tab}')">
@@ -3704,6 +3759,77 @@ function renderBestiaryNavigation() {
   }
   const summary = document.getElementById('bestiary-summary');
   if (summary) summary.textContent = section.summary;
+}
+
+function bindBestiaryControls() {
+  if (bestiaryControlsBound) return;
+  const search = document.getElementById('bestiary-search');
+  if (search) {
+    search.addEventListener('input', () => {
+      bestiarySearchQuery = String(search.value || '').trim();
+      renderBestiary();
+    });
+  }
+  bestiaryControlsBound = true;
+}
+
+function syncBestiaryControls() {
+  const search = document.getElementById('bestiary-search');
+  if (search && search.value !== bestiarySearchQuery) search.value = bestiarySearchQuery;
+  for (const filter of ['all', 'unlocked', 'locked']) {
+    const btn = document.getElementById('bestiary-filter-' + filter);
+    if (btn) btn.classList.toggle('active', bestiaryUnlockFilter === filter);
+  }
+}
+
+function setBestiaryUnlockFilter(filter) {
+  bestiaryUnlockFilter = ['all', 'unlocked', 'locked'].includes(filter) ? filter : 'all';
+  renderBestiary();
+}
+
+function getBestiaryItemSearchText(item) {
+  const unlocked = item.unlocked !== false;
+  const fields = unlocked
+    ? [item.name, item.desc, item.tag, item.subTag, item.classLabel, item.faction, item.lore, item.tier, item.powerType, item.fusionId]
+    : [item.lockedName, item.lockedDesc, item.classLabel, 'locked'];
+  return fields.filter(Boolean).join(' ').toLowerCase();
+}
+
+function filterBestiaryItems(items) {
+  const query = bestiarySearchQuery.trim().toLowerCase();
+  return items.filter(item => {
+    const unlocked = item.unlocked !== false;
+    if (bestiaryUnlockFilter === 'unlocked' && !unlocked) return false;
+    if (bestiaryUnlockFilter === 'locked' && unlocked) return false;
+    if (query && !getBestiaryItemSearchText(item).includes(query)) return false;
+    return true;
+  });
+}
+
+function updateBestiaryProgress(items, visibleCount) {
+  const progress = document.getElementById('bestiary-progress');
+  if (!progress) return;
+  const total = items.length;
+  const unlocked = items.filter(item => item.unlocked !== false).length;
+  const pct = total > 0 ? Math.round((unlocked / total) * 100) : 0;
+  progress.style.setProperty('--best-progress', pct + '%');
+  progress.innerHTML = `<span class="best-progress-count">${unlocked}/${total}</span>
+    <span class="best-progress-label">已解锁</span>
+    <span class="best-progress-pct">${pct}%</span>
+    <span class="best-progress-visible">${visibleCount} 条显示</span>`;
+}
+
+function buildBestiaryEmptyState(total) {
+  const query = bestiarySearchQuery.trim();
+  const filterLabel = bestiaryUnlockFilter === 'unlocked' ? '已解锁' : (bestiaryUnlockFilter === 'locked' ? '未解锁' : '全部');
+  const detail = total > 0
+    ? `当前条件：${filterLabel}${query ? ' · ' + query : ''}`
+    : '当前分类还没有可显示的档案。';
+  return `<div class="best-empty-state">
+    <div class="best-empty-code">NO MATCH</div>
+    <div class="best-empty-title">没有符合条件的档案</div>
+    <div class="best-empty-detail">${escapeHtml(detail)}</div>
+  </div>`;
 }
 
 function getNormalEnemyDescription(kind) {
@@ -3726,10 +3852,9 @@ function getNormalEnemyName(kind) {
   }
 }
 
-function renderBestiary() {
-  const grid = document.getElementById('bestiary-grid');
+function getBestiaryItemsForTab(tab) {
   let items = [];
-  if (bestiaryTab === 'items_basic') {
+  if (tab === 'items_basic') {
     items = powerUpDefs.map(p => {
       const tier = normalizeItemTier(p.tier);
       const tc = ITEM_TIER_CONFIG[tier] || ITEM_TIER_CONFIG.basic;
@@ -3745,7 +3870,7 @@ function renderBestiary() {
       lockedDesc: '???',
     };
     });
-  } else if (bestiaryTab === 'items_fusion') {
+  } else if (tab === 'items_fusion') {
     items = FUSION_RECIPES.map(f => ({
       iconType: 'merged', glyph: getEnemyVisualProfile('fusion').glyph, color: '#f6e5aa', classLabel: 'RELIC-FUSION',
       name: f.name, fusionId: f.id,
@@ -3757,7 +3882,7 @@ function renderBestiary() {
       lockedName: '未解密融合协议',
       lockedDesc: '???',
     }));
-  } else if (bestiaryTab === 'enemies_normal') {
+  } else if (tab === 'enemies_normal') {
     items = enemyTypes.map(e => {
       const profile = getEnemyVisualProfile(e.kind);
       const faction = getFactionInfo(e.faction);
@@ -3772,7 +3897,7 @@ function renderBestiary() {
         lockedDesc: '???',
       };
     });
-  } else if (bestiaryTab === 'enemies_elite') {
+  } else if (tab === 'enemies_elite') {
     items = eliteTypes.map(e => {
       const profile = getEnemyVisualProfile(e.special);
       const faction = getFactionInfo(e.faction);
@@ -3788,7 +3913,7 @@ function renderBestiary() {
         lockedDesc: '???',
       };
     });
-  } else if (bestiaryTab === 'enemies_boss') {
+  } else if (tab === 'enemies_boss') {
     const bossProfile = getEnemyVisualProfile('boss');
     items = BOSS_TYPES.map(b => {
       const faction = getFactionInfo(b.faction);
@@ -3807,21 +3932,35 @@ function renderBestiary() {
       };
     });
   }
+  return items;
+}
+
+function renderBestiary() {
+  const grid = document.getElementById('bestiary-grid');
+  if (!grid) return;
+  syncBestiaryControls();
+  const items = getBestiaryItemsForTab(bestiaryTab);
+  const filteredItems = filterBestiaryItems(items);
+  updateBestiaryProgress(items, filteredItems.length);
+  if (filteredItems.length === 0) {
+    grid.innerHTML = buildBestiaryEmptyState(items.length);
+    return;
+  }
   // Group items by category
-  const grouped = groupBestiaryItems(items, bestiaryTab);
+  const grouped = groupBestiaryItems(filteredItems, bestiaryTab);
   grid.innerHTML = grouped.map(buildBestiaryRow).join('');
   renderBestiaryCanvases();
 }
 
 function switchBestiaryTab(tab) {
-  bestiaryTab = BESTIARY_TAB_IDS.includes(tab) ? tab : 'items_basic';
+  bestiaryTab = BestiaryConfig.normalizeBestiaryTab(tab);
   bestiarySection = getBestiarySectionForTab(bestiaryTab);
   renderBestiaryNavigation();
   renderBestiary();
 }
 
 function switchBestiarySection(sectionId) {
-  bestiarySection = BESTIARY_SECTIONS[sectionId] ? sectionId : 'items';
+  bestiarySection = BestiaryConfig.normalizeBestiarySection(sectionId);
   const section = BESTIARY_SECTIONS[bestiarySection];
   if (!section.tabs.includes(bestiaryTab)) bestiaryTab = section.tabs[0];
   renderBestiaryNavigation();
@@ -3829,6 +3968,9 @@ function switchBestiarySection(sectionId) {
 }
 
 function showBestiary() {
+  bindBestiaryControls();
+  bestiarySearchQuery = '';
+  bestiaryUnlockFilter = 'all';
   switchBestiaryTab('items_basic');
   document.getElementById('bestiary-screen').style.display = 'flex';
   document.getElementById('start-screen').style.display = 'none';
@@ -4085,6 +4227,123 @@ function drawWeaponBarrel(ctx, x, y, w, h, fill, stroke, tipColor) {
     ctx.fillStyle = tipColor;
     ctx.fillRect(x + w - 3, y + 1, 3, Math.max(1, h - 2));
   }
+}
+
+const ENEMY_VISUAL_SCALES = Object.freeze({
+  scout: { scaleX: 0.92, scaleY: 0.9, markerY: -23 },
+  runner: { scaleX: 1.18, scaleY: 0.78, markerY: -22 },
+  brute: { scaleX: 1.12, scaleY: 1.22, markerY: -31 },
+  artillery: { scaleX: 1.22, scaleY: 1.06, markerY: -29 },
+  sniper: { scaleX: 1.34, scaleY: 0.82, markerY: -24 },
+  sapper: { scaleX: 0.98, scaleY: 0.96, markerY: -24 },
+  buffer: { scaleX: 1.02, scaleY: 1.02, markerY: -26 },
+  fissure: { scaleX: 1.06, scaleY: 0.96, markerY: -25 },
+  heavy: { scaleX: 1.22, scaleY: 1.2, markerY: -34 },
+  fast: { scaleX: 1.22, scaleY: 0.76, markerY: -24 },
+  flame: { scaleX: 1.06, scaleY: 1.08, markerY: -30 },
+  summoner: { scaleX: 1.08, scaleY: 1.14, markerY: -31 },
+  stealth: { scaleX: 1.05, scaleY: 0.82, markerY: -24 },
+  splitter: { scaleX: 1.12, scaleY: 1.0, markerY: -28 },
+  regen: { scaleX: 1.02, scaleY: 1.14, markerY: -30 },
+  laser: { scaleX: 1.16, scaleY: 0.92, markerY: -27 },
+  miner: { scaleX: 1.18, scaleY: 1.0, markerY: -28 },
+  barrier: { scaleX: 1.1, scaleY: 1.12, markerY: -31 },
+  missile: { scaleX: 1.2, scaleY: 0.96, markerY: -27 },
+  warden: { scaleX: 1.18, scaleY: 1.12, markerY: -33 },
+  phase: { scaleX: 1.14, scaleY: 0.9, markerY: -27 },
+  boss: { scaleX: 1.38, scaleY: 1.3, markerY: -50 },
+});
+
+function getEnemyVisualScale(kind) {
+  return ENEMY_VISUAL_SCALES[kind] || ENEMY_VISUAL_SCALES.scout;
+}
+
+function getEnemyCollisionProfile(kind) {
+  const visual = getEnemyVisualScale(kind);
+  const avgScale = (visual.scaleX + visual.scaleY) / 2;
+  const maxScale = Math.max(visual.scaleX, visual.scaleY);
+  const obstacleW = Math.round(Math.max(32, Math.min(48, 36 * visual.scaleX)));
+  const obstacleH = Math.round(Math.max(30, Math.min(48, 36 * visual.scaleY)));
+  const hitRadius = Math.round(Math.max(17, Math.min(30, 18.5 * avgScale + (maxScale - 1) * 3.5)));
+  const ramRadius = Math.round(Math.max(29, Math.min(40, 31 * avgScale)));
+  return {
+    hitRadius,
+    obstacleW,
+    obstacleH,
+    ramRadius,
+    markerY: visual.markerY,
+    margin: Math.max(25, Math.ceil(Math.max(obstacleW, obstacleH) / 2) + 7),
+  };
+}
+
+const BOSS_BODY_PROFILES = Object.freeze({
+  '巨兽坦克': { scaleX: 1.56, scaleY: 1.36, hitRadius: 43, obstacleW: 76, obstacleH: 66, ramRadius: 59, markerY: -62 },
+  '幻影坦克': { scaleX: 1.12, scaleY: 0.92, hitRadius: 30, obstacleW: 54, obstacleH: 44, ramRadius: 42, markerY: -48 },
+  '要塞坦克': { scaleX: 1.52, scaleY: 1.18, hitRadius: 42, obstacleW: 78, obstacleH: 60, ramRadius: 55, markerY: -60 },
+  '虚空坦克': { scaleX: 1.28, scaleY: 1.14, hitRadius: 36, obstacleW: 64, obstacleH: 56, ramRadius: 50, markerY: -54 },
+  '风暴坦克': { scaleX: 1.2, scaleY: 0.96, hitRadius: 32, obstacleW: 58, obstacleH: 48, ramRadius: 46, markerY: -50 },
+  '观星者坦克': { scaleX: 1.22, scaleY: 0.92, hitRadius: 32, obstacleW: 58, obstacleH: 46, ramRadius: 45, markerY: -49 },
+  '废铁巨像': { scaleX: 1.5, scaleY: 1.34, hitRadius: 43, obstacleW: 76, obstacleH: 66, ramRadius: 58, markerY: -61 },
+  '雷霆执政官': { scaleX: 1.18, scaleY: 0.92, hitRadius: 31, obstacleW: 56, obstacleH: 46, ramRadius: 45, markerY: -49 },
+  '轨道炮台': { scaleX: 1.44, scaleY: 1.08, hitRadius: 38, obstacleW: 70, obstacleH: 54, ramRadius: 50, markerY: -56 },
+  '圣龛守卫': { scaleX: 1.46, scaleY: 1.22, hitRadius: 40, obstacleW: 72, obstacleH: 60, ramRadius: 54, markerY: -58 },
+  '星象仪': { scaleX: 1.24, scaleY: 1.0, hitRadius: 34, obstacleW: 60, obstacleH: 50, ramRadius: 47, markerY: -52 },
+  '双子坦克': { scaleX: 1.02, scaleY: 0.88, hitRadius: 29, obstacleW: 50, obstacleH: 44, ramRadius: 42, markerY: -46 },
+  '迅影': { scaleX: 0.92, scaleY: 0.78, hitRadius: 25, obstacleW: 44, obstacleH: 38, ramRadius: 38, markerY: -42 },
+  '圣龛织者': { scaleX: 1.4, scaleY: 1.3, hitRadius: 41, obstacleW: 70, obstacleH: 64, ramRadius: 54, markerY: -59 },
+  '灰域剑圣': { scaleX: 1.12, scaleY: 0.96, hitRadius: 31, obstacleW: 54, obstacleH: 48, ramRadius: 45, markerY: -48 },
+  '陷阱师': { scaleX: 1.12, scaleY: 1.0, hitRadius: 32, obstacleW: 56, obstacleH: 50, ramRadius: 44, markerY: -49 },
+  '镜像体': { scaleX: 1.04, scaleY: 0.94, hitRadius: 29, obstacleW: 50, obstacleH: 46, ramRadius: 42, markerY: -46 },
+  '沙暴': { scaleX: 1.3, scaleY: 1.1, hitRadius: 36, obstacleW: 64, obstacleH: 54, ramRadius: 48, markerY: -54 },
+  '重力锚': { scaleX: 1.42, scaleY: 1.2, hitRadius: 40, obstacleW: 70, obstacleH: 60, ramRadius: 56, markerY: -58 },
+  '多头蛇': { scaleX: 1.48, scaleY: 1.22, hitRadius: 41, obstacleW: 72, obstacleH: 60, ramRadius: 55, markerY: -58 },
+  '缝合巨兽': { scaleX: 1.58, scaleY: 1.36, hitRadius: 45, obstacleW: 80, obstacleH: 68, ramRadius: 62, markerY: -64 },
+});
+
+function getBossBodyProfile(bossDefOrName) {
+  const name = typeof bossDefOrName === 'string' ? bossDefOrName : bossDefOrName?.name;
+  return BOSS_BODY_PROFILES[name] || {
+    scaleX: 1.32,
+    scaleY: 1.18,
+    hitRadius: 36,
+    obstacleW: 64,
+    obstacleH: 56,
+    ramRadius: 50,
+    markerY: -54,
+  };
+}
+
+function getCollisionMarginFromBox(w, h) {
+  return Math.max(25, Math.ceil(Math.max(w || 36, h || 36) / 2) + 7);
+}
+
+const BOSS_AURA_PROFILES = Object.freeze({
+  '巨兽坦克': { shape: 'siege', radiusMul: 1.12, spin: 0.18 },
+  '幻影坦克': { shape: 'echo', radiusMul: 0.94, spin: 0.42 },
+  '要塞坦克': { shape: 'bastion', radiusMul: 1.04, spin: 0.08 },
+  '虚空坦克': { shape: 'rift', radiusMul: 1.0, spin: 0.36 },
+  '风暴坦克': { shape: 'storm', radiusMul: 1.02, spin: 0.52 },
+  '观星者坦克': { shape: 'scanner', radiusMul: 0.96, spin: 0.24 },
+  '废铁巨像': { shape: 'scrap', radiusMul: 1.12, spin: 0.12 },
+  '雷霆执政官': { shape: 'storm', radiusMul: 1.05, spin: 0.6 },
+  '轨道炮台': { shape: 'target', radiusMul: 1.02, spin: 0.16 },
+  '圣龛守卫': { shape: 'sanctum', radiusMul: 1.0, spin: 0.1 },
+  '星象仪': { shape: 'orbits', radiusMul: 1.0, spin: 0.28 },
+  '双子坦克': { shape: 'mirror', radiusMul: 0.96, spin: 0.32 },
+  '迅影': { shape: 'slash', radiusMul: 0.88, spin: 0.7 },
+  '圣龛织者': { shape: 'weave', radiusMul: 1.03, spin: 0.16 },
+  '灰域剑圣': { shape: 'slash', radiusMul: 0.98, spin: 0.46 },
+  '陷阱师': { shape: 'minefield', radiusMul: 0.95, spin: 0.12 },
+  '镜像体': { shape: 'mirror', radiusMul: 0.92, spin: 0.26 },
+  '沙暴': { shape: 'sand', radiusMul: 1.08, spin: 0.2 },
+  '重力锚': { shape: 'anchor', radiusMul: 1.05, spin: 0.18 },
+  '多头蛇': { shape: 'spores', radiusMul: 1.02, spin: 0.2 },
+  '缝合巨兽': { shape: 'scrap', radiusMul: 1.14, spin: 0.12 },
+});
+
+function getBossAuraProfile(bossDefOrName) {
+  const name = typeof bossDefOrName === 'string' ? bossDefOrName : bossDefOrName?.name;
+  return BOSS_AURA_PROFILES[name] || { shape: 'rings', radiusMul: 1, spin: 0.22 };
 }
 
 function drawTankEvolutionOverlay(ctx, evoLevel, tankType, accentColor) {
@@ -4483,30 +4742,7 @@ function drawSupplyChest(ctx, chest, t) {
   ctx.restore();
 }
 
-const ENEMY_VISUAL_PROFILE = {
-  normal: { glyph: '◇', iconType: 'diamond', color: '#7f8ea3', label: 'STANDARD', threat: '一般' },
-  scout: { glyph: '◇', iconType: 'radar', color: '#ff7272', label: 'SCOUT', threat: '巡哨' },
-  runner: { glyph: '⟫', iconType: 'chevron', color: '#ffbf72', label: 'RUSH', threat: '疾袭' },
-  brute: { glyph: '⬒', iconType: 'shield', color: '#ca8cff', label: 'BULWARK', threat: '重铠' },
-  artillery: { glyph: '⌁', iconType: 'crosshair', color: '#ff8bd4', label: 'ARTILLERY', threat: '弧炮' },
-  heavy: { glyph: '⬒', iconType: 'plate', color: '#ff6767', label: 'ASSAULT', threat: '重装' },
-  sniper: { glyph: '⟐', iconType: 'scope', color: '#8dff8d', label: 'PRECISION', threat: '狙击' },
-  fast: { glyph: '⟫', iconType: 'streak', color: '#6bbcff', label: 'RAPID', threat: '高速' },
-  flame: { glyph: '✦', iconType: 'flame', color: '#ff9a48', label: 'INCENDIARY', threat: '火焰' },
-  summoner: { glyph: '◌', iconType: 'network', color: '#78e7ff', label: 'COMMAND', threat: '召唤' },
-  stealth: { glyph: '⋄', iconType: 'ghost', color: '#b0b6c3', label: 'PHASE', threat: '隐匿' },
-  splitter: { glyph: '⫶', iconType: 'segments', color: '#efb36a', label: 'SWARM', threat: '分裂' },
-  regen: { glyph: '✚', iconType: 'cross', color: '#79f48d', label: 'REGEN', threat: '再生' },
-  laser: { glyph: '⌁', iconType: 'beam', color: '#9ca8ff', label: 'BEAM', threat: '激光' },
-  miner: { glyph: '▣', iconType: 'mine', color: '#f0c562', label: 'SAPPER', threat: '布雷' },
-  barrier: { glyph: '⬡', iconType: 'dome', color: '#76fcff', label: 'BARRIER', threat: '护盾' },
-  missile: { glyph: '➤', iconType: 'missile', color: '#ff9b7b', label: 'MISSILE', threat: '导弹' },
-  warden: { glyph: '⌬', iconType: 'scales', color: '#f6e5aa', label: 'JUDICATOR', threat: '裁断' },
-  phase: { glyph: '◇', iconType: 'rift', color: '#d9b6ff', label: 'RIFT', threat: '裂隙' },
-  boss: { glyph: '◈', iconType: 'crown', color: '#ffd36f', label: 'BOSS', threat: '首领' },
-  powerup: { glyph: '⬢', iconType: 'hexgear', color: '#f49800', label: 'MODULE', threat: '模组' },
-  fusion: { glyph: '⟡', iconType: 'merged', color: '#f3a8ff', label: 'FUSION', threat: '融合' },
-};
+const ENEMY_VISUAL_PROFILE = EnemyVisualProfile.ENEMY_VISUAL_PROFILE;
 
 
 // --- SVG Glyphs for Bestiary & Lab ---
@@ -4539,7 +4775,7 @@ function getBestiaryGlyphSvg(iconType, color) {
   return m[iconType] || m.diamond;
 }
 function getEnemyVisualProfile(type) {
-  return ENEMY_VISUAL_PROFILE[type] || ENEMY_VISUAL_PROFILE.normal;
+  return EnemyVisualProfile.getEnemyVisualProfile(type);
 }
 
 function drawEnemyMarker(ctx, x, y, type, size, accentOverride) {
@@ -5257,6 +5493,7 @@ class Tank {
     this.hp = hp;
     this.maxHp = hp;
     this.turretAngle = 0;
+    this.bodyAngle = 0;
     this.alive = true;
     this.shootCooldown = 0;
     this.shootDelay = 40;
@@ -5286,9 +5523,23 @@ class Tank {
       this.fireSlowMul = 1;
     }
   }
+  getCollisionBox() {
+    const size = this.hitboxSize || 36;
+    return getRotatedBoxBounds(size, size, this.bodyAngle || 0);
+  }
+  getHitRadius() {
+    return Math.max(16, Math.min(24, (this.hitboxSize || 36) * 0.54));
+  }
+  steerBodyTowardMovement(dx, dy, maxSpeed = 0.08, minMagnitude = 0.04) {
+    const mag = Math.sqrt(dx * dx + dy * dy);
+    if (mag < minMagnitude) return false;
+    this.bodyAngle = rotateTurretToward(this.bodyAngle || 0, Math.atan2(dy, dx), maxSpeed);
+    return true;
+  }
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
+    ctx.rotate(this.bodyAngle || 0);
 
     // Tracks
     ctx.fillStyle = '#222';
@@ -5327,7 +5578,7 @@ class Tank {
 
     // Turret barrel
     ctx.save();
-    ctx.rotate(this.turretAngle);
+    ctx.rotate((this.turretAngle || 0) - (this.bodyAngle || 0));
     ctx.fillStyle = this.turretColor;
     ctx.fillRect(3, -3, 16, 6);
     ctx.strokeStyle = '#000';
@@ -5425,10 +5676,11 @@ class PlayerTank extends Tank {
     const effSpeed = getEffectiveSpeed() * slowFactor;
     const newX = this.x + dx * effSpeed;
     const newY = this.y + dy * effSpeed;
-    const hb = this.hitboxSize || 36;
-    const margin = Math.max(22, hb / 2 + 7);
-    if (newX > margin && newX < W - margin && !tankCollidesObstacle(newX, this.y, hb, hb)) this.x = newX;
-    if (newY > margin && newY < H - margin && !tankCollidesObstacle(this.x, newY, hb, hb)) this.y = newY;
+    this.steerBodyTowardMovement(dx, dy, 0.14, 0.05);
+    const hb = this.getCollisionBox();
+    const margin = Math.max(22, Math.max(hb.w, hb.h) / 2 + 7);
+    if (newX > margin && newX < W - margin && !tankCollidesObstacle(newX, this.y, hb.w, hb.h)) this.x = newX;
+    if (newY > margin && newY < H - margin && !tankCollidesObstacle(this.x, newY, hb.w, hb.h)) this.y = newY;
 
     // Turret aiming
     let targetAngle;
@@ -5706,9 +5958,12 @@ class PlayerTank extends Tank {
     ctx.restore();
   }
   drawTankModel(ctx) {
-    const { x, y, color, turretColor, turretAngle, tankType } = this;
+    const { x, y, color, turretColor, tankType } = this;
+    const bodyAngle = this.bodyAngle || 0;
+    const turretAngle = (this.turretAngle || 0) - bodyAngle;
     ctx.save();
     ctx.translate(x, y);
+    ctx.rotate(bodyAngle);
     ctx.scale(this._tankDef?.visualScale || this.visualScale || 1, this._tankDef?.visualScale || this.visualScale || 1);
     const body = color, turretC = turretColor;
     const t = Date.now() / 220;
@@ -6072,6 +6327,7 @@ class EnemyTank extends Tank {
     this.aiChangeTime = 40 + rng() * 80;
     this.shootDelay = 90 + rng() * 60;
     this.preferredRange = 170 + rng() * 80;
+    this.rangeJitter = rng() * 50;
     this.strafeBias = rng() < 0.5 ? -1 : 1;
     this.burstMemory = 0;
     this.peekTimer = Math.floor(rng() * 50);
@@ -6082,6 +6338,19 @@ class EnemyTank extends Tank {
     this.isElite = false;
     this.kind = kind || 'scout';
     this.faction = enemyTypes.find(t => t.kind === this.kind)?.faction || 'moon_arsenal';
+  }
+  getCollisionProfile() {
+    return getEnemyCollisionProfile(this.special || this.kind);
+  }
+  getCollisionBox() {
+    const profile = this.getCollisionProfile();
+    return getRotatedBoxBounds(profile.obstacleW, profile.obstacleH, this.bodyAngle || 0);
+  }
+  getHitRadius() {
+    return this.getCollisionProfile().hitRadius;
+  }
+  getRamRadius() {
+    return this.getCollisionProfile().ramRadius;
   }
   update() {
     if (!this.alive) return;
@@ -6101,6 +6370,7 @@ class EnemyTank extends Tank {
       this.moveAxis = rng() < 0.5 ? 'x' : 'y';
       this.strafeBias *= rng() < 0.72 ? 1 : -1;
       this.aiChangeTime = 44 + rng() * 72;
+      this.rangeJitter = rng() * 50;
     }
 
     // Faction-based AI modifiers
@@ -6113,7 +6383,7 @@ class EnemyTank extends Tank {
       graveyard:      { prefRange: 120, strafe: 0.10, approachMul: 0.8,  lead: 8,  retreatBias: -0.1 },
     };
     const fai = factionAI[this.faction] || factionAI.moon_arsenal;
-    this.preferredRange = fai.prefRange + rng() * 50;
+    this.preferredRange = fai.prefRange + this.rangeJitter;
 
     // Chase closest player
     const targetPlayer = getClosestPlayerTo(this.x, this.y);
@@ -6180,9 +6450,12 @@ class EnemyTank extends Tank {
     const fireSlow = this.getFireSlowMultiplier();
     const newX = this.x + moveX * this.speed * enemySlow * fireSlow;
     const newY = this.y + moveY * this.speed * enemySlow * fireSlow;
-    if (newX > 25 && newX < W - 25 && !tankCollidesObstacle(newX, this.y, 36, 36)) this.x = newX;
+    this.steerBodyTowardMovement(moveX, moveY, this.isElite ? 0.07 : 0.09, 0.035);
+    const collisionBox = this.getCollisionBox();
+    const movementMargin = getCollisionMarginFromBox(collisionBox.w, collisionBox.h);
+    if (newX > movementMargin && newX < W - movementMargin && !tankCollidesObstacle(newX, this.y, collisionBox.w, collisionBox.h)) this.x = newX;
     else { this.moveDir *= -1; this.strafeBias *= -1; }
-    if (newY > 25 && newY < H - 25 && !tankCollidesObstacle(this.x, newY, 36, 36)) this.y = newY;
+    if (newY > movementMargin && newY < H - movementMargin && !tankCollidesObstacle(this.x, newY, collisionBox.w, collisionBox.h)) this.y = newY;
     else { this.moveDir *= -1; this.strafeBias *= -1; }
 
     // Shoot at player
@@ -6196,7 +6469,8 @@ class EnemyTank extends Tank {
     }
 
     // Collision with player
-    if (dist < 32) {
+    const playerRamRadius = player && player.getHitRadius ? player.getHitRadius() : 19;
+    if (dist < this.getRamRadius() + playerRamRadius * 0.35) {
       if (buffs.thorns > 0) {
         this.hp = 0;
         this.alive = false;
@@ -6214,11 +6488,17 @@ class EnemyTank extends Tank {
   draw(ctx) {
     const accentMap = { scout:'#68b8e8', runner:'#48a8f0', brute:'#e84848', artillery:'#d0a040', sniper:'#50a8d8', sapper:'#e08040', buffer:'#90c860', fissure:'#9880e0' };
     const accent = accentMap[this.kind] || '#f49800';
+    const visualScale = getEnemyVisualScale(this.kind);
     const t = Date.now() / 300;
     ctx.save();
     ctx.shadowColor = this.frozen > 0 ? '#8cf' : accent;
     ctx.shadowBlur = this.frozen > 0 ? 10 : 7;
     ctx.translate(this.x, this.y);
+    const bodyAngle = this.bodyAngle || 0;
+    const turretAngle = (this.turretAngle || 0) - bodyAngle;
+    ctx.save();
+    ctx.rotate(bodyAngle);
+    ctx.scale(visualScale.scaleX, visualScale.scaleY);
 
     switch(this.kind) {
       case 'runner': {
@@ -6241,7 +6521,7 @@ class EnemyTank extends Tank {
         rBurnGlow.addColorStop(0, 'rgba(255,200,60,0.9)'); rBurnGlow.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = rBurnGlow; ctx.beginPath(); ctx.arc(-14, 0, 8, 0, Math.PI * 2); ctx.fill();
         drawTechCore(ctx, 2, 0, 3.8, '#fff2cc', accent);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 4, -1.8, 14, 3.6, '#cc5a2a', '#ff5a1f', '#ffe8c0');
         ctx.restore();
         break;
@@ -6262,7 +6542,7 @@ class EnemyTank extends Tank {
         ctx.strokeStyle = 'rgba(180,100,255,' + shieldPulse.toFixed(2) + ')';
         ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.stroke();
         drawTechCore(ctx, 0, 0, 5.5, '#f0e0ff', accent);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 5, -3, 16, 6, '#5a2890', '#9148e0', '#fff7ff');
         ctx.restore();
         break;
@@ -6285,7 +6565,7 @@ class EnemyTank extends Tank {
           ctx.beginPath(); ctx.arc(-6, 0, 6 + r * 3, -Math.PI * 0.35, Math.PI * 0.35); ctx.stroke();
         }
         drawTechCore(ctx, 2, -1, 4.5, '#fff0fa', accent);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 5, -2, 19, 4, '#8a2060', '#ff60b0', '#fff0fa');
         ctx.fillStyle = '#ffd0f0'; ctx.beginPath(); ctx.arc(19, 0, 3.5, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
@@ -6309,7 +6589,7 @@ class EnemyTank extends Tank {
         ctx.strokeStyle = 'rgba(255,100,80,' + (scanPulse * 0.4).toFixed(2) + ')';
         ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(2, -16, 5 + Math.sin(t * 3) * 1, 0, Math.PI * 2); ctx.stroke();
         drawTechCore(ctx, 1, 0, 4.2, '#ffe0e0', accent);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 4, -1.8, 11, 3.6, '#b82828', '#ff5040', '#fff0f0');
         ctx.restore();
         break;
@@ -6323,7 +6603,7 @@ class EnemyTank extends Tank {
         ctx.beginPath(); ctx.moveTo(10, -10); ctx.lineTo(-8, -4); ctx.lineTo(-8, 4); ctx.lineTo(10, 10); ctx.closePath(); ctx.fill();
         ctx.strokeStyle = '#80b0ff'; ctx.lineWidth = 1.6; ctx.stroke();
         drawTechCore(ctx, 2, 0, 3.2, '#e0eeff', accent);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 3, -1.5, 22, 3, '#2848a0', '#80b0ff', '#f0f8ff');
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 0, 2, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
@@ -6341,7 +6621,7 @@ class EnemyTank extends Tank {
         ctx.fillStyle = '#301008'; ctx.fillRect(-14, -6, 6, 12);
         for (let m = 0; m < 3; m++) { ctx.fillStyle = '#ff6020'; ctx.beginPath(); ctx.arc(-11, -4 + m * 6, 2, 0, Math.PI * 2); ctx.fill(); }
         drawTechCore(ctx, 2, 0, 3.5, '#ffe8d0', accent);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 3, -1.8, 10, 3.6, '#a06020', '#ffa040', '#fff0e0');
         ctx.restore();
         break;
@@ -6359,7 +6639,7 @@ class EnemyTank extends Tank {
         ctx.strokeStyle = 'rgba(100,255,100,' + (auraPulse * 0.4).toFixed(2) + ')';
         ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.stroke();
         drawTechCore(ctx, 0, 0, 4.5, '#e0ffe0', accent);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 3, -1.5, 9, 3, '#308030', '#80e080', '#f0fff0');
         ctx.restore();
         break;
@@ -6378,18 +6658,19 @@ class EnemyTank extends Tank {
         ctx.beginPath(); ctx.moveTo(-10, -6); ctx.lineTo(10, 6); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(10, -6); ctx.lineTo(-10, 6); ctx.stroke();
         drawTechCore(ctx, 0, 0, 3.8, '#f0e8ff', accent);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 3, -1.6, 8, 3.2, '#381860', '#c0a0f0', '#f8f0ff');
         ctx.restore();
         break;
       }
     }
+    ctx.restore();
 
     ctx.shadowBlur = 0;
     if (this.hp < this.maxHp) {
       const hpColor = this.hp / this.maxHp > 0.5 ? '#79f48d' : (this.hp / this.maxHp > 0.25 ? '#ffd36f' : '#ff6a6a');
-      drawEnemyInfoPlate(ctx, 0, -25, 74, this.hp / this.maxHp, hpColor, this.kind.toUpperCase(), 'HOSTILE', 'HP');
-      drawEnemyMarker(ctx, -47, -25, 'normal', 6.2, accent);
+      drawEnemyInfoPlate(ctx, 0, visualScale.markerY, 74, this.hp / this.maxHp, hpColor, this.kind.toUpperCase(), 'HOSTILE', 'HP');
+      drawEnemyMarker(ctx, -47, visualScale.markerY, 'normal', 6.2, accent);
     }
 
     if (this.frozen > 0) {
@@ -6428,7 +6709,7 @@ class EnemyTank extends Tank {
           b.radius = 2.5; enemyBullets.push(b);
         }
       } else if (s === 'laser') {
-        const lb = new Bullet(bx, by, this.turretAngle, 3.5, '#aaf', true, dmg + 1);
+        const lb = new Bullet(bx, by, this.turretAngle, 3.5, '#aaf', false, dmg + 1);
         lb.radius = 2; enemyBullets.push(lb);
         for (let i = -2; i <= 2; i += 4) {
           const b = new Bullet(this.x, this.y, this.turretAngle + i * 0.35, 1.2, '#88f', false, 1);
@@ -6863,8 +7144,11 @@ class EliteEnemy extends EnemyTank {
     if (this.special === 'stealth' && this.stealthPhase === 1) {
       ctx.globalAlpha = 0.25;
     }
+    const visualScale = getEnemyVisualScale(this.special);
     ctx.save();
     ctx.translate(this.x, this.y);
+    const bodyAngle = this.bodyAngle || 0;
+    const turretAngle = (this.turretAngle || 0) - bodyAngle;
 
     let glowColor = '#ff0';
     if (this.special === 'heavy') glowColor = '#f44';
@@ -6900,6 +7184,8 @@ class EliteEnemy extends EnemyTank {
     const body = this.color, turretC = this.turretColor;
 
     ctx.save();
+    ctx.rotate(bodyAngle);
+    ctx.scale(visualScale.scaleX, visualScale.scaleY);
     switch(this.special) {
 
       case 'heavy':
@@ -6914,7 +7200,7 @@ class EliteEnemy extends EnemyTank {
         ctx.fillStyle = '#401010';
         for (let a = 0; a < 3; a++) { ctx.fillRect(-20, -4 + a * 5, 4, 3); ctx.fillRect(16, -4 + a * 5, 4, 3); }
         drawTechCore(ctx, 0, 0, 5, '#ffcccc', glowColor);
-        ctx.save(); ctx.rotate(this.turretAngle); drawWeaponBarrel(ctx, 5, -3.5, 16, 7, '#601818', '#d03030', '#fff0f0'); ctx.restore();
+        ctx.save(); ctx.rotate(turretAngle); drawWeaponBarrel(ctx, 5, -3.5, 16, 7, '#601818', '#d03030', '#fff0f0'); ctx.restore();
         break;
 
       case 'sniper':
@@ -6926,7 +7212,7 @@ class EliteEnemy extends EnemyTank {
         ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#1a1'; ctx.lineWidth = 1.5; ctx.stroke();
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -3, 2, 0, Math.PI*2); ctx.fill();
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         ctx.fillStyle = turretC; ctx.fillRect(4, -2, 28, 4);
         ctx.strokeStyle = '#1a1'; ctx.lineWidth = 1; ctx.strokeRect(4, -2, 28, 4);
         ctx.fillStyle = '#8f8'; ctx.fillRect(28, -3, 4, 6);
@@ -6948,7 +7234,7 @@ class EliteEnemy extends EnemyTank {
         fab.addColorStop(0, 'rgba(100,180,255,0.8)'); fab.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = fab; ctx.beginPath(); ctx.arc(-20, 0, 7, 0, Math.PI * 2); ctx.fill();
         drawTechCore(ctx, 3, 0, 4, '#d0e8ff', glowColor);
-        ctx.save(); ctx.rotate(this.turretAngle); drawWeaponBarrel(ctx, 4, -2, 14, 4, '#1050a0', '#60b0ff', '#e0f0ff'); ctx.restore();
+        ctx.save(); ctx.rotate(turretAngle); drawWeaponBarrel(ctx, 4, -2, 14, 4, '#1050a0', '#60b0ff', '#e0f0ff'); ctx.restore();
         ctx.globalAlpha = this.special === 'stealth' && this.stealthPhase === 1 ? 0.25 : 1;
         break;
 
@@ -6960,7 +7246,7 @@ class EliteEnemy extends EnemyTank {
         ctx.fillStyle = '#a53'; ctx.fillRect(-12, -7, 24, 14);
         ctx.fillStyle = '#632'; ctx.fillRect(15, -8, 5, 16);
         ctx.strokeStyle = '#420'; ctx.lineWidth = 1; ctx.strokeRect(15, -8, 5, 16);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         ctx.fillStyle = '#854'; ctx.fillRect(3, -5, 8, 10); ctx.fillRect(11, -3, 6, 6);
         ctx.strokeStyle = '#420'; ctx.lineWidth = 1; ctx.strokeRect(3, -5, 8, 10);
         for (let i = 0; i < 3; i++) {
@@ -6988,7 +7274,7 @@ class EliteEnemy extends EnemyTank {
         ctx.beginPath(); ctx.arc(0, -2, 8, -Math.PI*0.6, -Math.PI*0.4); ctx.stroke();
         ctx.fillStyle = '#6cf'; ctx.fillRect(-1, -20, 2, 8);
         ctx.beginPath(); ctx.arc(0, -20, 3, 0, Math.PI*2); ctx.fill();
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         ctx.fillStyle = turretC; ctx.fillRect(2, -2, 8, 4);
         ctx.restore();
         break;
@@ -7002,7 +7288,7 @@ class EliteEnemy extends EnemyTank {
         ctx.strokeStyle = '#555'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(2, -6); ctx.lineTo(-8, -1); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(-2, 6); ctx.lineTo(-10, 2); ctx.stroke();
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         ctx.fillStyle = turretC; ctx.beginPath();
         ctx.moveTo(10, 0); ctx.lineTo(4, -4); ctx.lineTo(-2, -3); ctx.lineTo(-2, 3); ctx.lineTo(4, 4); ctx.closePath();
         ctx.fill();
@@ -7028,7 +7314,7 @@ class EliteEnemy extends EnemyTank {
         for (let s = -1; s <= 1; s += 2) {
           ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(s * 7, -2, 5, 0, Math.PI*2); ctx.fill();
           ctx.strokeStyle = '#532'; ctx.lineWidth = 1; ctx.stroke();
-          ctx.save(); ctx.rotate(this.turretAngle + s * 0.1);
+          ctx.save(); ctx.rotate(turretAngle + s * 0.1);
           ctx.fillStyle = turretC; ctx.fillRect(s * 7 + 2, -4, 8, 3);
           ctx.restore();
         }
@@ -7047,7 +7333,7 @@ class EliteEnemy extends EnemyTank {
         ctx.fillStyle = turretC; ctx.beginPath();
         ctx.ellipse(2, -1, 8, 6, 0.3, 0, Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#1a3a1a'; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         ctx.fillStyle = turretC; ctx.fillRect(4, -3, 12, 5);
         ctx.restore();
         ctx.fillStyle = '#4f4'; ctx.globalAlpha = 0.15 + Math.sin(t * 2) * 0.1;
@@ -7071,7 +7357,7 @@ class EliteEnemy extends EnemyTank {
         }
         const corePulse = Math.sin(t * 3) * 0.3 + 0.7;
         drawTechCore(ctx, 2, 0, 4.5, '#e0e0ff', glowColor);
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         const lgrad = ctx.createLinearGradient(3, 0, 20, 0);
         lgrad.addColorStop(0, '#88f'); lgrad.addColorStop(0.6, '#ccf'); lgrad.addColorStop(1, '#fff');
         ctx.fillStyle = lgrad; ctx.fillRect(3, -3, 20, 6);
@@ -7100,7 +7386,7 @@ class EliteEnemy extends EnemyTank {
         }
         ctx.fillStyle = turretC; ctx.beginPath(); ctx.arc(0, -1, 8, 0, Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#430'; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         ctx.fillStyle = turretC; ctx.fillRect(3, -3, 10, 6);
         ctx.strokeStyle = '#430'; ctx.lineWidth = 1; ctx.strokeRect(3, -3, 10, 6);
         ctx.restore();
@@ -7123,7 +7409,7 @@ class EliteEnemy extends EnemyTank {
           ctx.fillStyle = '#4ff'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
           ctx.fillText(this.barrierHP, 0, -22);
         }
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         ctx.fillStyle = turretC; ctx.fillRect(4, -2, 12, 4);
         ctx.strokeStyle = '#066'; ctx.lineWidth = 1.5; ctx.strokeRect(4, -2, 12, 4);
         ctx.restore();
@@ -7147,7 +7433,7 @@ class EliteEnemy extends EnemyTank {
           }
         }
         drawTechCore(ctx, 0, 0, 4.5, '#ffe0d0', glowColor);
-        ctx.save(); ctx.rotate(this.turretAngle); drawWeaponBarrel(ctx, 4, -2.5, 16, 5, '#803010', '#ff6020', '#fff0e0'); ctx.restore();
+        ctx.save(); ctx.rotate(turretAngle); drawWeaponBarrel(ctx, 4, -2.5, 16, 5, '#803010', '#ff6020', '#fff0e0'); ctx.restore();
         break;
 
       case 'warden':
@@ -7162,13 +7448,13 @@ class EliteEnemy extends EnemyTank {
         ctx.moveTo(-7, 5); ctx.lineTo(7, 5);
         ctx.stroke();
         drawTechCore(ctx, 0, 0, 5.2, '#fff6d4', '#f6e5aa');
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 5, -3.5, 20, 7, turretC, '#6f5627', '#fff6d4');
         ctx.restore();
         if (this.wardenTelegraph > 0) {
           const alpha = 0.16 + (this.wardenTelegraph / 36) * 0.22;
           ctx.save();
-          ctx.rotate((this.wardenAngle || this.turretAngle) - this.turretAngle);
+          ctx.rotate((this.wardenAngle || this.turretAngle) - (this.bodyAngle || 0));
           ctx.strokeStyle = 'rgba(246,229,170,' + alpha + ')';
           ctx.lineWidth = 7;
           ctx.beginPath();
@@ -7305,7 +7591,7 @@ class EliteEnemy extends EnemyTank {
         }
         ctx.globalAlpha = 1;
         // === MAIN SIEGE CANNON ===
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         // Cannon housing
         drawArmorPanel(ctx, 6, -8, 14, 16, '#060210', bossAccent, 4);
         // Heavy barrel
@@ -7392,7 +7678,7 @@ class EliteEnemy extends EnemyTank {
         ctx.arc(0, 0, 13, Math.PI * 0.45 - t, Math.PI * 1.35 - t);
         ctx.stroke();
         drawTechCore(ctx, -2, 0, 4.6, '#fff2ff', '#d9b6ff');
-        ctx.save(); ctx.rotate(this.turretAngle);
+        ctx.save(); ctx.rotate(turretAngle);
         drawWeaponBarrel(ctx, 4, -2.4, 16, 4.8, turretC, '#40265d', '#fff2ff');
         ctx.restore();
         break;
@@ -7402,10 +7688,10 @@ class EliteEnemy extends EnemyTank {
 
     ctx.shadowBlur = 0;
     if (this.hp < this.maxHp) {
-      drawEnemyInfoPlate(ctx, 0, -30, 92, this.hp / this.maxHp, glowColor, this.eliteName, getEnemyVisualProfile(this.special).label, this.special.toUpperCase());
-      drawEnemyMarker(ctx, -56, -30, this.special, 7.5, glowColor);
+      drawEnemyInfoPlate(ctx, 0, visualScale.markerY, 92, this.hp / this.maxHp, glowColor, this.eliteName, getEnemyVisualProfile(this.special).label, this.special.toUpperCase());
+      drawEnemyMarker(ctx, -56, visualScale.markerY, this.special, 7.5, glowColor);
     } else {
-      drawEnemyMarker(ctx, 0, -28, this.special, 6.8, glowColor);
+      drawEnemyMarker(ctx, 0, visualScale.markerY + 2, this.special, 6.8, glowColor);
     }
 
     if (this.frozen > 0) {
@@ -7444,10 +7730,282 @@ let bossRef = null;
 let bossWarningTimer = 0;
 let bossWarningDef = null;
 let bossWarningSpawn = null;
+const BOSS_WARNING_DURATION = 180;
+const BOSS_WARNING_STAGES = Object.freeze([
+  Object.freeze({ threshold: 0.36, code: 'SIGNAL', label: '首领信号捕获' }),
+  Object.freeze({ threshold: 0.76, code: 'LOCK', label: '装甲进入战区' }),
+  Object.freeze({ threshold: 1.01, code: 'IMPACT', label: '冲击即将抵达' }),
+]);
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function getBossWarningProgress(timer = bossWarningTimer) {
+  return clamp01(1 - Math.max(0, timer || 0) / BOSS_WARNING_DURATION);
+}
+
+function getBossWarningStage(progress = getBossWarningProgress()) {
+  const p = clamp01(progress);
+  return BOSS_WARNING_STAGES.find(stage => p < stage.threshold) || BOSS_WARNING_STAGES[BOSS_WARNING_STAGES.length - 1];
+}
+
+function truncateCanvasText(ctx, text, maxWidth) {
+  const raw = String(text || '');
+  if (!ctx || !ctx.measureText || ctx.measureText(raw).width <= maxWidth) return raw;
+  let trimmed = raw;
+  while (trimmed.length > 4 && ctx.measureText(trimmed + '...').width > maxWidth) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed + '...';
+}
+
+function getBossWarningPresentation(bossDef = bossWarningDef, timer = bossWarningTimer, spawn = bossWarningSpawn) {
+  const progress = getBossWarningProgress(timer);
+  const stage = getBossWarningStage(progress);
+  const faction = getFactionInfo(bossDef && bossDef.faction);
+  const firstPhase = bossDef && bossDef.phases && bossDef.phases[0] ? bossDef.phases[0] : null;
+  const supportCount = getBossSupportCount(wave);
+  const archiveDuel = currentRunMode === 'clear' && isBossArchiveWave(wave);
+  return {
+    active: !!(timer > 0 && bossDef),
+    progress,
+    stageCode: stage.code,
+    stageLabel: stage.label,
+    etaSeconds: Math.max(0, Math.ceil(Math.max(0, timer || 0) / 60)),
+    countdownBeat: Math.max(1, Math.ceil(Math.max(1, timer || 1) / Math.max(1, BOSS_WARNING_DURATION / 3))),
+    name: bossDef && bossDef.name ? bossDef.name : 'UNKNOWN BOSS',
+    icon: bossDef && bossDef.icon ? bossDef.icon : 'BOS',
+    tier: bossDef && bossDef.tier ? bossDef.tier : 1,
+    accent: bossDef && bossDef.turret ? bossDef.turret : (faction.color || '#ff4040'),
+    factionName: faction.name || '未知派系',
+    factionCode: faction.code || 'UNK',
+    phaseCue: firstPhase && firstPhase.cue ? firstPhase.cue : 'BOSS ENTRY',
+    phaseHint: firstPhase && firstPhase.hint ? firstPhase.hint : ((bossDef && bossDef.desc) || '保持距离，观察首轮弹幕。'),
+    supportText: archiveDuel ? 'ARCHIVE DUEL / 无护卫' : (supportCount > 0 ? 'ESCORTS / 护卫 ' + supportCount : 'SOLO ENTRY / 无护卫'),
+    spawnX: spawn && Number.isFinite(spawn.x) ? spawn.x : W / 2,
+    spawnY: spawn && Number.isFinite(spawn.y) ? spawn.y : H * 0.28,
+  };
+}
+
+function drawBossWarningSpawnMarker(ctx, warning) {
+  const t = Date.now() / 1000;
+  const pulse = Math.sin(t * 8) * 0.5 + 0.5;
+  const ring = 132 - warning.progress * 62 + pulse * 8;
+  const alpha = 0.56 + warning.progress * 0.36;
+
+  ctx.save();
+  ctx.globalAlpha = 0.22 + warning.progress * 0.28;
+  ctx.fillStyle = warning.accent;
+  ctx.shadowColor = warning.accent;
+  ctx.shadowBlur = 28;
+  ctx.fillRect(warning.spawnX - 24, 0, 48, H);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(warning.spawnX, warning.spawnY);
+  for (let i = 0; i < 3; i++) {
+    const shock = 42 + ((warning.progress * 210 + i * 70) % 210);
+    const shockAlpha = Math.max(0, 0.42 - shock / 520);
+    ctx.globalAlpha = shockAlpha;
+    ctx.strokeStyle = warning.accent;
+    ctx.lineWidth = 3 - i * 0.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, shock, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = warning.accent;
+  ctx.fillStyle = 'rgba(255,48,48,0.16)';
+  ctx.shadowColor = warning.accent;
+  ctx.shadowBlur = 34;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(0, 0, ring, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, Math.max(34, ring * 0.42), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = 'rgba(255,255,255,0.82)';
+  ctx.beginPath();
+  ctx.moveTo(-ring - 34, 0);
+  ctx.lineTo(-34, 0);
+  ctx.moveTo(34, 0);
+  ctx.lineTo(ring + 34, 0);
+  ctx.moveTo(0, -ring - 34);
+  ctx.lineTo(0, -34);
+  ctx.moveTo(0, 34);
+  ctx.lineTo(0, ring + 34);
+  ctx.stroke();
+
+  ctx.fillStyle = '#fff2d2';
+  ctx.font = 'bold 22px "Courier New",monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('IMPACT ZONE', 0, -ring - 38);
+  ctx.font = 'bold 16px "Courier New",monospace';
+  ctx.fillText('DEPLOY IN ' + warning.etaSeconds + 's', 0, ring + 50);
+  ctx.restore();
+}
+
+function drawBossWarningHazardBand(ctx, y, h, warning, reverse = false) {
+  const offset = (Date.now() / 22) % 96;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.88)';
+  ctx.fillRect(0, y, W, h);
+  ctx.beginPath();
+  ctx.rect(0, y, W, h);
+  ctx.clip();
+  ctx.globalAlpha = 0.5 + warning.progress * 0.28;
+  ctx.fillStyle = warning.accent;
+  for (let x = -180; x < W + 180; x += 72) {
+    const sx = x + (reverse ? -offset : offset);
+    ctx.beginPath();
+    ctx.moveTo(sx, y + h);
+    ctx.lineTo(sx + 28, y + h);
+    ctx.lineTo(sx + 92, y);
+    ctx.lineTo(sx + 64, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBossWarningOverlay(ctx) {
+  if (bossWarningTimer <= 0 || !bossWarningDef) return;
+
+  const warning = getBossWarningPresentation();
+  if (!warning.active) return;
+  const progress = warning.progress;
+  const pulse = Math.sin(Date.now() / 90) * 0.5 + 0.5;
+  const glitch = Math.sin(Date.now() / 36) * (4 + progress * 5);
+
+  ctx.save();
+  ctx.globalAlpha = 0.34 + progress * 0.22;
+  ctx.fillStyle = '#080102';
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  const vignetteGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.28, W / 2, H / 2, W * 0.72);
+  vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vignetteGrad.addColorStop(0.5, 'rgba(120,0,0,' + (0.2 + progress * 0.22).toFixed(3) + ')');
+  vignetteGrad.addColorStop(1, 'rgba(45,0,0,' + (0.55 + progress * 0.25).toFixed(3) + ')');
+  ctx.fillStyle = vignetteGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  ctx.globalAlpha = 0.26 + progress * 0.28;
+  ctx.strokeStyle = warning.accent;
+  ctx.lineWidth = 1;
+  for (let y = 44; y < H; y += 54) {
+    ctx.beginPath();
+    ctx.moveTo(0, y + pulse * 8);
+    ctx.lineTo(W, y + pulse * 8);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  const barH = 86 + progress * 24;
+  drawBossWarningHazardBand(ctx, 0, barH, warning, false);
+  drawBossWarningHazardBand(ctx, H - barH, barH, warning, true);
+  drawBossWarningSpawnMarker(ctx, warning);
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.shadowColor = warning.accent;
+  ctx.shadowBlur = 22 + pulse * 14;
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 190px "Courier New",monospace';
+  ctx.fillText(warning.icon, W / 2 + glitch * 0.4, H * 0.56);
+  ctx.globalAlpha = 1;
+
+  ctx.font = 'bold 22px "Courier New",monospace';
+  ctx.fillStyle = '#ffdf9c';
+  ctx.fillText('BOSS INCOMING / ' + warning.stageCode + ' / ' + warning.stageLabel, W / 2, barH - 34);
+
+  ctx.font = 'bold 92px "Segoe UI","Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#190000';
+  ctx.fillText('首 领 降 临', W / 2 + 5, H * 0.31 + 5);
+  ctx.fillStyle = '#fff0d0';
+  ctx.fillText('首 领 降 临', W / 2 + glitch, H * 0.31);
+  ctx.fillStyle = warning.accent;
+  ctx.globalAlpha = 0.78;
+  ctx.fillText('首 领 降 临', W / 2 - glitch * 0.6, H * 0.31 + 2);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 48px "Segoe UI","Microsoft YaHei",sans-serif';
+  ctx.fillText(truncateCanvasText(ctx, warning.name, 740), W / 2, H * 0.4);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(W * 0.78, H * 0.37);
+  ctx.shadowColor = warning.accent;
+  ctx.shadowBlur = 28;
+  ctx.strokeStyle = warning.accent;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(0, 0, 74 + pulse * 6, -Math.PI * 0.5, -Math.PI * 0.5 + Math.PI * 2 * progress);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.beginPath();
+  ctx.arc(0, 0, 58, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff5d0';
+  ctx.font = 'bold 76px "Courier New",monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(warning.countdownBeat, 0, 2);
+  ctx.font = 'bold 13px "Courier New",monospace';
+  ctx.fillText('COUNT', 0, 54);
+  ctx.restore();
+
+  const panelW = 760;
+  const panelH = 130;
+  const panelX = W / 2 - panelW / 2;
+  const panelY = H - barH - panelH - 18;
+  ctx.save();
+  ctx.shadowColor = warning.accent;
+  ctx.shadowBlur = 18 + pulse * 8;
+  drawArmorPanel(ctx, panelX, panelY, panelW, panelH, 'rgba(8,10,16,0.9)', 'rgba(255,210,122,0.55)', 8);
+  ctx.shadowBlur = 0;
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f6e5aa';
+  ctx.font = 'bold 16px "Courier New","Microsoft YaHei",monospace';
+  ctx.fillText(
+    warning.icon + ' / TIER ' + warning.tier + ' / ' + warning.factionCode + ' ' + warning.factionName + ' / ' + warning.supportText,
+    W / 2,
+    panelY + 28,
+  );
+
+  ctx.fillStyle = '#ffd0d0';
+  ctx.font = 'bold 18px "Microsoft YaHei","Segoe UI",sans-serif';
+  ctx.fillText(truncateCanvasText(ctx, warning.phaseCue + ' - ' + warning.phaseHint, panelW - 80), W / 2, panelY + 60);
+
+  const barX = panelX + 38;
+  const barY = panelY + panelH - 30;
+  const barW = panelW - 76;
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(barX, barY, barW, 10);
+  ctx.fillStyle = warning.accent;
+  ctx.fillRect(barX, barY, Math.max(10, barW * progress), 10);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 12px "Courier New",monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('DEPLOYMENT ' + Math.round(progress * 100) + '%', barX + barW, barY - 6);
+  ctx.restore();
+}
 
 const BOSS_TYPES = [
   { name:'巨兽坦克', color:'#833', turret:'#f44', speed:0.34, hp:150, icon:'BST', faction:'moon_arsenal', tier:1,
     desc:'重型压制Boss，装甲轰杀+过载冲击',
+    entryAttack:{ type:'breach_shockwave', windup:72, recover:96, bulletCount:18, cue:'BREACH IMPACT', hint:'开场破城冲击有侧向安全缺口' },
     phases:[
       { name:'装甲镇压', hpPct:1.0, attack:'spiral', shootDelay:40, burstShots:3, burstRest:126, telegraph:46, recover:112, bulletCount:11, bulletSpeed:1.58, pressure:0.9, cue:'BREACH ARC', hint:'环形压制后有装甲空窗' },
       { name:'过载破城', hpPct:0.58, attack:'enrage', shootDelay:38, burstShots:3, burstRest:156, telegraph:56, recover:132, bulletCount:12, bulletSpeed:1.92, pressure:1.18, cue:'SIEGE BURN', hint:'正面破城弹后短暂过热' },
@@ -7499,13 +8057,13 @@ const BOSS_TYPES = [
     desc:'远距狙击Boss，激光锁定+光束扫射',
     phases:[
       { name:'激光锁定', hpPct:1.0, attack:'laser_snipe', shootDelay:48, burstShots:1, burstRest:160, telegraph:90, recover:70, bulletCount:1, bulletSpeed:5.5, pressure:0.85, cue:'TARGET LOCK', hint:'躲开激光瞄准线' },
-      { name:'光束扫射', hpPct:0.55, attack:'beam_sweep', shootDelay:42, burstShots:3, burstRest:180, telegraph:60, recover:90, bulletCount:5, bulletSpeed:2.8, pressure:1.15, cue:'SWEEP ARRAY', hint:'光束间隙可闪避' },
+      { name:'光束扫射', hpPct:0.55, attack:'beam_sweep', shootDelay:42, burstShots:3, burstRest:180, telegraph:60, recover:90, bulletCount:5, bulletSpeed:2.8, pressure:1.15, cue:'SWEEP ARRAY', hint:'三条轨道栅栏间有稳定缝隙' },
     ]},
   { name:'圣龛守卫', color:'#864', turret:'#fd0', speed:0.22, hp:175, icon:'SCT', faction:'ash_church', tier:1,
     desc:'神圣堡垒Boss，圣光弹幕+护盾反弹',
     phases:[
       { name:'圣光帷幕', hpPct:1.0, attack:'holy_barrage', shootDelay:50, burstShots:3, burstRest:140, telegraph:48, recover:112, bulletCount:12, bulletSpeed:1.35, pressure:0.9, cue:'SANCTUM LIGHT', hint:'圣光规律密集可读，穿行间隙' },
-      { name:'圣盾反制', hpPct:0.52, attack:'shield_counter', shootDelay:46, burstShots:3, burstRest:170, telegraph:54, recover:136, bulletCount:8, bulletSpeed:1.95, pressure:1.1, cue:'SHIELD RETORT', hint:'护盾展开时反弹子弹，关闭后自愈' },
+      { name:'圣盾反制', hpPct:0.52, attack:'shield_counter', shootDelay:46, burstShots:3, burstRest:170, telegraph:54, recover:136, bulletCount:8, bulletSpeed:1.95, pressure:1.1, cue:'SHIELD RETORT', hint:'圣盾十字和反击矛分段出现，别正面贪枪' },
     ]},
   { name:'星象仪', color:'#1a2a3a', turret:'#4ce', speed:0.30, hp:128, icon:'AST', faction:'observatory', tier:1,
     desc:'几何弹幕Boss，星轨旋转环+星座阵列',
@@ -7528,8 +8086,8 @@ const BOSS_TYPES = [
   { name:'迅影', color:'#123', turret:'#4ff', speed:0.92, hp:90, icon:'SWF', faction:'storm_cloister', tier:3,
     desc:'忍者刺客Boss，手里剑+瞬移背刺',
     phases:[
-      { name:'影舞', hpPct:1.0, attack:'shuriken_fan', shootDelay:34, burstShots:3, burstRest:112, telegraph:36, recover:98, bulletCount:5, bulletSpeed:2.8, pressure:0.95, cue:'SHADOW DANCE', hint:'手里剑扇形三发，横移即可规避' },
-      { name:'瞬杀连舞', hpPct:0.45, attack:'teleport_flurry', shootDelay:22, burstShots:3, burstRest:140, telegraph:42, recover:114, bulletCount:12, bulletSpeed:3.2, pressure:1.3, cue:'FLURRY STRIKE', hint:'连续瞬移背刺，注意360°手里剑环' },
+      { name:'影舞', hpPct:1.0, attack:'shuriken_fan', shootDelay:34, burstShots:3, burstRest:112, telegraph:36, recover:98, bulletCount:5, bulletSpeed:2.8, pressure:0.95, cue:'SHADOW DANCE', hint:'双层手里剑带反弹边刃，注意错位空隙' },
+      { name:'瞬杀连舞', hpPct:0.45, attack:'teleport_flurry', shootDelay:22, burstShots:3, burstRest:140, telegraph:42, recover:114, bulletCount:12, bulletSpeed:3.2, pressure:1.3, cue:'FLURRY STRIKE', hint:'瞬移后十字斩接错位环，站在对角空隙' },
     ]},
   { name:'圣龛织者', color:'#864', turret:'#fd0', speed:0.10, hp:200, icon:'WEV', faction:'ash_church', tier:3,
     desc:'纯召唤Boss，不攻击但不断召唤精英护卫',
@@ -7552,26 +8110,26 @@ const BOSS_TYPES = [
   { name:'镜像体', color:'#333', turret:'#999', speed:0.50, hp:120, icon:'MIR', faction:'void_cult', tier:2,
     desc:'复制型Boss，模仿玩家武器弹幕',
     phases:[
-      { name:'完美镜像', hpPct:1.0, attack:'mirror_copy', shootDelay:44, burstShots:3, burstRest:140, telegraph:40, recover:110, bulletCount:6, bulletSpeed:2.5, pressure:1.0, cue:'MIRROR COPY', hint:'换不同坦克可打破镜像规律' },
-      { name:'强化镜像', hpPct:0.5, attack:'mirror_enhance', shootDelay:34, burstShots:3, burstRest:120, telegraph:34, recover:90, bulletCount:8, bulletSpeed:3.0, pressure:1.25, cue:'ENHANCE', hint:'弹幕速度+20%，弹丸增大' },
+      { name:'完美镜像', hpPct:1.0, attack:'mirror_copy', shootDelay:44, burstShots:3, burstRest:140, telegraph:40, recover:110, bulletCount:6, bulletSpeed:2.5, pressure:1.0, cue:'MIRROR COPY', hint:'镜像会按对称轴补反相弹，换武器可破节奏' },
+      { name:'强化镜像', hpPct:0.5, attack:'mirror_enhance', shootDelay:34, burstShots:3, burstRest:120, telegraph:34, recover:90, bulletCount:8, bulletSpeed:3.0, pressure:1.25, cue:'ENHANCE', hint:'强化镜片会反射弹射，别贴墙' },
     ]},
   { name:'沙暴', color:'#864', turret:'#c84', speed:0.35, hp:145, icon:'SND', faction:'graveyard', tier:2,
     desc:'环境Boss，沙尘降可见度+沙虫突刺',
     phases:[
-      { name:'沙尘帷幕', hpPct:1.0, attack:'sand_veil', shootDelay:48, burstShots:3, burstRest:156, telegraph:46, recover:128, bulletCount:10, bulletSpeed:1.6, pressure:0.9, cue:'SAND VEIL', hint:'注意沙尘中弹幕方向，靠小地图走位' },
+      { name:'沙尘帷幕', hpPct:1.0, attack:'sand_veil', shootDelay:48, burstShots:3, burstRest:156, telegraph:46, recover:128, bulletCount:10, bulletSpeed:1.6, pressure:0.9, cue:'SAND VEIL', hint:'三股沙带会横风漂移，沿带缝穿行' },
       { name:'沙虫肆虐', hpPct:0.52, attack:'sand_worm', shootDelay:40, burstShots:3, burstRest:170, telegraph:52, recover:142, bulletCount:14, bulletSpeed:2.0, pressure:1.2, cue:'WORM STRIKE', hint:'地面预警圈即沙虫突刺位置' },
     ]},
   { name:'重力锚', color:'#345', turret:'#8cf', speed:0.18, hp:175, icon:'GRV', faction:'moon_arsenal', tier:3,
     desc:'引力操控Boss，重力井吸引+锚链裁决',
     phases:[
-      { name:'重力井', hpPct:1.0, attack:'gravity_well', shootDelay:50, burstShots:3, burstRest:148, telegraph:52, recover:126, bulletCount:12, bulletSpeed:1.5, pressure:0.92, cue:'GRAVITY WELL', hint:'持续被拉向Boss，反向移动保持距离' },
-      { name:'锚链裁决', hpPct:0.52, attack:'anchor_judgment', shootDelay:40, burstShots:3, burstRest:162, telegraph:48, recover:138, bulletCount:16, bulletSpeed:1.9, pressure:1.22, cue:'ANCHOR JUDGMENT', hint:'引力+追踪锚弹，利用障碍物阻挡追踪弹' },
+      { name:'重力井', hpPct:1.0, attack:'gravity_well', shootDelay:50, burstShots:3, burstRest:148, telegraph:52, recover:126, bulletCount:12, bulletSpeed:1.5, pressure:0.92, cue:'GRAVITY WELL', hint:'重力环有旋转缺口，别被中心锚弹拖住' },
+      { name:'锚链裁决', hpPct:0.52, attack:'anchor_judgment', shootDelay:40, burstShots:3, burstRest:162, telegraph:48, recover:138, bulletCount:16, bulletSpeed:1.9, pressure:1.22, cue:'ANCHOR JUDGMENT', hint:'锚链交叉后追踪锚弹，利用缺口和障碍' },
     ]},
   { name:'多头蛇', color:'#262', turret:'#4e4', speed:0.40, hp:155, icon:'HYD', faction:'void_cult', tier:2,
-    desc:'多头再生Boss，三头齐射+多头狂乱',
+    desc:'多头再生Boss，毒牙枪线+侧首夹击+再生孢子',
     phases:[
-      { name:'三头齐射', hpPct:1.0, attack:'triple_strike', shootDelay:42, burstShots:3, burstRest:132, telegraph:44, recover:110, bulletCount:9, bulletSpeed:2.0, pressure:0.96, cue:'TRIPLE STRIKE', hint:'三方向弹幕各120°，找夹角空隙' },
-      { name:'多头狂乱', hpPct:0.48, attack:'hydra_frenzy', shootDelay:32, burstShots:3, burstRest:148, telegraph:40, recover:118, bulletCount:15, bulletSpeed:2.3, pressure:1.28, cue:'HYDRA FRENZY', hint:'五头齐射+持续再生，爆发输出' },
+      { name:'三首猎场', hpPct:1.0, attack:'triple_strike', shootDelay:42, burstShots:3, burstRest:132, telegraph:44, recover:110, bulletCount:9, bulletSpeed:2.0, pressure:0.98, cue:'THREE-HEAD HUNT', hint:'中首直线毒牙，侧首夹击，后首留下慢毒云' },
+      { name:'五首再生', hpPct:0.48, attack:'hydra_frenzy', shootDelay:34, burstShots:3, burstRest:152, telegraph:42, recover:122, bulletCount:15, bulletSpeed:2.25, pressure:1.32, cue:'REGROWTH FRENZY', hint:'五首分工压制，追踪毒牙会从毒云间隙钻出' },
     ]},
 
 ];
@@ -7683,6 +8241,15 @@ class BossEnemy extends EliteEnemy {
     this.recoverVulnerable = false;
     this.threatRating = 6.8;
     this.hitFlash = 0;
+    this.entryAttack = bossDef.entryAttack || null;
+    this.entryAttackDone = !this.entryAttack;
+    this.entryAttackDuration = this.entryAttack ? Math.max(1, Math.floor(this.entryAttack.windup || 72)) : 0;
+    this.entryAttackTimer = this.entryAttackDuration;
+    this.phantomEchoes = [];
+    this.sanctumShieldCharges = 0;
+    this.sanctumShieldTimer = 0;
+    this.geminiBaseSpeed = this.baseSpeed;
+    this.geminiEnraged = false;
     // Sandstorm boss: override weather to dust
     if (bossDef.name === '沙暴') {
       weatherOverridden = true;
@@ -7702,6 +8269,17 @@ class BossEnemy extends EliteEnemy {
       }
     }
   }
+  isGeminiDark() {
+    return !!this.geminiMaster;
+  }
+  getGeminiPartner() {
+    if (this.geminiTwin && this.geminiTwin !== this && this.geminiTwin.alive) return this.geminiTwin;
+    if (this.geminiMaster && this.geminiMaster !== this && this.geminiMaster.alive) return this.geminiMaster;
+    return null;
+  }
+  getGeminiRoleSide() {
+    return this.isGeminiDark() ? 1 : -1;
+  }
   getPhaseDef() {
     return this.bossDef.phases[Math.max(0, this.currentPhase)] || this.bossDef.phases[0];
   }
@@ -7712,6 +8290,22 @@ class BossEnemy extends EliteEnemy {
   getBossRecoverDuration(phase) {
     const base = phase.recover || phase.burstRest || 120;
     return Math.max(52, Math.floor(base * (this.currentPhase > 0 ? 0.78 : 0.92)));
+  }
+  getBodyProfile() {
+    return getBossBodyProfile(this.bossDef);
+  }
+  getCollisionBox() {
+    const profile = this.getBodyProfile();
+    return getRotatedBoxBounds(profile.obstacleW, profile.obstacleH, this.bodyAngle || 0);
+  }
+  getHitRadius() {
+    return this.getBodyProfile().hitRadius;
+  }
+  getRamRadius() {
+    return this.getBodyProfile().ramRadius;
+  }
+  getNameplateOffsetY() {
+    return this.getBodyProfile().markerY;
   }
   setAttackState(state, duration) {
     this.attackState = state;
@@ -7786,9 +8380,11 @@ class BossEnemy extends EliteEnemy {
     }
   }
   findTeleportPoint(minPlayerDist) {
-    return findSafeTankSpawn({
-      w: 54,
-      h: 54,
+    const collisionBox = this.getCollisionBox();
+    const margin = getCollisionMarginFromBox(collisionBox.w, collisionBox.h);
+    const safe = findSafeTankSpawn({
+      w: collisionBox.w,
+      h: collisionBox.h,
       minEnemyDist: 90,
       minPlayerDist: minPlayerDist || 180,
       preferred: [
@@ -7798,10 +8394,21 @@ class BossEnemy extends EliteEnemy {
         { x: player.x - 180, y: player.y + 90 },
         { x: W / 2, y: H * 0.25 },
       ].map(p => ({
-        x: Math.max(48, Math.min(W - 48, p.x)),
-        y: Math.max(48, Math.min(H - 48, p.y)),
+        x: Math.max(margin, Math.min(W - margin, p.x)),
+        y: Math.max(margin, Math.min(H - margin, p.y)),
       })),
     });
+    if (!player) return safe;
+    const requiredDist = minPlayerDist || 180;
+    const dx = safe.x - player.x;
+    const dy = safe.y - player.y;
+    const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+    if (dist >= requiredDist * 0.9) return safe;
+    const away = Math.atan2(dy, dx) || this.turretAngle + Math.PI;
+    return {
+      x: Math.max(margin, Math.min(W - margin, player.x + Math.cos(away) * requiredDist)),
+      y: Math.max(margin, Math.min(H - margin, player.y + Math.sin(away) * requiredDist)),
+    };
   }
   pushPlayer(amountX, amountY) {
     if (!player || !player.alive) return;
@@ -7811,6 +8418,133 @@ class BossEnemy extends EliteEnemy {
     const targetY = Math.max(margin, Math.min(H - margin, player.y + amountY));
     if (!tankCollidesObstacle(targetX, player.y, hb, hb)) player.x = targetX;
     if (!tankCollidesObstacle(player.x, targetY, hb, hb)) player.y = targetY;
+  }
+  absorbNearbyWrecks(radius = 100, healPerWreck = 4, maxHeal = 16) {
+    let absorbed = 0;
+    for (const e of enemies) {
+      if (!e || e === this || e.alive || e.hp > 0 || e._absorbedByBoss) continue;
+      const edx = e.x - this.x;
+      const edy = e.y - this.y;
+      if (Math.sqrt(edx * edx + edy * edy) > radius) continue;
+      e._absorbedByBoss = true;
+      absorbed++;
+      spawnExplosion(e.x, e.y, 8 + Math.min(8, absorbed * 2), '#c84', '#964');
+    }
+    if (absorbed > 0 && this.hp < this.maxHp) {
+      this.hp = Math.min(this.maxHp, this.hp + Math.min(maxHeal, absorbed * healPerWreck));
+    }
+    return absorbed;
+  }
+  emitDevourBurst(phase, bonusBullets) {
+    const absorbed = this.absorbNearbyWrecks(this.currentPhase > 0 ? 180 : 140, this.currentPhase > 0 ? 6 : 4, this.currentPhase > 0 ? 24 : 14);
+    const angleDistance = (a, b) => {
+      let d = a - b;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return Math.abs(d);
+    };
+    const baseAngle = this.turretAngle + this.attackBurstShots * 0.23 + this.phaseTimer * 0.018;
+    const safeGap = this.turretAngle + (this.attackBurstShots % 2 === 0 ? Math.PI * 0.62 : -Math.PI * 0.62);
+    const gapWidth = this.currentPhase > 0 ? 0.34 : 0.42;
+    const total = Math.max(12, (phase.bulletCount || 12) + bonusBullets + Math.min(absorbed, 3) * 2);
+    for (let i = 0; i < total; i++) {
+      const a = baseAngle + (i / total) * Math.PI * 2;
+      if (angleDistance(a, safeGap) < gapWidth) continue;
+      const speed = phase.bulletSpeed + (i % 3) * 0.22 + Math.min(0.25, absorbed * 0.04);
+      const b = new Bullet(this.x, this.y, a, speed, i % 2 ? '#c84' : '#f84', false, i % 5 === 0 ? 2 : 1);
+      b.radius = 3.2 + (i % 3) * 0.5;
+      enemyBullets.push(b);
+    }
+    const shardCount = 7 + Math.min(5, absorbed * 2) + (this.currentPhase > 0 ? 3 : 0);
+    for (let i = 0; i < shardCount; i++) {
+      const a = this.turretAngle + (i - (shardCount - 1) / 2) * 0.16 + (rng() - 0.5) * 0.08;
+      const sx = this.x + Math.cos(a) * (22 + (i % 3) * 5);
+      const sy = this.y + Math.sin(a) * (22 + (i % 3) * 5);
+      const b = new Bullet(sx, sy, a, phase.bulletSpeed + 0.55 + rng() * 0.35, '#fa6', false, this.currentPhase > 0 ? 2 : 1);
+      b.radius = 2.6 + (i % 2) * 0.8;
+      enemyBullets.push(b);
+    }
+    if (player && player.alive) {
+      const pdx = player.x - this.x;
+      const pdy = player.y - this.y;
+      const pdist = Math.max(1, Math.sqrt(pdx * pdx + pdy * pdy));
+      const pulseRadius = this.currentPhase > 0 ? 190 : 150;
+      if (pdist < pulseRadius) {
+        const push = (1 - pdist / pulseRadius) * (this.currentPhase > 0 ? 24 : 15);
+        this.pushPlayer((pdx / pdist) * push, (pdy / pdist) * push);
+      }
+    }
+    spawnExplosion(this.x, this.y, 18 + Math.min(18, absorbed * 5), '#c84', '#f84');
+    triggerShake(this.currentPhase > 0 ? 8 : 5, 10);
+  }
+  advanceEntryAttack() {
+    if (!this.entryAttack || this.entryAttackDone) return false;
+    if (this.entryAttackTimer > 0) this.entryAttackTimer--;
+    if (player) {
+      this.telegraphAngle = Math.atan2(player.y - this.y, player.x - this.x);
+      this.turretAngle = this.telegraphAngle;
+    }
+    this.telegraphX = this.x;
+    this.telegraphY = this.y;
+    this.attackCue = this.entryAttack.cue || 'BREACH IMPACT';
+    if (this.entryAttackTimer <= 0) {
+      if (this.entryAttack.type === 'breach_shockwave') this.emitBreachShockwave(this.entryAttack);
+      this.entryAttackDone = true;
+      this.setAttackState('recover', this.entryAttack.recover || 90);
+    }
+    return true;
+  }
+  emitBreachShockwave(entryAttack) {
+    const angleDistance = (a, b) => {
+      let d = a - b;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return Math.abs(d);
+    };
+    const aim = player ? Math.atan2(player.y - this.y, player.x - this.x) : this.turretAngle;
+    const sideGapA = aim + Math.PI * 0.5;
+    const sideGapB = aim - Math.PI * 0.5;
+    const gapWidth = 0.32;
+    const ringCount = Math.max(12, entryAttack.bulletCount || 18);
+    for (let i = 0; i < ringCount; i++) {
+      const a = aim + (i / ringCount) * Math.PI * 2 + this.phaseTimer * 0.01;
+      if (angleDistance(a, sideGapA) < gapWidth || angleDistance(a, sideGapB) < gapWidth) continue;
+      const b = new Bullet(this.x, this.y, a, 1.55 + (i % 2) * 0.18, '#f44', false, 1);
+      b.radius = 4.1;
+      enemyBullets.push(b);
+    }
+    const breakerCount = this.currentPhase > 0 ? 7 : 5;
+    for (let i = 0; i < breakerCount; i++) {
+      const a = aim + (i - (breakerCount - 1) / 2) * 0.13;
+      const sx = this.x + Math.cos(a) * 26;
+      const sy = this.y + Math.sin(a) * 26;
+      const b = new Bullet(sx, sy, a, 2.35 + Math.abs(i - (breakerCount - 1) / 2) * 0.08, '#ff6040', false, i === Math.floor(breakerCount / 2) ? 2 : 1);
+      b.radius = i === Math.floor(breakerCount / 2) ? 5 : 3.8;
+      enemyBullets.push(b);
+    }
+    if (player && player.alive) {
+      const pdx = player.x - this.x;
+      const pdy = player.y - this.y;
+      const pdist = Math.max(1, Math.sqrt(pdx * pdx + pdy * pdy));
+      const pulseRadius = 170;
+      if (pdist < pulseRadius) {
+        const push = (1 - pdist / pulseRadius) * 22;
+        this.pushPlayer((pdx / pdist) * push, (pdy / pdist) * push);
+      }
+    }
+    spawnExplosion(this.x, this.y, 32, '#ff6040', '#f44');
+    triggerShake(10, 14);
+    sfxBossAttack('breach_shockwave', this.currentPhase);
+  }
+  addPhantomEcho(x, y, life = 150) {
+    if (!this.phantomEchoes) this.phantomEchoes = [];
+    this.phantomEchoes.push({ x, y, life: Math.max(30, Math.floor(life)) });
+    while (this.phantomEchoes.length > 4) this.phantomEchoes.shift();
+  }
+  tickPhantomEchoes() {
+    if (!this.phantomEchoes || this.phantomEchoes.length === 0) return;
+    for (const echo of this.phantomEchoes) echo.life--;
+    this.phantomEchoes = this.phantomEchoes.filter(echo => echo.life > 0);
   }
   update() {
     if (!this.alive) return;
@@ -7831,6 +8565,11 @@ class BossEnemy extends EliteEnemy {
     this.uiPulse = (this.uiPulse + 1) % 9999;
     this.zoneTimer++;
     this.ramTimer++;
+    this.tickPhantomEchoes();
+    if (this.sanctumShieldTimer > 0) {
+      this.sanctumShieldTimer--;
+      if (this.sanctumShieldTimer <= 0) this.sanctumShieldCharges = 0;
+    }
 
     const dx = player.x - this.x;
     const dy = player.y - this.y;
@@ -7944,8 +8683,8 @@ class BossEnemy extends EliteEnemy {
       if (dist > 260) { moveX += dx/dist * 0.55; moveY += dy/dist * 0.55; }
       else if (dist < 100) { moveX -= dx/dist * 0.45; moveY -= dy/dist * 0.45; }
     } else if (this.bossDef.name === '轨道炮台') {
-      if (dist < 280) { moveX -= dx/dist * 0.6; moveY -= dy/dist * 0.6; }
-      else if (dist > 400) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
+      if (dist < 330) { moveX -= dx/dist * 0.78; moveY -= dy/dist * 0.78; }
+      else if (dist > 455) { moveX += dx/dist * 0.32; moveY += dy/dist * 0.32; }
       moveX += -dy/dist * strafeDir * 0.3; moveY += dx/dist * strafeDir * 0.3;
     } else if (this.bossDef.name === '圣龛守卫') {
       if (dist < 140) { moveX -= dx/dist * 0.35; moveY -= dy/dist * 0.35; }
@@ -7956,24 +8695,54 @@ class BossEnemy extends EliteEnemy {
       else if (dist > 300) { moveX += dx/dist * 0.3; moveY += dy/dist * 0.3; }
       moveX += -dy/dist * strafeDir * 0.4; moveY += dx/dist * strafeDir * 0.4;
     } else if (this.bossDef.name === '双子坦克') {
-      const isTwin = !!this.geminiMaster;
-      const side = isTwin ? -1 : 1;
-      if (dist < 130) { moveX -= dx/dist * 0.4; moveY -= dy/dist * 0.4; }
-      else if (dist > 240) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
-      moveX += -dy/dist * strafeDir * 0.6 * side; moveY += dx/dist * strafeDir * 0.6 * side;
+      const partner = this.getGeminiPartner();
+      const roleSide = this.getGeminiRoleSide();
+      const idealRange = this.currentPhase > 0 ? 210 : 235;
+      const rangeError = dist - idealRange;
+      const rangePull = Math.max(-0.58, Math.min(0.58, rangeError / 145));
+      moveX += (dx / dist) * rangePull;
+      moveY += (dy / dist) * rangePull;
+      const orbit = (this.currentPhase > 0 ? 0.78 : 0.68) * roleSide;
+      moveX += (-dy / dist) * orbit;
+      moveY += (dx / dist) * orbit;
+      if (partner) {
+        const pdx = this.x - partner.x;
+        const pdy = this.y - partner.y;
+        const pd = Math.max(1, Math.sqrt(pdx * pdx + pdy * pdy));
+        const minSep = this.currentPhase > 0 ? 145 : 170;
+        const idealSep = this.currentPhase > 0 ? 205 : 225;
+        if (pd < minSep) {
+          const push = Math.min(1.25, (minSep - pd) / minSep * 2.2 + 0.55);
+          moveX += (pdx / pd) * push;
+          moveY += (pdy / pd) * push;
+        } else if (pd > idealSep + 95) {
+          const pull = Math.min(0.34, (pd - idealSep) / 300);
+          moveX -= (pdx / pd) * pull;
+          moveY -= (pdy / pd) * pull;
+        }
+        const targetSideX = player.x + (-dy / dist) * roleSide * idealSep * 0.52 - (dx / dist) * 34;
+        const targetSideY = player.y + (dx / dist) * roleSide * idealSep * 0.52 - (dy / dist) * 34;
+        moveX += Math.max(-0.44, Math.min(0.44, (targetSideX - this.x) / 220));
+        moveY += Math.max(-0.44, Math.min(0.44, (targetSideY - this.y) / 220));
+      }
     } else if (this.bossDef.name === '迅影') {
       moveX += -dy/dist * strafeDir * 0.9; moveY += dx/dist * strafeDir * 0.9;
       if (dist > 200) { moveX += dx/dist * 0.6; moveY += dy/dist * 0.6; }
       else if (dist < 60) { moveX -= dx/dist * 0.3; moveY -= dy/dist * 0.3; }
     } else if (this.bossDef.name === '圣龛织者') {
-      if (dist < 100) { moveX -= dx/dist * 0.15; moveY -= dy/dist * 0.15; }
+      if (dist < 185) { moveX -= dx/dist * 0.45; moveY -= dy/dist * 0.45; }
+      else if (dist > 330) { moveX += dx/dist * 0.12; moveY += dy/dist * 0.12; }
+      moveX += -dy/dist * strafeDir * 0.18;
+      moveY += dx/dist * strafeDir * 0.18;
     } else if (this.bossDef.name === '灰域剑圣') {
       moveX += dx/dist * 0.8; moveY += dy/dist * 0.8;
       if (dist < 80) moveX += -dy/dist * strafeDir * 0.3;
     } else if (this.bossDef.name === '陷阱师') {
-      if (dist < 160) { moveX -= dx/dist * 0.3; moveY -= dy/dist * 0.3; }
-      else if (dist > 280) { moveX += dx/dist * 0.25; moveY += dy/dist * 0.25; }
-      moveX += -dy/dist * strafeDir * 0.5; moveY += dx/dist * strafeDir * 0.5;
+      if (dist < 150) { moveX -= dx/dist * 0.35; moveY -= dy/dist * 0.35; }
+      else if (dist > 360) { moveX += dx/dist * 0.64; moveY += dy/dist * 0.64; }
+      else if (dist > 240) { moveX += dx/dist * 0.34; moveY += dy/dist * 0.34; }
+      moveX += -dy/dist * strafeDir * (this.currentPhase > 0 ? 0.64 : 0.56);
+      moveY += dx/dist * strafeDir * (this.currentPhase > 0 ? 0.64 : 0.56);
     } else if (this.bossDef.name === '镜像体') {
       if (dist < 150) { moveX -= dx/dist * 0.5; moveY -= dy/dist * 0.5; }
       else if (dist > 250) { moveX += dx/dist * 0.4; moveY += dy/dist * 0.4; }
@@ -7991,48 +8760,58 @@ class BossEnemy extends EliteEnemy {
         this.pushPlayer(-(dx/dist) * pull, -(dy/dist) * pull);
       }
     } else if (this.bossDef.name === '多头蛇') {
-      // Circling at medium range, regenerates in P2
-      if (dist < 130) { moveX -= dx/dist * 0.4; moveY -= dy/dist * 0.4; }
-      else if (dist > 250) { moveX += dx/dist * 0.3; moveY += dy/dist * 0.3; }
-      moveX += -dy/dist * strafeDir * 0.65; moveY += dx/dist * strafeDir * 0.65;
-      if (this.currentPhase > 0 && this.zoneTimer % 160 === 0 && this.hp < this.maxHp) {
-        this.hp = Math.min(this.maxHp, this.hp + 6);
-        spawnExplosion(this.x + rng()*20-10, this.y + rng()*20-10, 6, '#4f4', '#0f0');
+      const ideal = this.currentPhase > 0 ? 215 : 245;
+      const rangeError = dist - ideal;
+      const rangePull = Math.max(-0.56, Math.min(0.56, rangeError / 150));
+      moveX += dx / dist * rangePull;
+      moveY += dy / dist * rangePull;
+      const coilPulse = Math.sin(this.zoneTimer / 58);
+      const orbit = (this.currentPhase > 0 ? 0.78 : 0.62) * (coilPulse >= 0 ? 1 : -1);
+      moveX += -dy / dist * orbit;
+      moveY += dx / dist * orbit;
+      if (this.currentPhase > 0 && this.zoneTimer % 132 < 24 && dist > 120) {
+        moveX += dx / dist * 0.48;
+        moveY += dy / dist * 0.48;
+      }
+      if (this.currentPhase > 0 && this.zoneTimer % 150 === 0 && this.hp < this.maxHp) {
+        this.hp = Math.min(this.maxHp, this.hp + 5);
+        spawnExplosion(this.x + rng()*22-11, this.y + rng()*22-11, 7, '#7dff73', '#0f0');
       }
     } else if (this.bossDef.name === '缝合巨兽') {
       moveX += dx/dist * 0.5 + (rng() - 0.5) * 0.15;
       moveY += dy/dist * 0.5 + (rng() - 0.5) * 0.15;
       // Absorb nearby dead enemies to heal
       if (this.zoneTimer % 120 === 0) {
-        for (const e of enemies) {
-          if (!e.alive && e !== this && e.hp <= 0) {
-            const edx = this.x - e.x, edy = this.y - e.y;
-            if (Math.sqrt(edx*edx + edy*edy) < 80) {
-              this.hp = Math.min(this.maxHp, this.hp + 8);
-              spawnExplosion(e.x, e.y, 10, '#c84', '#964');
-            }
-          }
-        }
+        const absorbed = this.absorbNearbyWrecks(80, 8, 8);
+        if (absorbed > 0) sfxBossAttack('salvage_swarm', this.currentPhase);
       }
     }
 
     const slowMul = this.currentPhase > 0 ? 1.18 : 1;
-    const stateMoveMul = this.attackState === 'telegraph' ? 0.42 : (this.attackState === 'firing' ? 0.58 : 0.86);
+    const entryCharging = this.entryAttack && !this.entryAttackDone;
+    const stateMoveMul = entryCharging ? 0.32 : (this.attackState === 'telegraph' ? 0.42 : (this.attackState === 'firing' ? 0.58 : 0.86));
     const fireSlow = this.getFireSlowMultiplier();
     const newX = this.x + moveX * this.speed * slowMul * fireSlow * stateMoveMul;
     const newY = this.y + moveY * this.speed * slowMul * fireSlow * stateMoveMul;
-    if (newX > 34 && newX < W - 34 && !tankCollidesObstacle(newX, this.y, 54, 54)) this.x = newX;
-    if (newY > 34 && newY < H - 34 && !tankCollidesObstacle(this.x, newY, 54, 54)) this.y = newY;
+    this.steerBodyTowardMovement(moveX, moveY, 0.055, 0.035);
+    const collisionBox = this.getCollisionBox();
+    const movementMargin = getCollisionMarginFromBox(collisionBox.w, collisionBox.h);
+    if (newX > movementMargin && newX < W - movementMargin && !tankCollidesObstacle(newX, this.y, collisionBox.w, collisionBox.h)) this.x = newX;
+    if (newY > movementMargin && newY < H - movementMargin && !tankCollidesObstacle(this.x, newY, collisionBox.w, collisionBox.h)) this.y = newY;
 
-    if (this.currentPhase > 0 && this.attackState === 'recover' && this.summonCooldown > 0) this.summonCooldown--;
-    if (this.currentPhase > 0 && this.attackState === 'recover' && this.summonCooldown <= 0) {
-      this.spawnBossEscort();
-      this.summonCooldown = this.bossDef.name === '幻影坦克' ? 360 : 330;
+    const entryActive = this.advanceEntryAttack();
+    if (!entryActive) {
+      if (this.currentPhase > 0 && this.attackState === 'recover' && this.summonCooldown > 0) this.summonCooldown--;
+      if (this.currentPhase > 0 && this.attackState === 'recover' && this.summonCooldown <= 0) {
+        this.spawnBossEscort();
+        this.summonCooldown = this.bossDef.name === '幻影坦克' ? 360 : 330;
+      }
+
+      this.advanceAttackState(phase);
     }
 
-    this.advanceAttackState(phase);
-
-    if (dist < 50) {
+    const playerRamRadius = player && player.getHitRadius ? player.getHitRadius() : 19;
+    if (dist < this.getRamRadius() + playerRamRadius * 0.35) {
       triggerShake(8, 10);
       player.hit('Boss 近身撞击');
       const knock = 35;
@@ -8046,6 +8825,12 @@ class BossEnemy extends EliteEnemy {
     const hpRatio = this.hp / this.maxHp;
     const rageSpeed = this.currentPhase > 0 ? 0.14 : 0;
     const bonusBullets = this.currentPhase > 0 ? 2 : 0;
+    const angleDelta = (a, b) => {
+      let d = a - b;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return Math.abs(d);
+    };
     if (phase.attack === 'spiral') {
       // === BEHEMOTH P1: 破城弹幕 — expanding rings + forward cone ===
       const total = phase.bulletCount + bonusBullets;
@@ -8092,13 +8877,22 @@ class BossEnemy extends EliteEnemy {
       }
       if (this.currentPhase > 0) triggerShake(3, 4);
     } else if (phase.attack === 'teleport') {
-      if (this.attackBurstShots === 0) this.teleportToSafePoint(this.currentPhase > 0 ? 235 : 195);
+      if (this.attackBurstShots === 0) this.teleportToSafePoint(this.currentPhase > 0 ? 255 : 215);
       const total = phase.bulletCount + bonusBullets;
       for (let i = 0; i < total; i++) {
         const a = (i / total) * Math.PI * 2 + this.phaseTimer * 0.04;
         const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + rageSpeed, '#88f', false, this.currentPhase > 0 ? 2 : 1);
         b.radius = this.currentPhase > 0 ? 3.8 : 3;
         enemyBullets.push(b);
+      }
+      if (this.attackBurstShots === 0 && this.phantomEchoes && this.phantomEchoes.length > 0) {
+        const echo = this.phantomEchoes[this.phantomEchoes.length - 1];
+        const a = Math.atan2((player ? player.y : this.y) - echo.y, (player ? player.x : this.x) - echo.x);
+        for (let i = -1; i <= 1; i++) {
+          const b = new Bullet(echo.x, echo.y, a + i * 0.12, phase.bulletSpeed + 0.25, '#b8c4ff', false, 1);
+          b.radius = 2.5;
+          enemyBullets.push(b);
+        }
       }
       if (this.currentPhase > 0) {
         for (let i = 0; i < 4; i++) {
@@ -8109,21 +8903,25 @@ class BossEnemy extends EliteEnemy {
         }
       }
     } else if (phase.attack === 'clone_barrage') {
-      const clusters = 2;
+      const clusters = this.currentPhase > 0 ? 3 : 2;
       const baseX = this.telegraphX || (player ? player.x : this.x);
       const baseY = this.telegraphY || (player ? player.y : this.y);
+      const echoSources = (this.phantomEchoes && this.phantomEchoes.length > 0)
+        ? this.phantomEchoes.slice(-clusters)
+        : [{ x: baseX, y: baseY }];
       for (let j = 0; j < clusters; j++) {
         const angle = (j / clusters) * Math.PI * 2 + this.phaseTimer * 0.05;
-        const cx = baseX + Math.cos(angle) * (this.currentPhase > 0 ? 112 : 90);
-        const cy = baseY + Math.sin(angle) * (this.currentPhase > 0 ? 92 : 70);
+        const source = echoSources[j % echoSources.length];
+        const cx = source.x + Math.cos(angle) * (this.currentPhase > 0 ? 88 : 72);
+        const cy = source.y + Math.sin(angle) * (this.currentPhase > 0 ? 70 : 56);
         for (let i = 0; i < 4; i++) {
           const a = (i / 4) * Math.PI * 2 + angle * 0.4;
-          const b = new Bullet(cx, cy, a, phase.bulletSpeed + 0.15, '#aaf', false, 1);
+          const b = new Bullet(cx, cy, a, phase.bulletSpeed + 0.05, '#aaf', false, 1);
           b.radius = 3;
           enemyBullets.push(b);
         }
       }
-      if (this.attackBurstShots === 0) this.teleportToSafePoint(235);
+      if (this.attackBurstShots === 0) this.teleportToSafePoint(255);
     } else if (phase.attack === 'turret_salvo') {
       // === FORTRESS P1: 弹幕围墙 — moving wall of bullets ===
       const offsets = [-30, -15, 0, 15, 30];
@@ -8369,22 +9167,45 @@ class BossEnemy extends EliteEnemy {
     } else if (phase.attack === 'laser_snipe') {
       // === ORBITAL CANNON P1: Single high-speed railgun snipe ===
       const a = this.telegraphAngle;
-      const b = new Bullet(bx, by, a, phase.bulletSpeed + 3.0, '#f84', true, this.currentPhase > 0 ? 3 : 2);
+      const b = new Bullet(bx, by, a, phase.bulletSpeed + 3.0, '#f84', false, this.currentPhase > 0 ? 3 : 2);
       b.radius = 3.5; b.railgun = true;
       enemyBullets.push(b);
       // Warning beam visual is handled by telegraph
       triggerShake(3, 5);
     } else if (phase.attack === 'beam_sweep') {
-      const total = phase.bulletCount + bonusBullets;
-      for (let line = 0; line < 3; line++) {
-        const sweepAngle = this.telegraphAngle + (line - 1) * 0.35 + Math.sin(this.phaseTimer * 0.02 + line) * 0.15;
-        for (let i = 0; i < total; i++) {
-          const a = sweepAngle + (i - total/2) * 0.06;
-          const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + line * 0.3, '#f84', false, this.currentPhase > 0 ? 2 : 1);
-          b.radius = 2.5; enemyBullets.push(b);
+      const sweepBase = this.telegraphAngle + (this.attackBurstShots - 1) * 0.08;
+      const side = sweepBase + Math.PI / 2;
+      const lanes = [-38, 0, 38];
+      for (let line = 0; line < lanes.length; line++) {
+        const offset = lanes[line];
+        const sx = this.x + Math.cos(side) * offset;
+        const sy = this.y + Math.sin(side) * offset;
+        const rail = new Bullet(sx, sy, sweepBase, phase.bulletSpeed + 2.35 + line * 0.08, '#f84', false, this.currentPhase > 0 ? 3 : 2);
+        rail.radius = line === 1 ? 4 : 3.2;
+        rail.railgun = true;
+        enemyBullets.push(rail);
+        for (const wing of [-1, 1]) {
+          const shard = new Bullet(
+            sx + Math.cos(side) * wing * 11,
+            sy + Math.sin(side) * wing * 11,
+            sweepBase + wing * (0.18 + line * 0.025),
+            phase.bulletSpeed * 0.58 + line * 0.08,
+            line === 1 ? '#ffb25d' : '#fa6',
+            false,
+            1,
+          );
+          shard.radius = 2.2;
+          enemyBullets.push(shard);
         }
       }
-      triggerShake(4, 8);
+      const gateAngle = sweepBase + Math.PI + Math.sin(this.phaseTimer * 0.04) * 0.12;
+      for (let i = -2; i <= 2; i++) {
+        if (i === 0) continue;
+        const chip = new Bullet(this.x, this.y, gateAngle + i * 0.095, phase.bulletSpeed * 0.72, '#ffcf8a', false, 1);
+        chip.radius = 2;
+        enemyBullets.push(chip);
+      }
+      triggerShake(5, 8);
     } else if (phase.attack === 'holy_barrage') {
       // === SANCTUM GUARD P1: Slow golden ring barrage ===
       const total = phase.bulletCount + bonusBullets;
@@ -8400,13 +9221,26 @@ class BossEnemy extends EliteEnemy {
         b.radius = 3.2; enemyBullets.push(b);
       }
     } else if (phase.attack === 'shield_counter') {
-      const total = phase.bulletCount + bonusBullets;
-      for (let i = 0; i < total; i++) {
-        const a = this.turretAngle + (i - total/2) * 0.15;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#fd0', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = 3.5; enemyBullets.push(b);
+      this.sanctumShieldCharges = Math.max(this.sanctumShieldCharges, this.currentPhase > 0 ? 3 : 2);
+      this.sanctumShieldTimer = Math.max(this.sanctumShieldTimer, this.currentPhase > 0 ? 150 : 110);
+      const crossRot = this.phaseTimer * 0.025 + this.attackBurstShots * 0.18;
+      for (let axis = 0; axis < 4; axis++) {
+        const a = crossRot + axis * Math.PI / 2;
+        const ward = new Bullet(this.x + Math.cos(a) * 18, this.y + Math.sin(a) * 18, a, phase.bulletSpeed * 0.72, '#fd0', false, 1);
+        ward.radius = 4.1;
+        enemyBullets.push(ward);
+        const halo = new Bullet(this.x + Math.cos(a + 0.28) * 24, this.y + Math.sin(a + 0.28) * 24, a + 0.28, phase.bulletSpeed * 0.52, '#fff1a0', false, 1);
+        halo.radius = 2.8;
+        enemyBullets.push(halo);
       }
-      if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + 3);
+      for (let i = -2; i <= 2; i++) {
+        const a = this.turretAngle + i * 0.075;
+        const spear = new Bullet(bx, by, a, phase.bulletSpeed * 1.28, i === 0 ? '#fff6bf' : '#fd0', false, i === 0 ? 2 : 1);
+        spear.radius = i === 0 ? 4 : 3;
+        if (i === 0) spear.railgun = true;
+        enemyBullets.push(spear);
+      }
+      if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + (this.currentPhase > 0 ? 4 : 2));
       spawnExplosion(this.x, this.y, 14, '#fd0', '#fff');
     } else if (phase.attack === 'star_rings') {
       // === ASTROLABE P1: 3 concentric rotating rings ===
@@ -8456,56 +9290,95 @@ class BossEnemy extends EliteEnemy {
       }
     } else if (phase.attack === 'devour_burst') {
       // === PATCHWORK P2: Devour + shockwave burst ===
-      // === GEMINI P1: Cross-fire — bullets aimed toward twin's position ===
-      const twin = this.geminiTwin || this.geminiMaster;
-      const twinX = twin ? twin.x : this.x + (Math.random() > 0.5 ? 120 : -120);
-      const twinY = twin ? twin.y : this.y + (Math.random() > 0.5 ? 80 : -80);
-      const crossAngle = Math.atan2(twinY - this.y, twinX - this.x);
-      const total = phase.bulletCount + bonusBullets;
-      for (let i = 0; i < total; i++) {
-        const a = crossAngle + (i - total/2) * 0.12;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#a4f', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = 3; enemyBullets.push(b);
-      }
+      this.emitDevourBurst(phase, bonusBullets);
     } else if (phase.attack === 'gemini_rage') {
-      // === GEMINI RAGE (P2): Triple density chaotic spray ===
+      const isDark = this.isGeminiDark();
       const total = phase.bulletCount + bonusBullets;
-      for (let wave = 0; wave < 3; wave++) {
-        for (let i = 0; i < total; i++) {
-          const a = this.phaseTimer * (0.04 + wave * 0.02) + (i / total) * Math.PI * 2;
-          const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + wave * 0.3, '#d8f', false, 2);
-          b.radius = 2.8; enemyBullets.push(b);
+      const targetAngle = player ? Math.atan2(player.y - this.y, player.x - this.x) : this.turretAngle;
+      if (isDark) {
+        const ringCount = Math.max(12, Math.floor(total * 0.9));
+        for (let ring = 0; ring < 2; ring++) {
+          for (let i = 0; i < ringCount; i++) {
+            const a = -this.phaseTimer * (0.045 + ring * 0.018) + (i / ringCount) * Math.PI * 2 + ring * 0.13;
+            const b = new Bullet(this.x, this.y, a, phase.bulletSpeed * 0.72 + ring * 0.25, '#d8f', false, 1);
+            b.radius = 2.6;
+            enemyBullets.push(b);
+          }
         }
+        for (let i = -2; i <= 2; i++) {
+          const a = targetAngle + i * 0.16;
+          const b = new Bullet(bx, by, a, phase.bulletSpeed * 1.05, '#f0c8ff', false, 2);
+          b.radius = 3.1;
+          b.homing = true;
+          b.homingStrength = 0.011;
+          enemyBullets.push(b);
+        }
+        spawnExplosion(this.x, this.y, 13, '#d8f', '#f0c8ff');
+      } else {
+        const lanceCount = 7;
+        for (let i = 0; i < lanceCount; i++) {
+          const a = targetAngle + (i - (lanceCount - 1) / 2) * 0.105;
+          const b = new Bullet(bx, by, a, phase.bulletSpeed * 1.28, '#a4f', false, i === 3 ? 3 : 2);
+          b.radius = i === 3 ? 3.8 : 2.7;
+          b.railgun = i === 3 || i % 2 === 0;
+          enemyBullets.push(b);
+        }
+        const ringCount = Math.max(10, Math.floor(total * 0.62));
+        for (let i = 0; i < ringCount; i++) {
+          const a = this.phaseTimer * 0.055 + (i / ringCount) * Math.PI * 2;
+          const b = new Bullet(this.x, this.y, a, phase.bulletSpeed * 0.66, '#caa8ff', false, 1);
+          b.radius = 2.2;
+          enemyBullets.push(b);
+        }
+        spawnExplosion(this.x, this.y, 13, '#a4f', '#f0f');
       }
-      spawnExplosion(this.x, this.y, 12, '#a4f', '#f0f');
     } else if (phase.attack === 'gemini_cross') {
-      const twin = this.geminiTwin || this.geminiMaster;
-      const tx = twin ? twin.x : this.x + 120, ty = twin ? twin.y : this.y;
-      const crossAngle = Math.atan2(ty - this.y, tx - this.x);
+      const twin = this.getGeminiPartner();
+      const roleSide = this.getGeminiRoleSide();
+      const targetX = player ? player.x : (twin ? (this.x + twin.x) / 2 : this.x + Math.cos(this.turretAngle) * 160);
+      const targetY = player ? player.y : (twin ? (this.y + twin.y) / 2 : this.y + Math.sin(this.turretAngle) * 160);
+      const targetAngle = Math.atan2(targetY - this.y, targetX - this.x);
+      const flankAngle = targetAngle + roleSide * 0.28;
       const total = phase.bulletCount + bonusBullets;
       for (let i = 0; i < total; i++) {
-        const a = crossAngle + (i - total/2) * 0.12;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#a4f', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = 3; enemyBullets.push(b);
+        const fanIndex = i - (total - 1) / 2;
+        const a = flankAngle + fanIndex * 0.105;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed, this.isGeminiDark() ? '#d8f' : '#a4f', false, 1);
+        b.radius = 2.9;
+        enemyBullets.push(b);
       }
-    } else if (phase.attack === 'gemini_rage') {
-      const total = phase.bulletCount + bonusBullets;
-      for (let wave = 0; wave < 3; wave++) {
-        for (let i = 0; i < total; i++) {
-          const a = this.phaseTimer * 0.06 + (i / total) * Math.PI * 2;
-          const b = new Bullet(this.x, this.y, a, phase.bulletSpeed + wave * 0.3, '#d8f', false, 2);
-          b.radius = 2.8; enemyBullets.push(b);
+      if (twin && player) {
+        const laneAngle = Math.atan2(player.y - this.y, player.x - this.x) - roleSide * 0.08;
+        for (let i = -1; i <= 1; i++) {
+          const b = new Bullet(bx, by, laneAngle + i * 0.045, phase.bulletSpeed * 1.08, this.isGeminiDark() ? '#f0c8ff' : '#caa8ff', false, 1);
+          b.radius = 2.5;
+          enemyBullets.push(b);
         }
       }
-      spawnExplosion(this.x, this.y, 12, '#a4f', '#f0f');
     } else if (phase.attack === 'shuriken_fan') {
-      // === SWIFT SHADOW P1: Fan of 3 shurikens + smoke ===
-      for (let s = -1; s <= 1; s++) {
-        const a = this.turretAngle + s * 0.15;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed + Math.abs(s) * 0.5, '#4ff', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = 2.2; enemyBullets.push(b);
+      // === SWIFT SHADOW P1: staggered shuriken layers with bouncing edge blades ===
+      const center = new Bullet(bx, by, this.turretAngle, phase.bulletSpeed * 1.2, '#cfffff', false, this.currentPhase > 0 ? 2 : 1);
+      center.radius = 2.4;
+      enemyBullets.push(center);
+      for (const side of [-1, 1]) {
+        for (let row = 0; row < 3; row++) {
+          const a = this.turretAngle + side * (0.12 + row * 0.105) + Math.sin(this.phaseTimer * 0.035 + row) * 0.025;
+          const blade = new Bullet(bx + Math.cos(a) * row * 7, by + Math.sin(a) * row * 7, a, phase.bulletSpeed * (0.72 + row * 0.14), row === 2 ? '#8ff' : '#4ff', false, 1);
+          blade.radius = row === 2 ? 2.7 : 2.2;
+          if (row === 2) {
+            blade.ricochet = true;
+            blade.bounces = 1;
+          }
+          enemyBullets.push(blade);
+        }
       }
-      // Smoke — reduce player visibility briefly
+      if (this.attackBurstShots % 2 === 1) {
+        for (const side of [-1, 1]) {
+          const tail = new Bullet(this.x, this.y, this.turretAngle + Math.PI + side * 0.28, phase.bulletSpeed * 0.42, '#2fd6e8', false, 1);
+          tail.radius = 2.8;
+          enemyBullets.push(tail);
+        }
+      }
       if (player && rng() < 0.5) {
         spawnExplosion(this.x + (rng()-0.5)*40, this.y + (rng()-0.5)*40, 15, '#888', '#aaa');
       }
@@ -8545,35 +9418,56 @@ class BossEnemy extends EliteEnemy {
       }
     } else if (phase.attack === 'trap_deploy') {
       // === TRAPPER P1: Deploy minefield + slowdown zones ===
-      this.deployMines(3 + this.currentPhase, 180);
+      this.deployMines(2 + this.currentPhase, 165);
+      this.deployMinesNearPlayerLane(2, 105, 76);
+      this.deployPressureMinesAroundPlayer(3, 78, 118, 52);
       // Drop slowing traps around the boss
       for (let i = 0; i < 4; i++) {
         const tx = this.x + (rng()-0.5)*160, ty = this.y + (rng()-0.5)*140;
         spawnExplosion(tx, ty, 8, '#c84', '#da0');
       }
-      if (rng() < 0.3) this.deployMines(2, 120);
+      if (rng() < 0.25) this.deployMines(1, 120);
     } else if (phase.attack === 'mirror_copy') {
-      // === MIRROR SHELL P1: Copy player's weapon pattern ===
+      // === MIRROR SHELL P1: Copy player's weapon pattern, then reflect across the boss-player axis ===
       const pt = player && player._tankDef ? player._tankDef.tankType : 'spread';
       const mirrorCfg = { spread:{c:3, a:0.12}, focus:{c:1, a:0}, wide:{c:5, a:0.15}, burst:{c:7, a:0.2}, sniper:{c:1, a:0}, homing:{c:2, a:0.08} };
       const cfg = mirrorCfg[pt] || mirrorCfg.spread;
+      const axis = player ? Math.atan2(player.y - this.y, player.x - this.x) : this.turretAngle;
       for (let i = 0; i < cfg.c; i++) {
         const a = this.turretAngle + (i - (cfg.c-1)/2) * cfg.a;
         const b = new Bullet(bx, by, a, phase.bulletSpeed, '#999', false, this.currentPhase > 0 ? 2 : 1);
         b.radius = 2.5; enemyBullets.push(b);
       }
-      // Flash to show mirroring
+      const copyCount = Math.min(5, Math.max(2, cfg.c));
+      for (let i = 0; i < copyCount; i++) {
+        const offset = (i - (copyCount - 1) / 2) * (cfg.a || 0.14);
+        for (const side of [-1, 1]) {
+          const a = axis + side * (0.22 + Math.abs(offset) * 0.55) + offset * 0.35;
+          const shard = new Bullet(this.x + Math.cos(a) * 18, this.y + Math.sin(a) * 18, a, phase.bulletSpeed * 0.78, '#d6d6d6', false, 1);
+          shard.radius = 2.2;
+          enemyBullets.push(shard);
+        }
+      }
       spawnExplosion(this.x, this.y, 6, '#fff', '#888');
     } else if (phase.attack === 'sand_veil') {
-      // === SANDSTORM P1: Random direction bursts from sand cloud ===
-      const total = phase.bulletCount + bonusBullets;
-      for (let burst = 0; burst < 3; burst++) {
-        const dir = this.phaseTimer * 0.04 + burst * Math.PI * 2 / 3;
-        for (let i = 0; i < Math.floor(total / 3); i++) {
-          const a = dir + (i - Math.floor(total/6)) * 0.15;
-          const b = new Bullet(this.x + Math.cos(dir)*20, this.y + Math.sin(dir)*20, a, phase.bulletSpeed + rng()*0.3, '#c84', false, this.currentPhase > 0 ? 2 : 1);
-          b.radius = 2.8; enemyBullets.push(b);
+      // === SANDSTORM P1: three drifting sand bands instead of random fans ===
+      const wind = this.turretAngle + Math.sin(this.phaseTimer * 0.025) * 0.2;
+      for (let band = -1; band <= 1; band++) {
+        const lane = wind + band * 0.31;
+        const cross = lane + Math.PI / 2;
+        for (let i = 0; i < 4; i++) {
+          const weave = Math.sin(this.phaseTimer * 0.05 + i * 0.9 + band) * 0.1;
+          const sx = this.x + Math.cos(cross) * band * 32 - Math.cos(lane) * i * 11;
+          const sy = this.y + Math.sin(cross) * band * 32 - Math.sin(lane) * i * 11;
+          const grit = new Bullet(sx, sy, lane + weave, phase.bulletSpeed * (0.72 + i * 0.07), i % 2 ? '#d9a45f' : '#c84', false, 1);
+          grit.radius = 2.6 + (i === 3 ? 0.7 : 0);
+          enemyBullets.push(grit);
         }
+      }
+      if (this.attackBurstShots === 0) {
+        const dustX = player ? player.x + Math.cos(wind + Math.PI / 2) * 58 : this.x + Math.cos(wind) * 90;
+        const dustY = player ? player.y + Math.sin(wind + Math.PI / 2) * 58 : this.y + Math.sin(wind) * 90;
+        spawnExplosion(dustX, dustY, 12, '#c84', '#da0');
       }
     } else if (phase.attack === 'sand_worm') {
       // === SANDSTORM P2: Worm strike circles + eruption ===
@@ -8594,89 +9488,174 @@ class BossEnemy extends EliteEnemy {
         b.radius = 3.2; enemyBullets.push(b);
       }
     } else if (phase.attack === 'gravity_well') {
-      // === GRAVITY ANCHOR P1: Shockwave ring + heavy center burst ===
-      const total = phase.bulletCount + bonusBullets;
-      // Expanding ring
+      // === GRAVITY ANCHOR P1: gated gravity ring + heavy center anchors ===
       const ringCount = this.currentPhase > 0 ? 14 : 10;
+      const gapCenter = this.turretAngle + Math.PI + this.attackBurstShots * 0.55;
+      const gapWidth = this.currentPhase > 0 ? 0.62 : 0.82;
       for (let i = 0; i < ringCount; i++) {
         const a = this.phaseTimer * 0.08 + (i / ringCount) * Math.PI * 2;
+        if (angleDelta(a, gapCenter) < gapWidth * 0.5) continue;
         const b = new Bullet(this.x, this.y, a, 1.4 + this.currentPhase * 0.1, '#8cf', false, 1);
         b.radius = 3.2; enemyBullets.push(b);
       }
-      // Heavy center burst toward player
-      for (let i = 0; i < total; i++) {
-        const a = this.turretAngle + (i - total/2) * 0.25;
-        const b = new Bullet(bx, by, a, phase.bulletSpeed, '#adf', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = 3.5; enemyBullets.push(b);
+      for (let i = -2; i <= 2; i++) {
+        const a = this.turretAngle + i * 0.12;
+        const b = new Bullet(bx, by, a, phase.bulletSpeed * (i === 0 ? 1.18 : 0.94), i === 0 ? '#dff6ff' : '#adf', false, i === 0 ? 2 : 1);
+        b.radius = i === 0 ? 4.2 : 3.2;
+        if (Math.abs(i) === 2) {
+          b.homing = true;
+          b.homingStrength = 0.01;
+        }
+        enemyBullets.push(b);
+      }
+      for (const side of [-1, 1]) {
+        const a = gapCenter + side * (gapWidth * 0.66);
+        const marker = new Bullet(this.x, this.y, a, 0.95, '#5f9fd8', false, 1);
+        marker.radius = 2.4;
+        enemyBullets.push(marker);
       }
     } else if (phase.attack === 'anchor_judgment') {
-      // === GRAVITY ANCHOR P2: Ring + homing anchor chains ===
+      // === GRAVITY ANCHOR P2: crossed chains + homing anchor heads ===
       const total = phase.bulletCount + bonusBullets;
-      // Ring burst
-      for (let i = 0; i < total; i++) {
-        const a = this.phaseTimer * 0.06 + (i / total) * Math.PI * 2;
-        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed - 0.15, '#8cf', false, 1);
-        b.radius = 3; enemyBullets.push(b);
+      const gateCenter = this.turretAngle + Math.PI / 2 + this.attackBurstShots * 0.42;
+      const ringCount = Math.max(10, Math.floor(total * 0.8));
+      for (let i = 0; i < ringCount; i++) {
+        const a = this.phaseTimer * 0.06 + (i / ringCount) * Math.PI * 2;
+        if (angleDelta(a, gateCenter) < 0.48) continue;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed * 0.66, '#8cf', false, 1);
+        b.radius = 2.8; enemyBullets.push(b);
       }
-      // Homing anchor projectiles
+      const chainBase = this.turretAngle + (this.attackBurstShots % 2 ? 0.22 : -0.22);
+      for (const side of [-1, 1]) {
+        const chainAngle = chainBase + side * 0.42;
+        for (let node = 0; node < 4; node++) {
+          const chain = new Bullet(
+            this.x + Math.cos(chainAngle) * (16 + node * 10),
+            this.y + Math.sin(chainAngle) * (16 + node * 10),
+            chainAngle + side * 0.08,
+            phase.bulletSpeed * (0.45 + node * 0.07),
+            node % 2 ? '#5f9fd8' : '#8cf',
+            false,
+            1,
+          );
+          chain.radius = 2.4 + node * 0.2;
+          enemyBullets.push(chain);
+        }
+      }
       const homingCount = this.currentPhase > 0 ? 5 : 3;
       for (let i = 0; i < homingCount; i++) {
-        const a = this.turretAngle + (i - (homingCount-1)/2) * 0.35;
-        const b = new Bullet(bx, by, a, 1.3 + rng()*0.5, '#adf', true, 2);
-        b.radius = 3.8; b.homingStrength = 0.025;
+        const a = this.turretAngle + (i - (homingCount-1)/2) * 0.28;
+        const b = new Bullet(bx, by, a, 1.35 + (i % 2) * 0.22, '#adf', false, 2);
+        b.radius = i === Math.floor(homingCount / 2) ? 4.4 : 3.6;
+        b.homing = true; b.homingStrength = i === Math.floor(homingCount / 2) ? 0.021 : 0.017;
         enemyBullets.push(b);
       }
     } else if (phase.attack === 'triple_strike') {
-      // === HYDRA P1: 3 heads fire in 120° spread ===
+      // === HYDRA P1: three distinct heads — fang, clamp, poison ===
       const total = phase.bulletCount + bonusBullets;
-      for (let head = 0; head < 3; head++) {
-        const headAngle = this.turretAngle + (head - 1) * Math.PI * 2 / 3;
-        const hx = this.x + Math.cos(headAngle) * 14, hy = this.y + Math.sin(headAngle) * 14;
-        for (let i = 0; i < Math.floor(total / 3); i++) {
-          const a = headAngle + (i - Math.floor(total/6)) * 0.14;
-          const b = new Bullet(hx, hy, a, phase.bulletSpeed + rng()*0.3, '#4e4', false, this.currentPhase > 0 ? 2 : 1);
-          b.radius = 2.6; enemyBullets.push(b);
+      const targetAngle = player ? Math.atan2(player.y - this.y, player.x - this.x) : this.turretAngle;
+      const sideAngles = [-0.42, 0.42];
+      for (let i = -1; i <= 1; i++) {
+        const b = new Bullet(bx, by, targetAngle + i * 0.045, phase.bulletSpeed * 1.45, '#7dff73', false, i === 0 ? 2 : 1);
+        b.radius = i === 0 ? 3.5 : 2.6;
+        b.railgun = true;
+        enemyBullets.push(b);
+      }
+      for (const side of sideAngles) {
+        const headAngle = targetAngle + side;
+        const hx = this.x + Math.cos(headAngle) * 17;
+        const hy = this.y + Math.sin(headAngle) * 17;
+        const fanCount = Math.max(3, Math.floor(total / 3));
+        for (let i = 0; i < fanCount; i++) {
+          const a = headAngle + (i - (fanCount - 1) / 2) * 0.11;
+          const b = new Bullet(hx, hy, a, phase.bulletSpeed * 0.92 + i * 0.04, '#4e4', false, 1);
+          b.radius = 2.7;
+          enemyBullets.push(b);
         }
+      }
+      for (let i = 0; i < 4; i++) {
+        const a = targetAngle + Math.PI + (i - 1.5) * 0.34 + Math.sin(this.phaseTimer * 0.04) * 0.12;
+        const b = new Bullet(this.x + (rng() - 0.5) * 28, this.y + (rng() - 0.5) * 22, a, 0.72 + i * 0.12, '#2b7a2b', false, 1);
+        b.radius = 3.6 + (i % 2) * 0.4;
+        enemyBullets.push(b);
       }
     } else if (phase.attack === 'hydra_frenzy') {
-      // === HYDRA P2: 5 heads + poison spray ===
+      // === HYDRA P2: five heads with regrowth fangs and poison pockets ===
       const total = phase.bulletCount + bonusBullets;
-      const heads = 5;
-      for (let head = 0; head < heads; head++) {
-        const headAngle = this.turretAngle + (head - (heads-1)/2) * 0.38;
-        const hx = this.x + Math.cos(headAngle) * 14, hy = this.y + Math.sin(headAngle) * 14;
-        for (let i = 0; i < Math.floor(total / heads); i++) {
-          const a = headAngle + (i - Math.floor(total/heads/2)) * 0.1;
-          const b = new Bullet(hx, hy, a, phase.bulletSpeed + rng()*0.4, '#3a3', false, 2);
-          b.radius = 2.8; enemyBullets.push(b);
+      const targetAngle = player ? Math.atan2(player.y - this.y, player.x - this.x) : this.turretAngle;
+      const headOffsets = [-0.58, -0.28, 0, 0.28, 0.58];
+      for (let h = 0; h < headOffsets.length; h++) {
+        const headAngle = targetAngle + headOffsets[h] + Math.sin(this.phaseTimer * 0.035 + h) * 0.045;
+        const hx = this.x + Math.cos(headAngle) * 18;
+        const hy = this.y + Math.sin(headAngle) * 18;
+        const shots = h === 2 ? 3 : 2;
+        for (let i = 0; i < shots; i++) {
+          const a = headAngle + (i - (shots - 1) / 2) * (h === 2 ? 0.055 : 0.095);
+          const color = h === 2 ? '#7dff73' : '#3a3';
+          const b = new Bullet(hx, hy, a, phase.bulletSpeed * (h === 2 ? 1.26 : 0.96) + i * 0.08, color, false, h === 2 ? 2 : 1);
+          b.radius = h === 2 ? 3.2 : 2.8;
+          if (h === 2) b.railgun = true;
+          enemyBullets.push(b);
         }
       }
-      // Poison cloud — slow lingering bullets
-      for (let i = 0; i < 6; i++) {
-        const a = rng() * Math.PI * 2;
-        const spd = 0.6 + rng() * 0.8;
-        const b = new Bullet(this.x + rng()*40-20, this.y + rng()*40-20, a, spd, '#060', false, 1);
-        b.radius = 2.2; enemyBullets.push(b);
+      for (let i = -1; i <= 1; i += 2) {
+        const b = new Bullet(bx, by, targetAngle + i * 0.2, phase.bulletSpeed * 0.8, '#b6ff8a', false, 2);
+        b.radius = 3.3;
+        b.homing = true;
+        b.homingStrength = 0.014;
+        enemyBullets.push(b);
+      }
+      for (let i = 0; i < 7; i++) {
+        const a = targetAngle + Math.PI + (i - 3) * 0.24 + Math.sin(this.phaseTimer * 0.03 + i) * 0.16;
+        const spd = 0.48 + (i % 3) * 0.16;
+        const b = new Bullet(this.x + rng()*44-22, this.y + rng()*34-17, a, spd, i % 2 ? '#174f17' : '#2b7a2b', false, 1);
+        b.radius = i % 2 ? 4.4 : 3.7;
+        enemyBullets.push(b);
+      }
+      if (this.hp < this.maxHp && this.attackBurstShots === 0) {
+        this.hp = Math.min(this.maxHp, this.hp + 2);
+        spawnExplosion(this.x, this.y, 9, '#7dff73', '#0f0');
       }
     } else if (phase.attack === 'mirror_enhance') {
-      // === MIRROR SHELL P2: Enhanced copy — faster + bigger ===
+      // === MIRROR SHELL P2: Enhanced copy with orbiting reflector shards ===
       const pt = player && player._tankDef ? player._tankDef.tankType : 'spread';
       const mirrorCfg = { spread:{c:3, a:0.12}, focus:{c:1, a:0}, wide:{c:5, a:0.15}, burst:{c:7, a:0.2}, sniper:{c:1, a:0}, homing:{c:2, a:0.08} };
       const cfg = mirrorCfg[pt] || mirrorCfg.spread;
+      const axis = player ? Math.atan2(player.y - this.y, player.x - this.x) : this.turretAngle;
       for (let i = 0; i < cfg.c + 2; i++) {
         const a = this.turretAngle + (i - (cfg.c+1)/2) * cfg.a;
         const b = new Bullet(bx, by, a, phase.bulletSpeed, '#bbb', false, this.currentPhase > 0 ? 2 : 1);
         b.radius = 3.5; enemyBullets.push(b);
       }
+      const shardCount = 8;
+      for (let i = 0; i < shardCount; i++) {
+        const a = axis + Math.PI + (i / shardCount) * Math.PI * 2 + this.phaseTimer * 0.025;
+        if (i % 4 === this.attackBurstShots % 4) continue;
+        const shard = new Bullet(this.x + Math.cos(a) * 28, this.y + Math.sin(a) * 20, a + Math.PI / 2, phase.bulletSpeed * 0.46, i % 2 ? '#f0f0f0' : '#bbb', false, 1);
+        shard.radius = 2.4;
+        if (i % 2 === 0) {
+          shard.ricochet = true;
+          shard.bounces = 1;
+        } else {
+          shard.homing = true;
+          shard.homingStrength = 0.007;
+        }
+        enemyBullets.push(shard);
+      }
       spawnExplosion(this.x, this.y, 10, '#fff', '#aaa');
     } else if (phase.attack === 'trap_frenzy') {
       // === TRAPPER P2: Dense minefield + homing mines ===
-      this.deployMines(5 + this.currentPhase * 2, 200);
+      this.deployMines(4 + this.currentPhase, 190);
+      this.deployMinesNearPlayerLane(3, 95, 62);
+      this.deployPressureMinesAroundPlayer(5, 72, 126, 44);
       // Homing mine — actually a slow bullet that acts like a mine
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 4; i++) {
         const a = this.phaseTimer * 0.04 + (i / 3) * Math.PI * 2;
-        const b = new Bullet(this.x + Math.cos(a)*30, this.y + Math.sin(a)*30, a, 0.8, '#f80', false, 1);
-        b.radius = 5; enemyBullets.push(b);
+        const b = new Bullet(this.x + Math.cos(a)*30, this.y + Math.sin(a)*30, a, 0.9, '#f80', false, 1);
+        b.radius = 5;
+        b.homing = true;
+        b.homingStrength = 0.011;
+        enemyBullets.push(b);
       }
       // Additional mine scatter
       this.deployMines(3, 150);
@@ -8723,19 +9702,30 @@ class BossEnemy extends EliteEnemy {
         spawnExplosion(this.x, this.y, 12, '#4ff', '#8ff');
         this.x = safePoint.x; this.y = safePoint.y;
       }
-      // 360° shuriken ring at new position
-      for (let i = 0; i < phase.bulletCount + bonusBullets; i++) {
-        const a = (i / (phase.bulletCount + bonusBullets)) * Math.PI * 2;
-        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed * 0.8, '#4ff', false, this.currentPhase > 0 ? 2 : 1);
-        b.radius = 2; enemyBullets.push(b);
+      const crossBase = this.turretAngle + this.attackBurstShots * Math.PI / 6;
+      for (let arm = 0; arm < 4; arm++) {
+        const a = crossBase + arm * Math.PI / 2;
+        const slash = new Bullet(this.x, this.y, a, phase.bulletSpeed * 1.05, '#cfffff', false, 2);
+        slash.radius = 2.6;
+        slash.railgun = true;
+        enemyBullets.push(slash);
+        for (const side of [-1, 1]) {
+          const chip = new Bullet(this.x + Math.cos(a + Math.PI / 2) * side * 7, this.y + Math.sin(a + Math.PI / 2) * side * 7, a + side * 0.12, phase.bulletSpeed * 0.65, '#4ff', false, 1);
+          chip.radius = 1.9;
+          enemyBullets.push(chip);
+        }
+      }
+      const ringCount = phase.bulletCount + bonusBullets;
+      const gapCenter = crossBase + Math.PI / 4;
+      for (let i = 0; i < ringCount; i++) {
+        const a = (i / ringCount) * Math.PI * 2 + this.attackBurstShots * 0.22;
+        if (angleDelta(a, gapCenter) < 0.38 || angleDelta(a, gapCenter + Math.PI) < 0.38) continue;
+        const b = new Bullet(this.x, this.y, a, phase.bulletSpeed * 0.48, '#8ff', false, 1);
+        b.radius = 2.1;
+        enemyBullets.push(b);
       }
       spawnExplosion(this.x, this.y, 10, '#4ff', '#fff');
     }
-    const fireSlow = getEnemyFireSlowProfile(this);
-    this.applyFireSlow(fireSlow.duration, fireSlow.mul);
-    sfxBossAttack(phase.attack, this.currentPhase);
-  }
-  emitPhaseBurst(isTransition) {
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
     sfxBossAttack(phase.attack, this.currentPhase);
@@ -8752,6 +9742,52 @@ class BossEnemy extends EliteEnemy {
     const fireSlow = getEnemyFireSlowProfile(this);
     this.applyFireSlow(fireSlow.duration, fireSlow.mul);
     sfxBossAttack(isTransition ? 'phase_burst' : 'boss_burst', this.currentPhase);
+  }
+  drawEntryTelegraph(ctx, accent) {
+    if (!this.entryAttack || this.entryAttackDone) return;
+    const duration = Math.max(1, this.entryAttackDuration || 1);
+    const progress = 1 - Math.max(0, Math.min(1, this.entryAttackTimer / duration));
+    const aim = player ? Math.atan2(player.y - this.y, player.x - this.x) : this.telegraphAngle;
+    const radius = 86 + progress * 120;
+    const alpha = Math.min(0.46, 0.14 + progress * 0.34);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = 18 + progress * 18;
+    ctx.lineWidth = 3 + progress * 2.5;
+    ctx.strokeStyle = 'rgba(255,96,64,' + alpha + ')';
+    ctx.fillStyle = 'rgba(255,64,48,' + (alpha * 0.18) + ')';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255,220,160,' + Math.min(0.72, 0.24 + progress * 0.48) + ')';
+    ctx.lineWidth = 2 + progress * 2;
+    for (let i = -1; i <= 1; i++) {
+      const a = aim + i * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(this.x + Math.cos(a) * 32, this.y + Math.sin(a) * 32);
+      ctx.lineTo(this.x + Math.cos(a) * (radius + 70), this.y + Math.sin(a) * (radius + 70));
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(140,232,255,' + Math.min(0.5, 0.18 + progress * 0.32) + ')';
+    ctx.lineWidth = 2;
+    for (const side of [-1, 1]) {
+      const a = aim + side * Math.PI * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(this.x + Math.cos(a - side * 0.18) * 44, this.y + Math.sin(a - side * 0.18) * 44);
+      ctx.lineTo(this.x + Math.cos(a) * radius, this.y + Math.sin(a) * radius);
+      ctx.lineTo(this.x + Math.cos(a + side * 0.18) * 44, this.y + Math.sin(a + side * 0.18) * 44);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = 'rgba(246,229,170,' + Math.min(0.9, 0.4 + progress * 0.5) + ')';
+    ctx.font = 'bold 12px "Courier New",monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.entryAttack.cue || 'BREACH IMPACT', this.x, Math.max(28, this.y - radius - 18));
+    ctx.restore();
   }
   drawTelegraph(ctx, phase, accent) {
     if (!phase || this.attackState !== 'telegraph') return;
@@ -8813,8 +9849,27 @@ class BossEnemy extends EliteEnemy {
         ctx.lineTo(this.telegraphX + Math.cos(a) * radius, this.telegraphY + Math.sin(a) * radius);
         ctx.stroke();
       }
-    } else if (phase.attack === 'mine_storm' || phase.attack === 'black_hole' || phase.attack === 'spiral') {
-      const radius = phase.attack === 'black_hole' ? 132 + progress * 54 : 92 + progress * 44;
+      if (phase.attack === 'clone_barrage' && this.phantomEchoes && this.phantomEchoes.length > 0) {
+        ctx.strokeStyle = 'rgba(170,190,255,' + Math.min(0.62, 0.2 + progress * 0.42) + ')';
+        ctx.fillStyle = 'rgba(136,136,255,' + Math.min(0.28, 0.08 + progress * 0.2) + ')';
+        for (const echo of this.phantomEchoes.slice(-3)) {
+          const er = 30 + progress * 22;
+          ctx.beginPath();
+          ctx.arc(echo.x, echo.y, er, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(echo.x - er * 0.6, echo.y);
+          ctx.lineTo(echo.x + er * 0.6, echo.y);
+          ctx.moveTo(echo.x, echo.y - er * 0.6);
+          ctx.lineTo(echo.x, echo.y + er * 0.6);
+          ctx.stroke();
+        }
+      }
+    } else if (phase.attack === 'mine_storm' || phase.attack === 'black_hole' || phase.attack === 'spiral' || phase.attack === 'devour_burst') {
+      const radius = phase.attack === 'black_hole'
+        ? 132 + progress * 54
+        : (phase.attack === 'devour_burst' ? 132 + progress * 72 : 92 + progress * 44);
       ctx.beginPath();
       ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
       ctx.fill();
@@ -8822,6 +9877,21 @@ class BossEnemy extends EliteEnemy {
       ctx.beginPath();
       ctx.arc(this.x, this.y, radius * 0.62, -Math.PI * pulse, Math.PI * (0.35 + pulse));
       ctx.stroke();
+      if (phase.attack === 'devour_burst') {
+        ctx.strokeStyle = 'rgba(255,132,64,' + Math.min(0.62, 0.24 + progress * 0.38) + ')';
+        ctx.lineWidth = 1.6 + progress * 2.2;
+        for (let i = 0; i < 8; i++) {
+          const a = this.telegraphAngle + progress * 0.9 + i * Math.PI / 4;
+          ctx.beginPath();
+          ctx.moveTo(this.x + Math.cos(a) * 34, this.y + Math.sin(a) * 34);
+          ctx.lineTo(this.x + Math.cos(a) * radius, this.y + Math.sin(a) * radius);
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 22 + progress * 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
     } else if (phase.attack === 'teleport') {
       const radius = 72 + progress * 32;
       ctx.beginPath();
@@ -8839,6 +9909,7 @@ class BossEnemy extends EliteEnemy {
   }
   teleportToSafePoint(minPlayerDist) {
     const safe = this.pendingTeleport || this.findTeleportPoint(minPlayerDist);
+    if (this.bossDef && this.bossDef.name === '幻影坦克') this.addPhantomEcho(this.x, this.y, this.currentPhase > 0 ? 190 : 150);
     spawnExplosion(this.x, this.y, 18, '#88f', '#fff');
     this.x = safe.x;
     this.y = safe.y;
@@ -8847,6 +9918,7 @@ class BossEnemy extends EliteEnemy {
       this.turretAngle = this.telegraphAngle;
     }
     this.pendingTeleport = null;
+    if (this.bossDef && this.bossDef.name === '幻影坦克') this.addPhantomEcho(this.x, this.y, this.currentPhase > 0 ? 170 : 135);
     spawnExplosion(this.x, this.y, 22, '#dfe8ff', this.bossDef.turret || '#88f');
     triggerShake(6, 8);
     sfxBossAttack('teleport', this.currentPhase);
@@ -8864,6 +9936,57 @@ class BossEnemy extends EliteEnemy {
       }
     }
     if (placed > 0) sfxBossAttack('mine_storm', this.currentPhase);
+  }
+  deployMinesNearPlayerLane(count, leadDistance = 115, sideSpread = 72) {
+    if (!player || !player.alive) return 0;
+    let placed = 0;
+    const towardBoss = Math.atan2(this.y - player.y, this.x - player.x);
+    const side = towardBoss + Math.PI / 2;
+    for (let i = 0; i < count; i++) {
+      const offset = (i - (count - 1) / 2) * sideSpread;
+      const jitter = (rng() - 0.5) * 26;
+      const mx = Math.max(36, Math.min(W - 36,
+        player.x + Math.cos(towardBoss) * (leadDistance + rng() * 45) + Math.cos(side) * (offset + jitter)));
+      const my = Math.max(36, Math.min(H - 36,
+        player.y + Math.sin(towardBoss) * (leadDistance + rng() * 45) + Math.sin(side) * (offset + jitter)));
+      if (!tankCollidesObstacle(mx, my, 18, 18)) {
+        mines.push({ x: mx, y: my, life: 650, armed: false, warning: 40 });
+        placed++;
+        spawnExplosion(mx, my, 5, '#c84', '#da0');
+      }
+    }
+    if (placed > 0) sfxBossAttack('mine_storm', this.currentPhase);
+    return placed;
+  }
+  deployPressureMinesAroundPlayer(count, ringRadius = 78, retreatDistance = 118, warning = 52) {
+    if (!player || !player.alive) return 0;
+    const towardBoss = Math.atan2(this.y - player.y, this.x - player.x);
+    const side = towardBoss + Math.PI / 2;
+    const slots = [
+      { forward: 0.35, side: -1 },
+      { forward: 0.35, side: 1 },
+      { forward: -0.8, side: 0 },
+      { forward: -0.35, side: -0.75 },
+      { forward: -0.35, side: 0.75 },
+    ];
+    let placed = 0;
+    const maxCount = Math.min(count, slots.length);
+    for (let i = 0; i < maxCount; i++) {
+      const slot = slots[i];
+      const forwardDist = slot.forward < 0 ? retreatDistance * slot.forward : ringRadius * slot.forward;
+      const sideDist = ringRadius * slot.side;
+      const jitter = (rng() - 0.5) * 18;
+      const mx = Math.max(36, Math.min(W - 36,
+        player.x + Math.cos(towardBoss) * forwardDist + Math.cos(side) * (sideDist + jitter)));
+      const my = Math.max(36, Math.min(H - 36,
+        player.y + Math.sin(towardBoss) * forwardDist + Math.sin(side) * (sideDist + jitter)));
+      if (tankCollidesObstacle(mx, my, 18, 18)) continue;
+      mines.push({ x: mx, y: my, life: 560, armed: false, warning });
+      spawnExplosion(mx, my, 4, '#f80', '#da0');
+      placed++;
+    }
+    if (placed > 0) sfxBossAttack('mine_storm', this.currentPhase);
+    return placed;
   }
   spawnStormLances(count) {
     for (let i = 0; i < count; i++) {
@@ -8912,6 +10035,232 @@ class BossEnemy extends EliteEnemy {
     spawnExplosion(spawn.x, spawn.y, 12, escortDef.turret, '#fff');
     sfxEliteAbility('summoner');
   }
+  drawBossAura(ctx, accent) {
+    const profile = getBossAuraProfile(this.bossDef);
+    const t = Date.now() / 300;
+    const phaseBoost = this.currentPhase > 0 ? 1 : 0.56;
+    const radius = (this.auraRadius || 78) * profile.radiusMul;
+    const spin = t * profile.spin;
+    const alpha = 0.12 + phaseBoost * 0.11 + Math.sin(t * 1.7) * 0.025;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = accent;
+    ctx.fillStyle = accent;
+    ctx.lineWidth = 1.4 + phaseBoost * 0.8;
+    ctx.globalAlpha = alpha;
+    if (profile.shape === 'siege') {
+      const s = radius * 0.62;
+      for (const sx of [-1, 1]) {
+        for (const sy of [-1, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(sx * s, sy * (s - 18));
+          ctx.lineTo(sx * s, sy * s);
+          ctx.lineTo(sx * (s - 18), sy * s);
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha *= 0.65;
+      ctx.strokeRect(-s * 0.78, -s * 0.5, s * 1.56, s);
+    } else if (profile.shape === 'echo') {
+      for (let i = 0; i < 3; i++) {
+        const off = (i - 1) * 8;
+        ctx.globalAlpha = alpha * (0.85 - i * 0.18);
+        ctx.strokeRect(-radius * 0.45 + off, -radius * 0.34 + off, radius * 0.9, radius * 0.68);
+      }
+    } else if (profile.shape === 'bastion') {
+      for (let i = 0; i < 6; i++) {
+        const a = spin + i * Math.PI / 3;
+        const inner = radius * 0.42;
+        const outer = radius * 0.72;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+        ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+        ctx.stroke();
+      }
+    } else if (profile.shape === 'rift') {
+      for (let i = 0; i < 5; i++) {
+        const a = spin + i * Math.PI * 0.4;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * radius * 0.36, Math.sin(a) * radius * 0.36);
+        ctx.lineTo(Math.cos(a + 0.18) * radius * 0.72, Math.sin(a + 0.18) * radius * 0.72);
+        ctx.stroke();
+      }
+    } else if (profile.shape === 'storm') {
+      for (let i = 0; i < 8; i++) {
+        const a = spin + i * Math.PI / 4;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * radius * 0.42, Math.sin(a) * radius * 0.42);
+        ctx.lineTo(Math.cos(a + 0.12) * radius * 0.56, Math.sin(a + 0.12) * radius * 0.56);
+        ctx.lineTo(Math.cos(a - 0.08) * radius * 0.72, Math.sin(a - 0.08) * radius * 0.72);
+        ctx.stroke();
+      }
+    } else if (profile.shape === 'scanner') {
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius * 0.72, radius * 0.38, spin * 0.35, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(spin) * radius * 0.78, Math.sin(spin) * radius * 0.78);
+      ctx.stroke();
+    } else if (profile.shape === 'target') {
+      for (let r = 0; r < 3; r++) {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * (0.34 + r * 0.16), -Math.PI * 0.14, Math.PI * 0.14);
+        ctx.arc(0, 0, radius * (0.34 + r * 0.16), Math.PI * 0.86, Math.PI * 1.14);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(-radius * 0.76, 0);
+      ctx.lineTo(-radius * 0.48, 0);
+      ctx.moveTo(radius * 0.48, 0);
+      ctx.lineTo(radius * 0.76, 0);
+      ctx.stroke();
+    } else if (profile.shape === 'sanctum') {
+      ctx.beginPath();
+      ctx.moveTo(0, -radius * 0.76);
+      ctx.lineTo(radius * 0.56, -radius * 0.28);
+      ctx.lineTo(radius * 0.42, radius * 0.5);
+      ctx.lineTo(0, radius * 0.74);
+      ctx.lineTo(-radius * 0.42, radius * 0.5);
+      ctx.lineTo(-radius * 0.56, -radius * 0.28);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -radius * 0.45);
+      ctx.lineTo(0, radius * 0.42);
+      ctx.moveTo(-radius * 0.28, -radius * 0.05);
+      ctx.lineTo(radius * 0.28, -radius * 0.05);
+      ctx.stroke();
+    } else if (profile.shape === 'orbits') {
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate(spin + i * Math.PI / 3);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, radius * 0.74, radius * (0.22 + i * 0.08), 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else if (profile.shape === 'mirror') {
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.arc(side * radius * 0.18, 0, radius * 0.52, -Math.PI * 0.58 * side + spin * 0.2, Math.PI * 0.58 * side + spin * 0.2);
+        ctx.stroke();
+      }
+    } else if (profile.shape === 'slash') {
+      ctx.rotate(spin * 0.25);
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-radius * 0.58, i * 16 + radius * 0.3);
+        ctx.lineTo(radius * 0.62, i * 16 - radius * 0.28);
+        ctx.stroke();
+      }
+    } else if (profile.shape === 'weave') {
+      for (let i = 0; i < 7; i++) {
+        const a = spin + i * Math.PI / 3.5;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * radius * 0.18, Math.sin(a) * radius * 0.18);
+        ctx.quadraticCurveTo(Math.cos(a + 0.4) * radius * 0.55, Math.sin(a + 0.4) * radius * 0.55, Math.cos(a + 0.72) * radius * 0.74, Math.sin(a + 0.72) * radius * 0.74);
+        ctx.stroke();
+      }
+    } else if (profile.shape === 'minefield') {
+      for (let i = 0; i < 8; i++) {
+        const a = spin + i * Math.PI / 4;
+        const px = Math.cos(a) * radius * 0.58;
+        const py = Math.sin(a) * radius * 0.42;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(a);
+        ctx.strokeRect(-4, -4, 8, 8);
+        ctx.restore();
+      }
+    } else if (profile.shape === 'sand') {
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.ellipse((i - 1.5) * 12, Math.sin(t + i) * 5, radius * (0.34 + i * 0.08), radius * 0.18, spin + i * 0.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (profile.shape === 'anchor') {
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(0, -radius * 0.52);
+        ctx.lineTo(side * radius * 0.5, radius * 0.42);
+        ctx.lineTo(side * radius * 0.3, radius * 0.5);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(0, -radius * 0.38, radius * 0.12, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (profile.shape === 'spores') {
+      for (let i = 0; i < 9; i++) {
+        const a = spin + i * Math.PI * 2 / 9;
+        const rr = radius * (0.42 + (i % 3) * 0.1);
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * rr, Math.sin(a) * rr * 0.72, 4 + (i % 2) * 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (profile.shape === 'scrap') {
+      for (let i = 0; i < 10; i++) {
+        const a = spin + i * Math.PI * 2 / 10;
+        const rr = radius * (0.42 + (i % 4) * 0.08);
+        ctx.save();
+        ctx.translate(Math.cos(a) * rr, Math.sin(a) * rr);
+        ctx.rotate(a);
+        ctx.strokeRect(-7, -3, 14, 6);
+        ctx.restore();
+      }
+    } else {
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius * 0.62, radius * 0.46, spin * 0.2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  drawBossPhaseMotif(ctx, accent, maxPh, brt) {
+    const profile = getBossAuraProfile(this.bossDef);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let r = 0; r < maxPh; r++) {
+      const active = r <= this.currentPhase;
+      ctx.strokeStyle = active ? accent : 'rgba(255,255,255,0.04)';
+      ctx.fillStyle = active ? accent : 'rgba(255,255,255,0.06)';
+      ctx.globalAlpha = active ? (0.42 + r * 0.12) : 0.08;
+      ctx.lineWidth = active ? 2 : 1;
+      if (profile.shape === 'slash') {
+        ctx.beginPath();
+        ctx.moveTo(-34 + r * 4, -18 - r * 5);
+        ctx.lineTo(34 + r * 4, -34 - r * 2);
+        ctx.stroke();
+      } else if (profile.shape === 'spores') {
+        for (let i = 0; i < 3 + r; i++) {
+          ctx.beginPath();
+          ctx.arc(-18 + i * 18, -34 - r * 6 + Math.sin(brt + i) * 2, 2.6 + r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (profile.shape === 'target' || profile.shape === 'scanner' || profile.shape === 'orbits') {
+        ctx.beginPath();
+        ctx.ellipse(0, -8, 30 + r * 7, 12 + r * 3, brt * 0.12, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (profile.shape === 'minefield' || profile.shape === 'scrap') {
+        for (let i = 0; i < 4; i++) {
+          ctx.save();
+          ctx.translate(-24 + i * 16, -32 - r * 5);
+          ctx.rotate(brt * 0.4 + i);
+          ctx.strokeRect(-3, -3, 6, 6);
+          ctx.restore();
+        }
+      } else {
+        const y = -32 - r * 6;
+        ctx.beginPath();
+        ctx.moveTo(-34 - r * 3, y);
+        ctx.lineTo(-14, y - 7);
+        ctx.lineTo(14, y - 7);
+        ctx.lineTo(34 + r * 3, y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
   draw(ctx) {
     const t = Date.now() / 300;
     const bpulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
@@ -8919,21 +10268,45 @@ class BossEnemy extends EliteEnemy {
     const phaseRatio = this.currentPhase > 0 ? 1 : 0;
     const accent = this.bossDef.turret || '#ffd36f';
     const p = this.bossDef.phases[Math.max(0,this.currentPhase)];
+    const bossBody = this.getBodyProfile();
+    this.drawEntryTelegraph(ctx, accent);
     this.drawTelegraph(ctx, p, accent);
+    if (this.bossDef.name === '幻影坦克' && this.phantomEchoes && this.phantomEchoes.length > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const echo of this.phantomEchoes) {
+        const alpha = Math.max(0.08, Math.min(0.28, echo.life / 190 * 0.28));
+        ctx.strokeStyle = 'rgba(170,190,255,' + alpha + ')';
+        ctx.fillStyle = 'rgba(68,68,136,' + (alpha * 0.35) + ')';
+        ctx.shadowColor = '#88f';
+        ctx.shadowBlur = 12;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.rect(echo.x - 22, echo.y - 22, 44, 44);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(echo.x, echo.y, 28 + Math.sin(Date.now() / 95) * 3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.shadowColor = accent;
     ctx.shadowBlur = 15 + bpulse * 8 + phaseRatio * 10;
 
-    if (this.currentPhase > 0) {
-      ctx.strokeStyle = 'rgba(255,125,70,0.22)';
-      ctx.lineWidth = 2.2;
+    this.drawBossAura(ctx, accent);
+    if (this.bossDef.name === '圣龛守卫' && this.sanctumShieldCharges > 0 && this.sanctumShieldTimer > 0) {
+      ctx.strokeStyle = 'rgba(255,220,80,0.58)';
+      ctx.lineWidth = 3.2;
       ctx.beginPath();
-      ctx.arc(0, 0, this.auraRadius, -Math.PI * 0.2 + t * 0.3, Math.PI * 1.25 + t * 0.3);
+      ctx.arc(0, 0, 47 + Math.sin(Date.now() / 95) * 3, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(0, 0, this.auraRadius + 10, Math.PI * 0.15 - t * 0.25, Math.PI * 1.1 - t * 0.25);
-      ctx.stroke();
+      ctx.fillStyle = '#ffe878';
+      ctx.font = 'bold 11px "Courier New",monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('SHIELD ' + this.sanctumShieldCharges, 0, -48);
     }
 
     // === BOSS TYPE-SPECIFIC FORTRESS VISUAL ===
@@ -8943,9 +10316,11 @@ class BossEnemy extends EliteEnemy {
     const eyePulse = Math.sin(brt) * 0.25 + 0.75;
     // Ground shadow
     ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(0, 36, 38, 10, 0, 0, Math.PI * 2); ctx.fill();
-    // Outer threat aura
-    ctx.strokeStyle = accent; ctx.globalAlpha = 0.15 + Math.sin(brt) * 0.06; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.rotate(this.bodyAngle || 0);
+    ctx.scale(bossBody.scaleX, bossBody.scaleY);
+    const turretAngle = (this.turretAngle || 0) - (this.bodyAngle || 0);
+    const telegraphAngle = (this.telegraphAngle || 0) - (this.bodyAngle || 0);
     // === TYPE-SPECIFIC BODY ===
     if (bname === '巨兽坦克') {
       // === BEHEMOTH — triple-cannon siege breaker ===
@@ -8969,7 +10344,7 @@ class BossEnemy extends EliteEnemy {
       ctx.fillStyle=accent;ctx.globalAlpha=eyePulse*0.9;ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-2,-2,2.5,0,Math.PI*2);ctx.fill();
       // TRIPLE CANNONS
-      ctx.save();ctx.rotate(this.turretAngle);
+      ctx.save();ctx.rotate(turretAngle);
       // Center main cannon — huge
       drawWeaponBarrel(ctx,6,-7,24,14,'#400','#ff4040','#fff');
       // Left secondary — smaller, angled out
@@ -9001,10 +10376,11 @@ class BossEnemy extends EliteEnemy {
       ctx.globalAlpha=1;
       // Telegraph ground markers for teleport/clone
       if(this.telegraphTimer>0&&this.attackState==='telegraph'){
+        const marker = worldDeltaToRotatedScaledLocal(this.telegraphX-this.x, this.telegraphY-this.y, this.bodyAngle || 0, bossBody.scaleX, bossBody.scaleY);
         ctx.fillStyle='rgba(100,160,255,0.2)';
-        ctx.beginPath();ctx.arc(this.telegraphX-this.x,this.telegraphY-this.y,16+Math.sin(brt*4)*3,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(marker.x,marker.y,16+Math.sin(brt*4)*3,0,Math.PI*2);ctx.fill();
         ctx.strokeStyle='rgba(136,180,255,0.5)';ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.arc(this.telegraphX-this.x,this.telegraphY-this.y,16+Math.sin(brt*4)*3,0,Math.PI*2);ctx.stroke();
+        ctx.beginPath();ctx.arc(marker.x,marker.y,16+Math.sin(brt*4)*3,0,Math.PI*2);ctx.stroke();
       }
     } else if (bname === '要塞坦克') {
       // === FORTRESS — bunker + shield satellites ===
@@ -9015,7 +10391,7 @@ class BossEnemy extends EliteEnemy {
       // Armor slats
       ctx.fillStyle='rgba(0,0,0,0.5)';for(let d=0;d<8;d++){ctx.fillRect(-32+d*9,-14,5,28);}
       drawTechCore(ctx,0,-4,7,'#ffe8cc',accent);
-      ctx.save();ctx.rotate(this.turretAngle);drawWeaponBarrel(ctx,5,-4,24,8,'#2a1808',accent,'#fff8e0');ctx.restore();
+      ctx.save();ctx.rotate(turretAngle);drawWeaponBarrel(ctx,5,-4,24,8,'#2a1808',accent,'#fff8e0');ctx.restore();
       // Floating shield satellites (2 orbiting)
       const satCount = 2 + this.currentPhase;
       for(let s=0;s<satCount;s++){
@@ -9046,7 +10422,7 @@ class BossEnemy extends EliteEnemy {
       // Event horizon particles
       for(let d=0;d<5;d++){const da=d*Math.PI*2/5+brt*0.3;ctx.fillStyle=accent;ctx.globalAlpha=0.4;ctx.beginPath();ctx.arc(Math.cos(da)*26,Math.sin(da)*8,2,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
       // Small directional barrel (P1 only)
-      ctx.save();ctx.rotate(this.turretAngle);
+      ctx.save();ctx.rotate(turretAngle);
       ctx.fillStyle='#1a0438';ctx.strokeStyle=accent;ctx.lineWidth=1.5;
       ctx.fillRect(4,-2,14,4);ctx.strokeRect(4,-2,14,4);
       ctx.fillStyle='#fff';ctx.fillRect(16,-1.5,3,3);
@@ -9125,70 +10501,144 @@ class BossEnemy extends EliteEnemy {
       drawArmorPanel(ctx,-6,-6,12,12,'rgba(20,8,4,0.9)','#c84',3);
       ctx.fillStyle='#c84';ctx.globalAlpha=eyePulse*0.7;ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     } else if (bname === '雷霆执政官') {
-      // === THUNDER ARCHON — floating angel of storms ===
-      // Hovering — elevated above ground
-      ctx.fillStyle='rgba(255,220,120,0.15)';ctx.beginPath();ctx.ellipse(0,20,24,6,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.beginPath();ctx.ellipse(0,18,12,3,0,0,Math.PI*2);ctx.fill();
-      // Sleek divine body
-      ctx.fillStyle='#1a1830';ctx.beginPath();ctx.moveTo(10,-16);ctx.lineTo(-14,-8);ctx.lineTo(-16,0);ctx.lineTo(-14,8);ctx.lineTo(10,16);ctx.lineTo(18,0);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#48c';ctx.lineWidth=2.5;ctx.stroke();
-      // Gold accent trim
-      ctx.strokeStyle='rgba(255,220,100,0.3)';ctx.lineWidth=0.6;
-      ctx.beginPath();ctx.moveTo(10,-16);ctx.lineTo(10,16);ctx.stroke();
-      // Lightning wings (symmetrical)
-      for(let side of[-1,1]){
-        ctx.strokeStyle='#48c';ctx.lineWidth=1.8;ctx.globalAlpha=0.6+Math.sin(brt*2)*0.2;
-        ctx.beginPath();
-        ctx.moveTo(side*8,-10);ctx.lineTo(side*22,-28);ctx.lineTo(side*14,-14);
-        ctx.lineTo(side*28,-18);ctx.lineTo(side*16,-4);
-        ctx.lineTo(side*26,0);ctx.lineTo(side*14,4);
-        ctx.lineTo(side*24,12);ctx.lineTo(side*12,10);
-        ctx.stroke();
-        // Wing nodes
-        for(let n=0;n<5;n++){
-          const nx=side*(8+n*4), ny=-24+n*8;
-          ctx.fillStyle='#48c';ctx.beginPath();ctx.arc(nx,ny,1.5,0,Math.PI*2);ctx.fill();
-        }
-        ctx.globalAlpha=1;
-      }
-      // Halo
-      ctx.strokeStyle='#ffd27a';ctx.lineWidth=2;ctx.globalAlpha=0.5+Math.sin(brt)*0.2;
-      ctx.beginPath();ctx.arc(0,-18,14,-Math.PI*0.7,Math.PI*0.7);ctx.stroke();
-      ctx.fillStyle='#ffd27a';ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(0,-18,3,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=1;
-      drawTechCore(ctx,0,0,5,'#ffffee','#ffd27a');
-      // No barrel — emission from wings/halo
-    } else if (bname === '沙暴') {
-      // === SANDSTORM — dust-wrapped chassis + worm tentacles ===
-      // Dust cloud aura
-      for (let d = 0; d < 12; d++) {
-        const da = brt * 0.3 + d * Math.PI * 2 / 12;
-        const dr = 18 + Math.sin(brt + d) * 4;
-        ctx.fillStyle = 'rgba(180,140,80,' + (0.08 + d * 0.01) + ')';
-        ctx.beginPath(); ctx.arc(Math.cos(da)*dr, Math.sin(da)*dr, 3 + rng()*2, 0, Math.PI*2); ctx.fill();
-      }
-      // Core chassis — half-hidden
-      ctx.fillStyle = '#4a3020'; ctx.strokeStyle = '#c84'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.ellipse(0, 0, 18, 13, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-      // Sand worm tentacles on sides
+      // THUNDER ARCHON: hovering tribunal seat with rigid storm vanes.
+      ctx.fillStyle = 'rgba(255,220,120,0.14)';
+      ctx.beginPath(); ctx.ellipse(0, 24, 30, 7, 0, 0, Math.PI * 2); ctx.fill();
+      drawArmorPanel(ctx, -14, 12, 28, 9, '#101828', '#6ff', 2);
       for (let side of [-1, 1]) {
-        ctx.strokeStyle = '#c84'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(side * 14, 0);
-        ctx.quadraticCurveTo(side * 22 + Math.sin(brt)*5, -8, side * 20, 14); ctx.stroke();
-        ctx.fillStyle = '#a60'; ctx.beginPath(); ctx.arc(side * 20, 14, 3, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(110,230,255,0.42)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(side * 7, 15);
+        ctx.lineTo(side * 18, 28);
+        ctx.stroke();
+        drawArmorPanel(ctx, side * 18 - 4, 24, 8, 8, '#14243a', '#6ff', 2);
       }
-      // Vent spewing sand
-      ctx.fillStyle = 'rgba(180,120,60,0.3)';
-      for (let v = 0; v < 5; v++) {
-        ctx.beginPath(); ctx.arc(rng()*12 - 4, rng()*4 - 16, 1 + rng()*2, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#17172f';
+      ctx.strokeStyle = '#6ff';
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(0, -24);
+      ctx.lineTo(15, -14);
+      ctx.lineTo(19, 8);
+      ctx.lineTo(8, 20);
+      ctx.lineTo(-8, 20);
+      ctx.lineTo(-19, 8);
+      ctx.lineTo(-15, -14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      drawArmorPanel(ctx, -10, -10, 20, 20, '#0b1022', '#ffd27a', 3);
+      ctx.strokeStyle = 'rgba(255,220,122,0.58)';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(0, -18); ctx.lineTo(0, 16);
+      ctx.moveTo(-8, -2); ctx.lineTo(8, -2);
+      ctx.stroke();
+      for (let side of [-1, 1]) {
+        for (let blade = 0; blade < 3; blade++) {
+          const bx = side * (18 + blade * 9);
+          const by = -18 + blade * 14;
+          ctx.fillStyle = blade === 1 ? '#14324e' : '#101f3a';
+          ctx.strokeStyle = '#48c';
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(side * 11, by + 3);
+          ctx.lineTo(bx, by - 8);
+          ctx.lineTo(side * (31 + blade * 6), by - 2);
+          ctx.lineTo(bx, by + 8);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#6ff';
+          ctx.beginPath(); ctx.arc(bx, by, 2.2, 0, Math.PI * 2); ctx.fill();
+        }
+        drawArmorPanel(ctx, side * 28 - 4, -26, 8, 16, '#10243a', '#6ff', 2);
+        ctx.strokeStyle = 'rgba(230,250,255,0.45)';
+        ctx.lineWidth = 0.8;
+        for (let coil = 0; coil < 3; coil++) {
+          ctx.beginPath();
+          ctx.moveTo(side * 25, -23 + coil * 5);
+          ctx.lineTo(side * 31, -23 + coil * 5);
+          ctx.stroke();
+        }
       }
-      drawTechCore(ctx, 0, 0, 4, '#ffe0c0', '#c84');
-      ctx.save(); ctx.rotate(this.turretAngle);
-      drawWeaponBarrel(ctx, 3, -2.5, 10, 5, '#4a3020', '#c84', '#fff');
+      ctx.strokeStyle = '#ffd27a';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, -25, 16, -Math.PI * 0.78, Math.PI * 0.78); ctx.stroke();
+      ctx.fillStyle = '#ffd27a';
+      ctx.beginPath(); ctx.arc(0, -25, 3, 0, Math.PI * 2); ctx.fill();
+      drawTechCore(ctx, 0, 0, 5, '#ffffee', '#ffd27a');
+    } else if (bname === '沙暴') {
+      // SANDSTORM: buried sand-crawler with drill pods and intake vents.
+      drawTankTracks(ctx, -34, 26, -12, 28, 8, '#201207', '#7a4c20');
+      ctx.fillStyle = '#3d2817';
+      ctx.strokeStyle = '#c84';
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(24, -14);
+      ctx.lineTo(-18, -18);
+      ctx.lineTo(-34, -5);
+      ctx.lineTo(-30, 14);
+      ctx.lineTo(22, 18);
+      ctx.lineTo(34, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#6c461f';
+      ctx.strokeStyle = '#e0a05a';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(26, -11);
+      ctx.lineTo(44, -4);
+      ctx.lineTo(44, 4);
+      ctx.lineTo(26, 11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      for (let side of [-1, 1]) {
+        drawArmorPanel(ctx, -18, side * 17 - 4, 30, 8, '#281408', '#a96628', 2);
+        for (let seg = 0; seg < 4; seg++) {
+          const sx = -10 + seg * 7;
+          ctx.fillStyle = seg % 2 ? '#8a5a24' : '#5a3516';
+          ctx.strokeStyle = '#c84';
+          ctx.lineWidth = 0.9;
+          ctx.beginPath();
+          ctx.ellipse(sx, side * 18, 4.2, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.save();
+        ctx.translate(18, side * 14);
+        ctx.rotate(side * 0.45);
+        ctx.strokeStyle = '#c84';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(13, side * 5, 21, side * 14);
+        ctx.stroke();
+        ctx.fillStyle = '#a66a24';
+        ctx.strokeStyle = '#f0b060';
+        ctx.beginPath();
+        ctx.moveTo(21, side * 14);
+        ctx.lineTo(29, side * 10);
+        ctx.lineTo(27, side * 20);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      drawArmorPanel(ctx, -10, -10, 18, 20, '#211107', '#c84', 3);
+      ctx.fillStyle = 'rgba(230,170,80,0.35)';
+      for (let vent = 0; vent < 4; vent++) {
+        ctx.fillRect(-22 + vent * 8, -18, 5, 6);
+      }
+      drawTechCore(ctx, 0, 1, 4.4, '#ffe0c0', '#c84');
+      ctx.save(); ctx.rotate(turretAngle);
+      drawWeaponBarrel(ctx, 4, -2.8, 13, 5.6, '#4a3020', '#c84', '#fff');
       ctx.restore();
     } else if (bname === '重力锚') {
-      // === GRAVITY ANCHOR — heavy anchor hull + gravity field rings ===
-      // Gravity distortion rings
+      // GRAVITY ANCHOR: ballast machine with chain reels and anchor flukes.
       for (let r = 0; r < 3; r++) {
         const rr = 22 + r * 8 + Math.sin(brt * 2 + r) * 4;
         ctx.strokeStyle = 'rgba(120,180,255,' + (0.15 - r * 0.04) + ')';
@@ -9196,74 +10646,150 @@ class BossEnemy extends EliteEnemy {
         ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
       }
-      // Heavy anchor body — wide bottom, narrow top
-      ctx.fillStyle = '#1a2a3a'; ctx.strokeStyle = '#8cf'; ctx.lineWidth = 2.5;
+      drawTankTracks(ctx, -35, 27, -10, 24, 8, '#0b1720', '#42647a');
+      for (let side of [-1, 1]) {
+        drawArmorPanel(ctx, side * 22 - 5, -22, 10, 44, '#122638', '#8cf', 2);
+        ctx.strokeStyle = 'rgba(190,230,255,0.5)';
+        ctx.lineWidth = 0.9;
+        for (let link = 0; link < 5; link++) {
+          ctx.beginPath();
+          ctx.arc(side * 22, -14 + link * 7, 2.2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = '#1a2a3a'; ctx.strokeStyle = '#8cf'; ctx.lineWidth = 2.7;
       ctx.beginPath();
-      ctx.moveTo(0, -18); ctx.lineTo(16, -4); ctx.lineTo(20, 10);
-      ctx.lineTo(16, 18); ctx.lineTo(-16, 18); ctx.lineTo(-20, 10);
-      ctx.lineTo(-16, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Anchor flukes at bottom
+      ctx.moveTo(0, -26); ctx.lineTo(17, -10); ctx.lineTo(20, 10);
+      ctx.lineTo(12, 25); ctx.lineTo(-12, 25); ctx.lineTo(-20, 10);
+      ctx.lineTo(-17, -10); ctx.closePath(); ctx.fill(); ctx.stroke();
+      drawArmorPanel(ctx, -12, -8, 24, 16, '#07111d', '#8cf', 3);
+      ctx.strokeStyle = 'rgba(210,240,255,0.45)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -24);
+      ctx.lineTo(0, 25);
+      ctx.moveTo(-11, -6);
+      ctx.lineTo(11, -6);
+      ctx.stroke();
       for (let s of [-1, 1]) {
         ctx.fillStyle = '#2a3a4a';
-        ctx.beginPath(); ctx.moveTo(s * 12, 16);
-        ctx.lineTo(s * 28, 12); ctx.lineTo(s * 22, 22);
-        ctx.lineTo(s * 8, 22); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(s * 10, 20);
+        ctx.lineTo(s * 34, 14); ctx.lineTo(s * 26, 30);
+        ctx.lineTo(s * 7, 29); ctx.closePath(); ctx.fill();
         ctx.strokeStyle = '#8cf'; ctx.lineWidth = 1.5; ctx.stroke();
       }
-      // Gravity core
+      ctx.fillStyle = '#0c1826';
+      ctx.strokeStyle = '#8cf';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(-11, 2, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(11, 2, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       const coreGlow = Math.sin(brt * 2.5) * 0.3 + 0.7;
       ctx.fillStyle = 'rgba(120,200,255,' + coreGlow + ')';
       ctx.shadowColor = '#8cf'; ctx.shadowBlur = 14 * coreGlow;
       ctx.beginPath(); ctx.arc(0, 2, 5, 0, Math.PI * 2); ctx.fill();
       ctx.shadowBlur = 0;
       drawTechCore(ctx, 0, 0, 4, '#d0e8ff', '#8cf');
-      ctx.save(); ctx.rotate(this.turretAngle);
+      ctx.save(); ctx.rotate(turretAngle);
       drawWeaponBarrel(ctx, 3, -2.5, 11, 5, '#2a3a4a', '#8cf', '#fff');
       ctx.restore();
     } else if (bname === '多头蛇') {
-      // === HYDRA — multi-head serpent body + venom glow ===
+      // HYDRA: segmented bio-tank with independent head cannons.
       const headCount = this.currentPhase > 0 ? 5 : 3;
-      // Serpent body — long curved hull
-      ctx.fillStyle = '#0a1a0a'; ctx.strokeStyle = '#4e4'; ctx.lineWidth = 2.5;
+      drawTankTracks(ctx, -34, 26, -12, 28, 8, '#071407', '#246024');
+      ctx.fillStyle = '#0a1a0a'; ctx.strokeStyle = '#4e4'; ctx.lineWidth = 2.6;
       ctx.beginPath();
-      ctx.moveTo(0, -10); ctx.lineTo(-14, -6);
-      ctx.lineTo(-20, 2); ctx.lineTo(-16, 12);
-      ctx.lineTo(0, 16); ctx.lineTo(16, 12);
-      ctx.lineTo(20, 2); ctx.lineTo(14, -6); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Scales pattern
-      ctx.strokeStyle = 'rgba(0,200,0,0.1)'; ctx.lineWidth = 0.5;
-      for (let s = 0; s < 8; s++) {
-        ctx.beginPath(); ctx.arc(-6 + s * 2, -4 + s * 2, 2.5 + s * 0.3, 0, Math.PI, false); ctx.stroke();
+      ctx.moveTo(22, -13);
+      ctx.lineTo(4, -20);
+      ctx.lineTo(-22, -13);
+      ctx.lineTo(-30, 0);
+      ctx.lineTo(-22, 15);
+      ctx.lineTo(4, 20);
+      ctx.lineTo(23, 12);
+      ctx.lineTo(31, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      for (let plate = 0; plate < 5; plate++) {
+        const px = -20 + plate * 10;
+        drawArmorPanel(ctx, px, -9 + (plate % 2) * 2, 9, 18, plate % 2 ? '#123512' : '#102810', '#2f8a2f', 2);
       }
-      // Multiple heads
+      ctx.strokeStyle = 'rgba(120,255,120,0.26)';
+      ctx.lineWidth = 0.8;
+      for (let rib = 0; rib < 6; rib++) {
+        ctx.beginPath();
+        ctx.moveTo(-24 + rib * 9, -13);
+        ctx.lineTo(-18 + rib * 8, 14);
+        ctx.stroke();
+      }
       for (let h = 0; h < headCount; h++) {
-        const ha = (h - (headCount - 1) / 2) * 0.42;
-        const hx = Math.cos(ha) * 14, hy = Math.sin(ha) * 10 - 12;
+        const spread = headCount === 5 ? 0.32 : 0.44;
+        const ha = (h - (headCount - 1) / 2) * spread;
+        const centerHead = h === Math.floor(headCount / 2);
+        const regrowthHead = headCount === 5 && (h === 0 || h === headCount - 1);
+        const neckLen = centerHead ? 14 : (regrowthHead ? 8 : 10);
+        const hx = 9 + Math.cos(ha) * neckLen;
+        const hy = Math.sin(ha) * (centerHead ? 29 : (regrowthHead ? 31 : 26));
+        ctx.strokeStyle = regrowthHead ? '#6fae46' : (centerHead ? '#7dff73' : '#2d7f2d');
+        ctx.lineWidth = centerHead ? 4 : (regrowthHead ? 2.4 : 3);
+        ctx.beginPath();
+        ctx.moveTo(7, 0);
+        ctx.quadraticCurveTo(15, hy * 0.35, hx, hy);
+        ctx.stroke();
         ctx.save(); ctx.translate(hx, hy); ctx.rotate(ha);
-        // Head shape
-        ctx.fillStyle = '#0a2a0a'; ctx.strokeStyle = '#4e4'; ctx.lineWidth = 1.8;
-        ctx.beginPath(); ctx.ellipse(0, 0, 6, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        // Eyes
+        ctx.fillStyle = centerHead ? '#123a12' : (regrowthHead ? '#102510' : '#0d2e0d');
+        ctx.strokeStyle = centerHead ? '#7dff73' : (regrowthHead ? '#b6ff8a' : '#4e4');
+        ctx.lineWidth = centerHead ? 2.2 : 1.8;
+        ctx.beginPath();
+        ctx.moveTo(centerHead ? 12 : 9, 0);
+        ctx.lineTo(1, centerHead ? -6 : -5);
+        ctx.lineTo(regrowthHead ? -5 : -7, -4);
+        ctx.lineTo(regrowthHead ? -7 : -9, 0);
+        ctx.lineTo(regrowthHead ? -5 : -7, 4);
+        ctx.lineTo(1, centerHead ? 6 : 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        drawWeaponBarrel(ctx, 4, -1.8, centerHead ? 14 : (regrowthHead ? 8 : 10), centerHead ? 3.2 : 3.6, '#0a1a0a', centerHead ? '#7dff73' : '#4e4', '#d0ffd0');
+        if (!centerHead) {
+          ctx.strokeStyle = regrowthHead ? 'rgba(182,255,138,0.55)' : 'rgba(78,228,78,0.45)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-3, -5);
+          ctx.lineTo(3, -9);
+          ctx.moveTo(-3, 5);
+          ctx.lineTo(3, 9);
+          ctx.stroke();
+        }
         const eyeGlow = Math.sin(brt * 4 + h) * 0.3 + 0.6;
-        ctx.fillStyle = 'rgba(0,255,0,' + eyeGlow + ')';
-        ctx.shadowColor = '#0f0'; ctx.shadowBlur = 5 * eyeGlow;
-        ctx.beginPath(); ctx.arc(3, -1.5, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = centerHead ? 'rgba(180,255,138,' + eyeGlow + ')' : 'rgba(0,255,0,' + eyeGlow + ')';
+        ctx.shadowColor = centerHead ? '#b6ff8a' : '#0f0'; ctx.shadowBlur = 5 * eyeGlow;
+        ctx.beginPath(); ctx.arc(1, -2, 1.4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(1, 2, 1.4, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
-        // Tongue/fang
-        ctx.strokeStyle = '#0f0'; ctx.lineWidth = 0.8;
-        ctx.beginPath(); ctx.moveTo(5, 1); ctx.lineTo(8, 2); ctx.stroke();
         ctx.restore();
       }
-      // Venom drip from body
-      ctx.fillStyle = 'rgba(0,200,0,0.25)';
-      for (let d = 0; d < 3; d++) {
-        const dx = rng()*16 - 8, dy = 14 + rng()*4;
-        ctx.beginPath(); ctx.arc(dx, dy, 1 + rng()*2, 0, Math.PI * 2); ctx.fill();
+      for (let pod = 0; pod < 3; pod++) {
+        ctx.fillStyle = '#071907';
+        ctx.strokeStyle = '#4e4';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(-12 + pod * 10, 13, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
       }
-      drawTechCore(ctx, 0, -2, 3.5, '#d0ffd0', '#4e4');
-      ctx.save(); ctx.rotate(this.turretAngle);
-      drawWeaponBarrel(ctx, 3, -2, 9, 4, '#0a1a0a', '#4e4', '#fff');
-      ctx.restore();
+      if (this.currentPhase > 0) {
+        ctx.strokeStyle = 'rgba(182,255,138,0.28)';
+        ctx.lineWidth = 1.4;
+        for (let p = 0; p < 4; p++) {
+          const a = brt * 0.9 + p * Math.PI / 2;
+          const px = -3 + Math.cos(a) * 23;
+          const py = Math.sin(a) * 15;
+          ctx.beginPath();
+          ctx.arc(px, py, 4 + Math.sin(brt * 3 + p) * 1.2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+      drawTechCore(ctx, 0, 0, 4.2, '#d0ffd0', '#4e4');
     } else if (bname === '镜像体') {
       // === MIRROR SHELL — liquid metal, reflects player ===
       const playerColor = player ? (player._tankDef ? player._tankDef.color : '#d44') : '#d44';
@@ -9279,33 +10805,80 @@ class BossEnemy extends EliteEnemy {
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
       ctx.beginPath(); ctx.arc(4, -4, 6, 0, Math.PI*2); ctx.fill();
       drawTechCore(ctx, 2, 0, 4.5, '#fff', '#ccc');
-      ctx.save(); ctx.rotate(this.turretAngle);
+      ctx.save(); ctx.rotate(turretAngle);
       drawWeaponBarrel(ctx, 3, -2, 12, 4, '#555', '#bbb', '#fff');
       ctx.restore();
     } else if (bname === '陷阱师') {
-      // === TRAPPER — hexagon carrier with mine payload ===
-      ctx.fillStyle = '#3a2010'; ctx.strokeStyle = '#c84'; ctx.lineWidth = 2.5;
+      // TRAPPER: low mine-layer chassis with visible payload racks.
+      drawTankTracks(ctx, -34, 24, -16, 32, 8, '#160c07', '#6a3d1d');
+      ctx.fillStyle = '#2a170c';
+      ctx.strokeStyle = '#c84';
+      ctx.lineWidth = 2.6;
       ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = Math.PI/6 + i * Math.PI/3;
-        const px = Math.cos(a) * 22, py = Math.sin(a) * 16;
-        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      ctx.moveTo(24, -18);
+      ctx.lineTo(-24, -18);
+      ctx.lineTo(-34, -8);
+      ctx.lineTo(-34, 10);
+      ctx.lineTo(-22, 18);
+      ctx.lineTo(24, 16);
+      ctx.lineTo(32, 4);
+      ctx.lineTo(32, -8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      drawArmorPanel(ctx, -18, -10, 34, 20, '#3d2412', '#8b5428', 3);
+      drawArmorPanel(ctx, -38, -8, 12, 16, '#160c07', '#c84', 2);
+      ctx.fillStyle = '#060302';
+      ctx.fillRect(-36, -4, 8, 8);
+      ctx.strokeStyle = 'rgba(255,168,80,0.55)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-29, -5);
+      ctx.lineTo(-12, -12);
+      ctx.moveTo(-29, 5);
+      ctx.lineTo(-12, 12);
+      ctx.stroke();
+      for (const side of [-1, 1]) {
+        const ry = side * 19 - 4;
+        drawArmorPanel(ctx, -24, ry, 48, 8, '#201006', '#9c5a24', 2);
+        for (let m = 0; m < 5; m++) {
+          const mx = -18 + m * 9;
+          const my = side * 19;
+          ctx.fillStyle = '#2b1306';
+          ctx.strokeStyle = '#f08a32';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(mx, my, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,210,140,0.65)';
+          ctx.beginPath();
+          ctx.moveTo(mx - 2.2, my);
+          ctx.lineTo(mx + 2.2, my);
+          ctx.moveTo(mx, my - 2.2);
+          ctx.lineTo(mx, my + 2.2);
+          ctx.stroke();
+        }
       }
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Mine payload on back
-      ctx.fillStyle = '#2a1808';
-      for (let m = 0; m < 4; m++) {
-        ctx.fillRect(-8 + m * 5, -18, 4, 8);
-        ctx.fillStyle = '#f80'; ctx.beginPath(); ctx.arc(-6 + m * 5, -16, 1.5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#2a1808';
+      ctx.strokeStyle = 'rgba(255,170,90,0.32)';
+      ctx.lineWidth = 0.9;
+      for (let brace = 0; brace < 4; brace++) {
+        ctx.beginPath();
+        ctx.moveTo(-18 + brace * 10, -10);
+        ctx.lineTo(-24 + brace * 10, 10);
+        ctx.stroke();
       }
-      // Deployment rails on rear
-      ctx.strokeStyle = 'rgba(200,140,80,0.4)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(-20, 10); ctx.lineTo(20, 10); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(-16, 14); ctx.lineTo(16, 14); ctx.stroke();
-      drawTechCore(ctx, 0, 0, 4, '#ffe0c0', '#c84');
-      ctx.save(); ctx.rotate(this.turretAngle);
-      drawWeaponBarrel(ctx, 3, -2, 8, 4, '#3a2010', '#c84', '#fff');
+      drawTechCore(ctx, -2, 0, 4.6, '#ffe0c0', '#c84');
+      ctx.save();
+      ctx.rotate(turretAngle);
+      drawArmorPanel(ctx, 4, -5, 16, 10, '#3a2010', '#c84', 2);
+      ctx.strokeStyle = '#ffd09a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(17, -5);
+      ctx.lineTo(29, 0);
+      ctx.lineTo(17, 5);
+      ctx.stroke();
       ctx.restore();
     } else if (bname === '灰域剑圣') {
       // === ASH BLADE — asymmetrical mecha with energy katana ===
@@ -9317,7 +10890,7 @@ class BossEnemy extends EliteEnemy {
       ctx.strokeStyle = 'rgba(255,200,80,0.3)'; ctx.lineWidth = 0.6;
       ctx.beginPath(); ctx.moveTo(12, -14); ctx.lineTo(12, 12); ctx.stroke();
       // Energy blade on front
-      const bladeAngle = this.turretAngle + 0.3;
+      const bladeAngle = turretAngle + 0.3;
       ctx.save(); ctx.translate(6, 0); ctx.rotate(bladeAngle);
       const bladeGlow = Math.sin(brt * 3) * 0.2 + 0.7;
       ctx.strokeStyle = 'rgba(255,120,40,' + bladeGlow + ')';
@@ -9336,31 +10909,58 @@ class BossEnemy extends EliteEnemy {
       }
       drawTechCore(ctx, -2, 0, 4.5, '#ffe0d0', accent);
     } else if (bname === '圣龛织者') {
-      // === SANCTUM WEAVER — wide loom platform + golden threads ===
-      ctx.fillStyle = '#3a2810'; ctx.strokeStyle = '#c90'; ctx.lineWidth = 3;
-      ctx.fillRect(-30, -14, 60, 28); ctx.strokeRect(-30, -14, 60, 28);
-      // 3 spinning spindles on top
-      for (let s = 0; s < 3; s++) {
-        const sx = -10 + s * 10;
-        ctx.save(); ctx.translate(sx, -16);
-        ctx.rotate(brt * 1.5 + s);
-        ctx.fillStyle = '#fd0'; ctx.strokeStyle = '#c90'; ctx.lineWidth = 1.2;
-        ctx.fillRect(-3, -8, 6, 16); ctx.strokeRect(-3, -8, 6, 16);
-        ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(0, -8, 2, 0, Math.PI*2); ctx.fill();
+      // SANCTUM WEAVER: altar-loom platform, spindles, and thread anchors.
+      drawTankTracks(ctx, -38, 30, -10, 22, 8, '#1d1408', '#7b5b25');
+      drawArmorPanel(ctx, -36, -16, 72, 32, '#3a2810', '#c90', 5);
+      drawArmorPanel(ctx, -32, -28, 8, 56, '#241706', '#d0a33a', 2);
+      drawArmorPanel(ctx, 24, -28, 8, 56, '#241706', '#d0a33a', 2);
+      drawArmorPanel(ctx, -30, -30, 60, 8, '#4a3212', '#fd0', 2);
+      drawArmorPanel(ctx, -30, 22, 60, 8, '#4a3212', '#fd0', 2);
+      ctx.strokeStyle = 'rgba(255,220,96,0.5)';
+      ctx.lineWidth = 1;
+      for (let tline = 0; tline < 9; tline++) {
+        const tx = -24 + tline * 6;
+        const sway = Math.sin(brt * 0.8 + tline) * 1.2;
+        ctx.beginPath();
+        ctx.moveTo(tx, -22);
+        ctx.lineTo(tx + sway, 22);
+        ctx.stroke();
+        ctx.fillStyle = '#d0a33a';
+        ctx.beginPath();
+        ctx.arc(tx + sway, 22, 1.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (let s = 0; s < 4; s++) {
+        const sx = -18 + s * 12;
+        ctx.save();
+        ctx.translate(sx, -24);
+        ctx.rotate(brt * 0.6 + s * 0.7);
+        drawArmorPanel(ctx, -3, -8, 6, 16, '#6a4818', '#fd0', 2);
+        ctx.fillStyle = '#fff1a6';
+        ctx.fillRect(-1.2, -9, 2.4, 18);
         ctx.restore();
       }
-      // Golden threads hanging down
-      for (let t = 0; t < 8; t++) {
-        const tx = -22 + t * 6;
-        ctx.strokeStyle = 'rgba(255,220,0,' + (0.15 + Math.sin(brt+t)*0.08) + ')';
-        ctx.lineWidth = 0.6; ctx.setLineDash([2, 6]);
-        ctx.beginPath(); ctx.moveTo(tx, -14); ctx.lineTo(tx + Math.sin(brt+t)*3, 18); ctx.stroke();
-        ctx.setLineDash([]);
+      drawArmorPanel(ctx, -12, -10, 24, 24, '#1a1208', '#f6d86a', 4);
+      ctx.fillStyle = '#6a4a18';
+      ctx.beginPath();
+      ctx.moveTo(0, -14);
+      ctx.lineTo(10, -4);
+      ctx.lineTo(7, 11);
+      ctx.lineTo(0, 16);
+      ctx.lineTo(-7, 11);
+      ctx.lineTo(-10, -4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#fd0';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      for (let gate = 0; gate < 3; gate++) {
+        drawArmorPanel(ctx, -23 + gate * 23, 9, 12, 8, '#201006', '#8f6825', 2);
       }
-      drawTechCore(ctx, 0, 2, 6, '#fff8d0', '#fd0');
-      // Small barrel — rarely used
-      ctx.save(); ctx.rotate(this.turretAngle);
-      drawWeaponBarrel(ctx, 3, -2, 8, 4, '#5a4020', '#c90', '#fff8e0');
+      drawTechCore(ctx, 0, 1, 5.5, '#fff8d0', '#fd0');
+      ctx.save();
+      ctx.rotate(turretAngle);
+      drawWeaponBarrel(ctx, 4, -1.6, 12, 3.2, '#5a4020', '#c90', '#fff8e0');
       ctx.restore();
     } else if (bname === '迅影') {
       // === SWIFT SHADOW — slim diamond + energy shuriken wings ===
@@ -9386,31 +10986,69 @@ class BossEnemy extends EliteEnemy {
         ctx.beginPath(); ctx.moveTo(24 - t*5, 0); ctx.lineTo(4, -12); ctx.lineTo(-14, -4); ctx.lineTo(-16 + t*3, 0); ctx.closePath(); ctx.stroke();
       }
       drawTechCore(ctx, 2, 0, 4, '#e0ffff', '#4ff');
-      ctx.save(); ctx.rotate(this.turretAngle);
+      ctx.save(); ctx.rotate(turretAngle);
       drawWeaponBarrel(ctx, 3, -1.5, 10, 3, '#081828', '#4ff', '#e0ffff');
       ctx.restore();
     } else if (bname === '双子坦克') {
-      const isDark = !!this.geminiMaster;
+      const isDark = this.isGeminiDark();
       const gemColor = isDark ? '#624' : '#426';
       const gemAccent = isDark ? '#d8f' : '#a4f';
+      const secondaryAccent = isDark ? '#f0c8ff' : '#caa8ff';
       ctx.fillStyle = gemColor;
       ctx.beginPath(); ctx.moveTo(22, 0); ctx.lineTo(6, -14); ctx.lineTo(-14, -6);
       ctx.lineTo(-18, 0); ctx.lineTo(-14, 6); ctx.lineTo(6, 14); ctx.closePath(); ctx.fill();
       ctx.strokeStyle = gemAccent; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.fillStyle = 'rgba(12,6,24,0.86)';
+      ctx.strokeStyle = secondaryAccent;
+      ctx.lineWidth = 1.2;
+      if (isDark) {
+        ctx.beginPath(); ctx.moveTo(-8, -15); ctx.lineTo(-20, -24); ctx.lineTo(-13, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-8, 15); ctx.lineTo(-20, 24); ctx.lineTo(-13, 4); ctx.closePath(); ctx.fill(); ctx.stroke();
+        for (let s of [-1, 1]) {
+          ctx.save();
+          ctx.translate(4, s * 15);
+          ctx.rotate(brt * 1.4 * s);
+          ctx.strokeStyle = 'rgba(240,200,255,0.58)';
+          ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(5, 0); ctx.lineTo(0, 4); ctx.lineTo(-5, 0); ctx.closePath(); ctx.stroke();
+          ctx.restore();
+        }
+      } else {
+        ctx.beginPath(); ctx.moveTo(10, -14); ctx.lineTo(2, -25); ctx.lineTo(18, -8); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(10, 14); ctx.lineTo(2, 25); ctx.lineTo(18, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = 'rgba(202,168,255,0.32)';
+        ctx.beginPath(); ctx.moveTo(24, 0); ctx.lineTo(11, -5); ctx.lineTo(11, 5); ctx.closePath(); ctx.fill();
+      }
       ctx.strokeStyle = 'rgba(255,255,255,' + (isDark ? '0.08' : '0.2') + ')';
       ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 12); ctx.stroke();
       drawTechCore(ctx, 1, 0, 4.5, isDark ? '#f0e0ff' : '#e0e0ff', gemAccent);
       if (this.geminiTwin && this.geminiTwin.alive) {
+        const twinLocal = worldDeltaToRotatedScaledLocal(this.geminiTwin.x - this.x, this.geminiTwin.y - this.y, this.bodyAngle || 0, bossBody.scaleX, bossBody.scaleY);
         ctx.strokeStyle = 'rgba(180,140,255,0.12)'; ctx.lineWidth = 0.8; ctx.setLineDash([3, 6]);
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(this.geminiTwin.x - this.x, this.geminiTwin.y - this.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(twinLocal.x, twinLocal.y); ctx.stroke();
         ctx.setLineDash([]);
       }
       if (this.currentPhase > 0) {
-        ctx.strokeStyle = 'rgba(200,160,255,0.25)'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.stroke();
+        ctx.strokeStyle = isDark ? 'rgba(240,200,255,0.38)' : 'rgba(202,168,255,0.4)';
+        ctx.lineWidth = 2;
+        if (isDark) {
+          for (let r = 0; r < 2; r++) {
+            ctx.save();
+            ctx.rotate(brt * (r === 0 ? 0.7 : -0.55));
+            ctx.scale(1, r === 0 ? 0.62 : 0.82);
+            ctx.beginPath(); ctx.arc(0, 0, 23 + r * 5, 0, Math.PI*2); ctx.stroke();
+            ctx.restore();
+          }
+        } else {
+          ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-27, 0); ctx.lineTo(27, 0); ctx.moveTo(0, -27); ctx.lineTo(0, 27); ctx.stroke();
+        }
       }
-      ctx.save(); ctx.rotate(this.turretAngle);
-      drawWeaponBarrel(ctx, 3, -2, 12, 4, gemColor, gemAccent, '#fff');
+      ctx.save(); ctx.rotate(turretAngle);
+      drawWeaponBarrel(ctx, 3, -2, isDark ? 11 : 15, isDark ? 4 : 3.5, gemColor, gemAccent, '#fff');
+      if (isDark) {
+        drawWeaponBarrel(ctx, 2, 4, 9, 2.6, gemColor, secondaryAccent, '#fff');
+        drawWeaponBarrel(ctx, 2, -7, 9, 2.6, gemColor, secondaryAccent, '#fff');
+      }
       ctx.restore();
     } else if (bname === '缝合巨兽') {
       // === PATCHWORK BEHEMOTH — asymmetrical junk mech ===
@@ -9449,10 +11087,20 @@ class BossEnemy extends EliteEnemy {
       ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
       ctx.globalAlpha = 1;
     } else if (bname === '星象仪') {
-      // === ASTROLABE — rotating armillary rings ===
-      ctx.fillStyle = '#0a1a28'; ctx.strokeStyle = '#4ce'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-      // 3 rotating metal rings at different angles
+      // ASTROLABE: observatory chassis with physical armillary supports.
+      drawTankTracks(ctx, -31, 23, -11, 26, 8, '#061421', '#1f6b84');
+      drawArmorPanel(ctx, -26, -15, 52, 30, '#0a1a28', '#4ce', 5);
+      drawArmorPanel(ctx, -20, 15, 40, 8, '#071421', '#4ce', 2);
+      for (let leg of [-1, 1]) {
+        ctx.strokeStyle = 'rgba(120,230,255,0.45)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(leg * 11, 15);
+        ctx.lineTo(leg * 24, 31);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#061421'; ctx.strokeStyle = '#4ce'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(0, -3, 22, 0, Math.PI*2); ctx.fill(); ctx.stroke();
       const ringData = [
         { tilt: 0.2, speed: 0.3, r: 20, alpha: 0.5 },
         { tilt: -0.15, speed: -0.25, r: 16, alpha: 0.6 },
@@ -9460,6 +11108,7 @@ class BossEnemy extends EliteEnemy {
       ];
       ringData.forEach((rd, idx) => {
         ctx.save();
+        ctx.translate(0, -3);
         ctx.rotate(rd.tilt + brt * rd.speed);
         ctx.strokeStyle = 'rgba(80,220,240,' + rd.alpha + ')';
         ctx.lineWidth = 1.5 - idx * 0.3;
@@ -9470,84 +11119,163 @@ class BossEnemy extends EliteEnemy {
         }
         ctx.restore();
       });
-      // Bright central star core
-      const corePulse = Math.sin(brt * 1.8) * 0.2 + 0.7;
-      drawTechCore(ctx, 0, 0, 6, '#e0f8ff', '#4ce');
+      ctx.strokeStyle = 'rgba(160,240,255,0.45)';
+      ctx.lineWidth = 1;
+      for (let tick = 0; tick < 12; tick++) {
+        const a = tick * Math.PI * 2 / 12;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 18, -3 + Math.sin(a) * 18);
+        ctx.lineTo(Math.cos(a) * 23, -3 + Math.sin(a) * 23);
+        ctx.stroke();
+      }
+      drawArmorPanel(ctx, -8, -11, 16, 16, '#03101a', '#4ce', 3);
+      drawTechCore(ctx, 0, -3, 5.5, '#e0f8ff', '#4ce');
       ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI*2); ctx.fill();
-      // Tiny projection dots on rings
+      ctx.beginPath(); ctx.arc(0, -3, 2, 0, Math.PI*2); ctx.fill();
       for (let d = 0; d < 5; d++) {
         const da = brt * 0.4 + d * Math.PI*2/5;
         ctx.fillStyle = 'rgba(80,240,255,0.5)';
-        ctx.beginPath(); ctx.arc(Math.cos(da)*18, Math.sin(da)*18, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(Math.cos(da)*18, -3 + Math.sin(da)*18, 1.5, 0, Math.PI*2); ctx.fill();
       }
-      // Small barrel
-      ctx.save(); ctx.rotate(this.turretAngle);
-      drawWeaponBarrel(ctx, 3, -2, 12, 4, '#0a1a28', '#4ce', '#e0f8ff');
+      ctx.save(); ctx.rotate(turretAngle);
+      drawWeaponBarrel(ctx, 5, -2, 15, 4, '#0a1a28', '#4ce', '#e0f8ff');
       ctx.restore();
     } else if (bname === '圣龛守卫') {
-      // === SANCTUM GUARD — church stained glass + halo ===
-      // Wide hexagonal chassis — like a cathedral platform
-      ctx.fillStyle = '#3a2810'; ctx.strokeStyle = '#c90'; ctx.lineWidth = 3;
-      drawArmorPanel(ctx, -26, -18, 52, 36, '#3a2810', '#fd0', 5);
-      // Stained glass pattern — colored panels
-      const glassColors = ['rgba(255,200,50,0.3)','rgba(200,150,30,0.25)','rgba(255,180,40,0.2)','rgba(180,120,20,0.3)'];
-      for (let g = 0; g < 6; g++) {
-        ctx.fillStyle = glassColors[g % 4];
-        ctx.fillRect(-22 + g * 7, -15 + (g % 2) * 6, 6, 10);
+      // SANCTUM GUARD: cathedral bunker with physical shield hardware.
+      drawTankTracks(ctx, -36, 28, -18, 36, 8, '#1d1408', '#8c6a26');
+      for (const side of [-1, 1]) {
+        ctx.fillStyle = '#2b1d0b';
+        ctx.strokeStyle = '#c90';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(side * 18, -20);
+        ctx.lineTo(side * 36, -14);
+        ctx.lineTo(side * 38, 14);
+        ctx.lineTo(side * 18, 20);
+        ctx.lineTo(side * 22, 8);
+        ctx.lineTo(side * 22, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        drawArmorPanel(ctx, side * 27 - 5, -8, 10, 16, '#140c04', '#fd0', 2);
       }
-      // Golden halo ring
-      const haloPulse = Math.sin(brt * 1.5) * 0.15 + 0.7;
-      ctx.strokeStyle = 'rgba(255,220,0,' + haloPulse + ')';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(0, -4, 24, -Math.PI * 0.7, Math.PI * 0.7); ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,255,200,' + (haloPulse * 0.5) + ')';
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(0, -4, 28, -Math.PI * 0.6, Math.PI * 0.6); ctx.stroke();
-      // Floating sigils (small diamonds orbiting)
-      for (let s = 0; s < 3; s++) {
-        const sa = brt * 0.5 + s * Math.PI * 2 / 3;
-        const sx = Math.cos(sa) * 26, sy = Math.sin(sa) * 22 - 4;
-        ctx.fillStyle = '#fd0'; ctx.globalAlpha = 0.6 + Math.sin(brt + s) * 0.2;
-        ctx.fillRect(sx - 2, sy - 2, 5, 5);
-        ctx.globalAlpha = 1;
+      drawArmorPanel(ctx, -24, -20, 48, 40, '#3a2810', '#fd0', 5);
+      ctx.fillStyle = '#5d4317';
+      ctx.beginPath();
+      ctx.moveTo(0, -25);
+      ctx.lineTo(18, -14);
+      ctx.lineTo(20, 15);
+      ctx.lineTo(8, 23);
+      ctx.lineTo(-8, 23);
+      ctx.lineTo(-20, 15);
+      ctx.lineTo(-18, -14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#c90';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      const glassColors = ['rgba(255,230,120,0.34)', 'rgba(255,168,54,0.28)', 'rgba(190,116,32,0.26)'];
+      for (let g = 0; g < 5; g++) {
+        const gx = -14 + g * 7;
+        ctx.fillStyle = glassColors[g % glassColors.length];
+        ctx.beginPath();
+        ctx.moveTo(gx, -12);
+        ctx.lineTo(gx + 5, -12);
+        ctx.lineTo(gx + 5, 8);
+        ctx.lineTo(gx + 2.5, 13);
+        ctx.lineTo(gx, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,235,150,0.38)';
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
       }
-      // Central core
-      drawArmorPanel(ctx, -8, -6, 16, 12, 'rgba(0,0,0,0.8)', '#fd0', 3);
+      ctx.strokeStyle = 'rgba(255,240,170,0.55)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, -19);
+      ctx.lineTo(0, 15);
+      ctx.moveTo(-8, -5);
+      ctx.lineTo(8, -5);
+      ctx.stroke();
+      for (const side of [-1, 1]) {
+        ctx.strokeStyle = 'rgba(255,218,75,0.58)';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(side * 24, -16);
+        ctx.lineTo(side * 42, -8);
+        ctx.lineTo(side * 42, 8);
+        ctx.lineTo(side * 24, 16);
+        ctx.stroke();
+      }
+      drawArmorPanel(ctx, -9, -7, 18, 14, '#120b04', '#fd0', 3);
       drawTechCore(ctx, 0, 0, 5, '#fff8d0', '#fd0');
-      // Cannon — modest
-      ctx.save(); ctx.rotate(this.turretAngle);
-      drawWeaponBarrel(ctx, 4, -3, 16, 6, '#5a4020', '#c90', '#fff8e0');
+      ctx.save();
+      ctx.rotate(turretAngle);
+      drawArmorPanel(ctx, 3, -5, 13, 10, '#5a4020', '#c90', 2);
+      drawWeaponBarrel(ctx, 13, -2.8, 18, 5.6, '#3a2810', '#c90', '#fff8e0');
       ctx.restore();
     } else if (bname === '轨道炮台') {
-      // === ORBITAL CANNON — long-range sniper platform ===
-      // Large cannon barrel
-      ctx.fillStyle = '#3a2020'; ctx.strokeStyle = accent; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.ellipse(0, 0, 28, 18, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-      // Massive barrel
-      ctx.save(); ctx.rotate(this.turretAngle);
-      drawWeaponBarrel(ctx, 6, -5, 36, 12, '#3a1818', accent, '#fff');
-      // Heat sink fins on barrel
-      for (let f = 0; f < 5; f++) {
-        ctx.strokeStyle = 'rgba(200,100,50,0.5)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(12 + f*5, -6); ctx.lineTo(12 + f*5, 6); ctx.stroke();
+      // ORBITAL CANNON: braced railgun platform with stabilizer legs.
+      drawTankTracks(ctx, -34, 26, -14, 28, 8, '#211010', '#7a3420');
+      ctx.strokeStyle = '#8a3a22';
+      ctx.lineWidth = 2.2;
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(-18, side * 12);
+        ctx.lineTo(-38, side * 26);
+        ctx.lineTo(-48, side * 24);
+        ctx.stroke();
+        drawArmorPanel(ctx, -52, side * 24 - 4, 14, 8, '#24100c', accent, 2);
+        ctx.beginPath();
+        ctx.moveTo(16, side * 12);
+        ctx.lineTo(36, side * 25);
+        ctx.lineTo(46, side * 23);
+        ctx.stroke();
+        drawArmorPanel(ctx, 38, side * 23 - 4, 14, 8, '#24100c', accent, 2);
       }
-      // Muzzle glow
-      ctx.fillStyle = 'rgba(255,120,40,0.4)';
-      ctx.beginPath(); ctx.arc(40, 0, 4, 0, Math.PI*2); ctx.fill();
+      drawArmorPanel(ctx, -28, -18, 56, 36, '#321817', accent, 5);
+      drawArmorPanel(ctx, -19, -10, 38, 20, '#1b0b0a', '#9c4428', 3);
+      for (let vent = 0; vent < 5; vent++) {
+        ctx.fillStyle = 'rgba(255,118,54,0.28)';
+        ctx.fillRect(-16 + vent * 8, -17, 4, 7);
+        ctx.fillRect(-16 + vent * 8, 10, 4, 7);
+      }
+      ctx.save();
+      ctx.rotate(turretAngle);
+      drawArmorPanel(ctx, -1, -10, 18, 20, '#180908', accent, 3);
+      drawArmorPanel(ctx, 12, -7, 32, 5, '#3a1818', '#ff9b52', 2);
+      drawArmorPanel(ctx, 12, 2, 32, 5, '#3a1818', '#ff9b52', 2);
+      ctx.fillStyle = '#190806';
+      ctx.fillRect(18, -2, 30, 4);
+      for (let f = 0; f < 6; f++) {
+        ctx.strokeStyle = 'rgba(255,156,88,0.7)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(20 + f * 5, -9);
+        ctx.lineTo(20 + f * 5, -14);
+        ctx.moveTo(20 + f * 5, 9);
+        ctx.lineTo(20 + f * 5, 14);
+        ctx.stroke();
+      }
+      drawArmorPanel(ctx, 44, -8, 8, 16, '#210d0a', accent, 2);
+      ctx.fillStyle = '#fff0d8';
+      ctx.fillRect(49, -3, 3, 6);
       ctx.restore();
+      drawArmorPanel(ctx, -10, -27, 20, 8, '#24100c', accent, 2);
+      ctx.fillStyle = 'rgba(255,132,62,0.5)';
+      ctx.beginPath();
+      ctx.arc(0, -23, 3, 0, Math.PI * 2);
+      ctx.fill();
       // Targeting laser beam during telegraph
       if (this.attackState === 'telegraph') {
         ctx.strokeStyle = 'rgba(255,80,40,'+(0.3+Math.sin(brt*3)*0.15)+')';
         ctx.lineWidth = 1.5; ctx.setLineDash([4, 8]);
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(this.telegraphAngle)*W, Math.sin(this.telegraphAngle)*H);
+        const laserLocal = worldDeltaToRotatedScaledLocal(Math.cos(this.telegraphAngle)*W, Math.sin(this.telegraphAngle)*H, this.bodyAngle || 0, bossBody.scaleX, bossBody.scaleY);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(laserLocal.x, laserLocal.y);
         ctx.stroke(); ctx.setLineDash([]);
       }
-      // Heat sink glow
-      const heatGlow = Math.sin(brt*2) * 0.2 + 0.6;
-      ctx.fillStyle = 'rgba(255,100,30,'+heatGlow+')';
-      ctx.fillRect(-8, -22, 16, 6);
-      drawTechCore(ctx, -2, 0, 5, '#ffe0d0', accent);
+      drawTechCore(ctx, -3, 0, 5, '#ffe0d0', accent);
     } else {
       // Fallback for any unnamed boss
       ctx.fillStyle='#0a0614';ctx.beginPath();ctx.moveTo(26,-26);ctx.lineTo(-24,-16);ctx.lineTo(-32,0);ctx.lineTo(-24,16);ctx.lineTo(26,26);ctx.lineTo(34,8);ctx.lineTo(34,-12);ctx.closePath();ctx.fill();
@@ -9555,16 +11283,11 @@ class BossEnemy extends EliteEnemy {
       drawArmorPanel(ctx,-12,-8,24,16,'rgba(0,0,0,0.9)',accent,4);
       ctx.fillStyle=accent;ctx.globalAlpha=eyePulse*0.85;ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-2,-2,2.5,0,Math.PI*2);ctx.fill();
-      ctx.save();ctx.rotate(this.turretAngle);drawWeaponBarrel(ctx,6,-5,28,10,'#0a0618',accent,'#fff');ctx.restore();
+      ctx.save();ctx.rotate(turretAngle);drawWeaponBarrel(ctx,6,-5,28,10,'#0a0618',accent,'#fff');ctx.restore();
     }
+    ctx.restore();
     // === Phase crown (common to all bosses) ===
-    for (let r = 0; r < maxPh; r++) {
-      const active = r <= this.currentPhase;
-      ctx.strokeStyle = active ? accent : 'rgba(255,255,255,0.03)'; ctx.lineWidth = active ? 2.5 : 1.2;
-      ctx.globalAlpha = active ? (0.6 + r * 0.15) : 0.08;
-      ctx.beginPath(); ctx.arc(0, -6, 32 + r * 7, -Math.PI * 0.55, Math.PI * 0.55); ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
+    this.drawBossPhaseMotif(ctx, accent, maxPh, brt);
 
     ctx.shadowBlur = 0;
     if (this.hitFlash > 0) {
@@ -9731,19 +11454,28 @@ class BossEnemy extends EliteEnemy {
       const stateProgress = 1 - Math.max(0, Math.min(1, this.attackStateTimer / stateDuration));
       const chargeX = barX;
       const chargeY = barY + barH + 5;
-      const stateLabel = this.attackState === 'telegraph'
+      const entryCharging = this.entryAttack && !this.entryAttackDone;
+      const entryProgress = entryCharging
+        ? 1 - Math.max(0, Math.min(1, this.entryAttackTimer / Math.max(1, this.entryAttackDuration || 1)))
+        : 0;
+      const barProgress = entryCharging ? entryProgress : stateProgress;
+      const stateLabel = entryCharging
+        ? 'BREACH CHARGE / ' + (this.entryAttack.cue || 'ENTRY ATTACK')
+        : this.attackState === 'telegraph'
         ? 'CHARGING / ' + (this.attackCue || 'BOSS ART')
         : (this.attackState === 'recover' ? 'ARMOR BREAK / RECOVER' : 'FIRING / EVADE');
-      const stateColor = this.attackState === 'telegraph'
+      const stateColor = entryCharging
+        ? 'rgba(255,96,64,0.92)'
+        : this.attackState === 'telegraph'
         ? 'rgba(255,196,112,0.9)'
         : (this.attackState === 'recover' ? 'rgba(140,232,255,0.86)' : 'rgba(255,103,103,0.86)');
       ctx.fillStyle = 'rgba(255,255,255,0.08)';
       ctx.fillRect(chargeX, chargeY, barW, 5);
       ctx.fillStyle = stateColor;
-      ctx.fillRect(chargeX, chargeY, barW * stateProgress, 5);
+      ctx.fillRect(chargeX, chargeY, barW * barProgress, 5);
       ctx.strokeStyle = 'rgba(255,255,255,0.12)';
       ctx.strokeRect(chargeX, chargeY, barW, 5);
-      ctx.fillStyle = this.attackState === 'recover' ? '#8ce8ff' : (this.attackState === 'telegraph' ? '#f6e5aa' : '#ff9f70');
+      ctx.fillStyle = entryCharging ? '#ff9f70' : (this.attackState === 'recover' ? '#8ce8ff' : (this.attackState === 'telegraph' ? '#f6e5aa' : '#ff9f70'));
       ctx.font = 'bold 9px "Courier New",monospace';
       ctx.textAlign = 'right';
       ctx.fillText(stateLabel, chargeX + barW, chargeY - 2);
@@ -9756,6 +11488,12 @@ class BossEnemy extends EliteEnemy {
   }
   hit(bullet) {
     if (this.transitionLock > 0) return false;
+    if (this.bossDef.name === '圣龛守卫' && this.sanctumShieldCharges > 0 && this.sanctumShieldTimer > 0) {
+      this.sanctumShieldCharges--;
+      spawnExplosion(this.x, this.y, 10, '#fd0', '#fff');
+      if (this.sanctumShieldCharges <= 0) this.sanctumShieldTimer = 0;
+      return false;
+    }
     const dead = super.hit(bullet);
     this.hitFlash = 6;
     if (dead && this.bossDef.name === '沙暴' && weatherOverridden) {
@@ -11140,9 +12878,10 @@ function centerProtocolMapOnCore(force = false) {
     updateProtocolMapPan();
     return;
   }
-  protocolMapPan.zoom = Math.max(PROTOCOL_ZOOM_LIMITS.min, Math.min(PROTOCOL_ZOOM_LIMITS.max, protocolMapPan.zoom || 1));
+  const overviewZoom = viewport.clientWidth < 760 ? 0.72 : 0.84;
+  protocolMapPan.zoom = Math.max(PROTOCOL_ZOOM_LIMITS.min, Math.min(PROTOCOL_ZOOM_LIMITS.max, overviewZoom));
   protocolMapPan.x = Math.round(viewport.clientWidth / 2 - PROTOCOL_MAP_SIZE.centerX * protocolMapPan.zoom);
-  protocolMapPan.y = Math.round(viewport.clientHeight / 2 - PROTOCOL_MAP_SIZE.centerY * protocolMapPan.zoom);
+  protocolMapPan.y = Math.round(viewport.clientHeight / 2 - (PROTOCOL_MAP_SIZE.centerY - 120) * protocolMapPan.zoom);
   protocolMapPan.initialized = true;
   updateProtocolMapPan();
 }
@@ -11162,8 +12901,33 @@ function renderProtocolTree() {
   globalResearch = normalizeGlobalResearch(globalResearch);
   const total = getGlobalResearchTotalLevel();
   const maxTotal = getGlobalResearchMaxLevel();
-  const visibleDefs = GLOBAL_RESEARCH_DEFS.filter(def => isGlobalResearchVisible(def));
+  const progressPct = Math.round(total / Math.max(1, maxTotal) * 100);
+  const isFrontierVisible = def => {
+    if (isGlobalResearchVisible(def)) return true;
+    const prereqs = getGlobalResearchPrereqEntries(def);
+    return prereqs.some(([id]) => {
+      const parent = getGlobalResearchDef(id);
+      return parent && isGlobalResearchVisible(parent);
+    });
+  };
+  const visibleDefs = GLOBAL_RESEARCH_DEFS.filter(isFrontierVisible);
   const visibleIds = new Set(visibleDefs.map(def => def.id));
+  const readNodeState = def => {
+    const lvl = getGlobalResearchLevel(def.id);
+    const capped = lvl >= def.max;
+    const lock = getGlobalResearchLockReason(def);
+    const cost = capped ? 9999 : getGlobalResearchCost(def.id);
+    const available = !capped && !lock;
+    const canAfford = available && coreFragments >= cost;
+    const stateClass = capped ? 'capped' : (lock ? 'locked' : (canAfford ? 'ready' : 'no-funds'));
+    const stateText = capped ? '已满级' : (lock ? '锁定' : (canAfford ? '可点亮' : '月石不足'));
+    return { lvl, capped, lock, cost, available, canAfford, stateClass, stateText };
+  };
+  const visibleStates = visibleDefs.map(def => ({ def, state: readNodeState(def) }));
+  const readyCount = visibleStates.filter(item => !item.state.capped && !item.state.lock && item.state.canAfford).length;
+  const noFundsCount = visibleStates.filter(item => !item.state.capped && !item.state.lock && !item.state.canAfford).length;
+  const lockedCount = visibleStates.filter(item => item.state.lock).length;
+  const cappedCount = visibleStates.filter(item => item.state.capped).length;
   const links = [];
   visibleDefs.forEach(def => {
     const branch = getGlobalResearchBranchByDef(def);
@@ -11180,7 +12944,8 @@ function renderProtocolTree() {
     prereqs.forEach(([parentId]) => {
       if (!visibleIds.has(parentId)) return;
       const parent = GLOBAL_RESEARCH_LAYOUT[parentId] || { x:PROTOCOL_MAP_SIZE.centerX, y:PROTOCOL_MAP_SIZE.centerY };
-      const cls = getGlobalResearchLevel(def.id) > 0 ? 'lit' : 'ready';
+      const state = readNodeState(def);
+      const cls = getGlobalResearchLevel(def.id) > 0 ? 'lit' : (state.lock ? 'locked' : 'ready');
       const dx = child.x - parent.x;
       const dy = child.y - parent.y;
       const bend = Math.max(-90, Math.min(90, dx * 0.12));
@@ -11192,14 +12957,12 @@ function renderProtocolTree() {
   const nodes = visibleDefs.map(def => {
     const branch = getGlobalResearchBranchByDef(def);
     const visual = getGlobalResearchVisual(def);
-    const lvl = getGlobalResearchLevel(def.id);
-    const capped = lvl >= def.max;
-    const lock = getGlobalResearchLockReason(def);
-    const cost = capped ? 9999 : getGlobalResearchCost(def.id);
-    const canAfford = coreFragments >= cost;
-    const available = !capped && !lock;
-    const effect = lvl > 0 ? def.desc(lvl) : def.next(0);
+    const { lvl, capped, lock, cost, available, canAfford, stateClass, stateText } = readNodeState(def);
+    const currentEffect = lvl > 0 ? def.desc(lvl) : '尚未点亮';
+    const nextEffect = capped ? '已达上限' : def.next(lvl);
     const buttonText = capped ? 'MAX' : (lock ? 'LOCKED' : cost + ' MS');
+    const costText = capped ? 'MAX' : (lock ? '前置未接通' : cost + ' MS');
+    const prereqText = lock ? lock.replace('需要先点亮：', '') : (getGlobalResearchPrereqEntries(def).length ? '已接通' : '圣城中枢');
     const layout = GLOBAL_RESEARCH_LAYOUT[def.id] || { x:PROTOCOL_MAP_SIZE.centerX, y:PROTOCOL_MAP_SIZE.centerY };
     const root = getGlobalResearchPrereqEntries(def).length === 0;
     const cls = `${capped ? 'capped' : (available ? 'available' : 'locked')} ${lvl > 0 ? 'lit' : ''} ${root ? 'root' : ''} ${visual.isConflux ? 'conflux' : ''}`;
@@ -11217,37 +12980,59 @@ function renderProtocolTree() {
     ].join(';');
     return `<div class="protocol-node ${cls}" data-protocol-id="${escapeHtml(def.id)}" style="${nodeStyle}">
       <div class="node-body">
-        <div class="node-branch">${escapeHtml(visual.isConflux ? 'CNF / 触点果实' : branch.code + ' / ' + branch.name)}</div>
+        <div class="node-topline">
+          <div class="node-branch">${escapeHtml(visual.isConflux ? 'CNF / 触点果实' : branch.code + ' / ' + branch.name)}</div>
+          <div class="node-state ${escapeHtml(stateClass)}">${escapeHtml(stateText)}</div>
+        </div>
         <div class="node-name-row">
           <span class="node-name">${escapeHtml(def.name)}</span>
           <span class="node-level">LV ${lvl}/${def.max}</span>
         </div>
-        <div class="node-effect">${escapeHtml(effect)}</div>
+        <div class="node-effect-grid">
+          <div class="node-effect-block current"><span>当前</span><strong>${escapeHtml(currentEffect)}</strong></div>
+          <div class="node-effect-block next"><span>下一阶</span><strong>${escapeHtml(nextEffect)}</strong></div>
+        </div>
+        <div class="node-meta-row">
+          <span>花费 ${escapeHtml(costText)}</span>
+          <span>深度 ${escapeHtml(String(def.row || 1))}</span>
+        </div>
+        <div class="node-lock ${lock ? '' : 'clear'}"><span>前置</span>${escapeHtml(prereqText)}</div>
         <div class="node-lore">${escapeHtml(def.lore || '该协议仍在整理档案。')}</div>
-        ${lock ? `<div class="node-lock">${escapeHtml(lock)}</div>` : ''}
         <button class="node-buy ${canAfford ? '' : 'no-funds'}" onclick="purchaseGlobalResearch('${def.id}')" ${(!available || capped) ? 'disabled' : ''}>${escapeHtml(buttonText)}</button>
       </div>
     </div>`;
   }).join('');
   const branchSummary = GLOBAL_RESEARCH_BRANCHES.map(branch => {
     const defs = GLOBAL_RESEARCH_DEFS.filter(def => (def.branch || 'body') === branch.id);
-    const revealed = defs.filter(def => isGlobalResearchVisible(def)).length;
-    const lit = defs.filter(def => getGlobalResearchLevel(def.id) > 0).length;
+    const revealed = defs.filter(def => visibleIds.has(def.id)).length;
+    const branchLevel = defs.reduce((sum, def) => sum + getGlobalResearchLevel(def.id), 0);
+    const branchMax = defs.reduce((sum, def) => sum + def.max, 0);
+    const branchReady = defs.filter(def => visibleIds.has(def.id) && readNodeState(def).canAfford).length;
+    const branchPct = Math.round(branchLevel / Math.max(1, branchMax) * 100);
     return `<div class="protocol-axis-chip" style="--branch-rgb:${escapeHtml(branch.rgb)}">
-      <span class="axis-code">${escapeHtml(branch.code)}</span><span class="axis-name">${escapeHtml(branch.name)}</span>
-      <span class="axis-progress">${lit}/${defs.length} 已点亮 · ${revealed} 显现</span>
+      <div class="axis-top"><span class="axis-code">${escapeHtml(branch.code)}</span><span class="axis-name">${escapeHtml(branch.name)}</span></div>
+      <div class="axis-meter"><span style="width:${branchPct}%"></span></div>
+      <div class="axis-meta">${branchLevel}/${branchMax} 阶 · ${branchReady} 可点 · ${revealed}/${defs.length} 显现</div>
+      <div class="axis-desc">${escapeHtml(branch.desc)}</div>
     </div>`;
   }).join('');
+  const summaryHtml = `<div class="protocol-summary" id="protocol-summary">
+    <div class="protocol-summary-card"><span>总进度</span><strong>${total}/${maxTotal}</strong><small>${progressPct}% GLOBAL</small></div>
+    <div class="protocol-summary-card"><span>月光石</span><strong>${coreFragments}</strong><small>PROTOCOL RESERVE</small></div>
+    <div class="protocol-summary-card ready"><span>可点亮</span><strong>${readyCount}</strong><small>${noFundsCount} 个缺月光石</small></div>
+    <div class="protocol-summary-card locked"><span>边界节点</span><strong>${lockedCount}</strong><small>${visibleDefs.length}/${GLOBAL_RESEARCH_DEFS.length} 显现 · ${cappedCount} 满级</small></div>
+  </div>`;
   const panStyle = `--pan-x:${Math.round(protocolMapPan.x)}px;--pan-y:${Math.round(protocolMapPan.y)}px;--map-zoom:${Number(protocolMapPan.zoom || 1).toFixed(3)};`;
   panel.innerHTML = `<div class="protocol-header">
     <div>
       <div class="protocol-title">GLOBAL PROTOCOL / 圣城心智树</div>
       <div class="protocol-lore">全域协议不是三张清单，而是一张从圣城中枢生长出来的心智树。三枚基础协议围绕核心点亮，机体、弹道、后勤三条主干向不同方向延展；后续节点只在前置协议第一次点亮后显现。</div>
     </div>
-    <div class="protocol-progress">PROGRESS ${total}/${maxTotal}<br>${Math.round(total / Math.max(1, maxTotal) * 100)}%</div>
+    <div class="protocol-progress">PROGRESS ${total}/${maxTotal}<br>${progressPct}%</div>
   </div>
+  ${summaryHtml}
   <div class="protocol-status-rail">
-    <div class="protocol-status-title">ONE MAP / THREE TRUNKS / CONFLUX FRUITS / DRAG TO PAN</div>
+    <div class="protocol-status-title">BRANCH STATUS / FRONTIER PREVIEW / CONFLUX FRUITS</div>
     <div class="protocol-axis-list">${branchSummary}</div>
   </div>
   <div class="protocol-drag-hint">在空白区域按住拖拽，像查看脑图一样探索整张协议树；滚轮可缩放视角，节点第一次点亮后才显现下一段树枝。<span class="protocol-zoom-readout" id="protocol-zoom-readout">ZOOM ${Math.round((protocolMapPan.zoom || 1) * 100)}%</span></div>
@@ -11342,6 +13127,7 @@ function renderLabUI() {
   if (!grid) return;
   const tankKeys = Object.keys(tankTypes);
   const selected = labSelectedTank;
+  const summary = document.getElementById('lab-summary');
   grid.innerHTML = tankKeys.map(k => {
     const unlocked = unlockedTanks.has(k);
     const status = getTankStageStatus(k);
@@ -11385,11 +13171,20 @@ function renderLabUI() {
       <canvas class="lab-preview-canvas" id="lab-preview-canvas" width="240" height="170" data-tank="${escapeHtml(k)}" data-evo="0"></canvas>
       <div class="lab-locked-desc">${escapeHtml(tankTypes[k].name)} · ${escapeHtml(mark.role)}<br>${escapeHtml(cond.desc)}${unlockStatus.met ? '<br>' + escapeHtml(unlockStatus.label) : ''}</div>
       ${cond.cost > 0 ? `<button class="lab-btn" onclick="tryUnlockTank('${k}');renderLabUI();">${escapeHtml(unlockButtonText)}</button>` : ''}</div>`;
+    if (summary) {
+      summary.innerHTML = `
+        <div class="lab-summary-card"><span>月光石</span><strong>${coreFragments}</strong><small>LAB RESERVE</small></div>
+        <div class="lab-summary-card"><span>当前视图</span><strong>${escapeHtml(tankTypes[k].name)}</strong><small>${escapeHtml(mark.role)}</small></div>
+        <div class="lab-summary-card locked"><span>解锁状态</span><strong>LOCKED</strong><small>${escapeHtml(cond.desc)}</small></div>
+        <div class="lab-summary-card"><span>授权费用</span><strong>${cond.cost || 0}</strong><small>MOONSTONE</small></div>`;
+    }
   } else {
     const status = getTankStageStatus(k);
     const defs = TANK_UPGRADE_DEFS[k] || [];
     const totalCurrent = defs.reduce((s,d) => s + (ug[d.id] || 0), 0);
     const totalMax = defs.reduce((s,d) => s + d.max, 0);
+    const upgradeReadyCount = status.partStatus.filter(part => !part.capped && coreFragments >= getTankUpgradeCost(k, part.def.id)).length;
+    const cappedCount = status.partStatus.filter(part => part.fullyCapped).length;
     const stageReady = canEvolve(k);
     const mark = LAB_TANK_MARKS[k] || LAB_TANK_MARKS.spread;
     const stageText = nextEvo
@@ -11422,16 +13217,32 @@ function renderLabUI() {
       const costText = capped ? (part.fullyCapped ? 'MAX' : 'GATE') : (cost + ' MS');
       const barW = Math.floor((lvl / d.max) * 100);
       const desc = part.fullyCapped ? 'MAX' : `${lvl}/${d.max} · gate ${part.gate}`;
+      const stateText = part.fullyCapped ? 'MAX' : (capped ? '门槛封锁' : (canAfford ? '可强化' : '月石不足'));
+      const stateClass = part.fullyCapped ? 'max' : (capped ? 'gated' : (canAfford ? 'ready' : 'no-funds'));
       statsHTML += `<div class="lab-stat-upgrade-row ${part.ready ? '' : 'gate-pending'}">
         <span class="lab-stat-icon">${renderCodeIcon(getUpgradePartCode(d), d.name, k)}</span>
-        <span class="lab-stat-name">${escapeHtml(d.name)}</span>
-        <span class="lab-stat-meter">
-          <span class="lab-stat-fill ${capped ? 'capped' : (part.ready ? 'gated' : '')}" style="--fill:${barW}%;"></span>
-        </span>
-        <span class="lab-stat-desc ${capped ? 'capped' : ''}">${escapeHtml(desc)}</span>
+        <div class="lab-stat-main">
+          <div class="lab-stat-head">
+            <span class="lab-stat-name">${escapeHtml(d.name)}</span>
+            <span class="lab-stat-state ${stateClass}">${escapeHtml(stateText)}</span>
+          </div>
+          <div class="lab-stat-track">
+            <span class="lab-stat-meter">
+              <span class="lab-stat-fill ${capped ? 'capped' : (part.ready ? 'gated' : '')}" style="--fill:${barW}%;"></span>
+            </span>
+            <span class="lab-stat-desc ${capped ? 'capped' : ''}">${escapeHtml(desc)}</span>
+          </div>
+        </div>
         <button onclick="purchaseTankUpgrade('${k}','${d.id}');" ${capped?'disabled':''}
           class="lab-stat-buy ${canAfford ? '' : 'no-funds'}">${costText}</button>
       </div>`;
+    }
+    if (summary) {
+      summary.innerHTML = `
+        <div class="lab-summary-card"><span>月光石</span><strong>${coreFragments}</strong><small>LAB RESERVE</small></div>
+        <div class="lab-summary-card"><span>当前机体</span><strong>${escapeHtml(evolved ? evoDef.name : tankTypes[k].name)}</strong><small>${escapeHtml(mark.role)}</small></div>
+        <div class="lab-summary-card ${stageReady ? 'ready' : ''}"><span>进化阶段</span><strong>E${evoLevel}</strong><small>${stageReady ? '进化许可已解锁' : status.readyParts + '/' + status.totalParts + ' 部件达标'}</small></div>
+        <div class="lab-summary-card"><span>部件状态</span><strong>${totalCurrent}/${totalMax}</strong><small>${upgradeReadyCount} 可强化 · ${cappedCount} MAX</small></div>`;
     }
     detail.innerHTML = `
       <div class="lab-detail-grid">
@@ -12504,8 +14315,12 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
       const dx = bullet.x - tank.x;
       const dy = bullet.y - tank.y;
       let hitRadius = bullet.railgun ? 24 : (fromPlayer && buffs.big_bullet > 0 ? 28 : 20);
+      if (fromPlayer && tank.getHitRadius) {
+        const bodyRadius = tank.getHitRadius();
+        hitRadius = bullet.railgun ? Math.max(hitRadius, bodyRadius) : Math.max(hitRadius, bodyRadius + (buffs.big_bullet > 0 ? 4 : 0));
+      }
       if (!fromPlayer && tank === player) {
-        hitRadius = Math.max(16, Math.min(24, (player.hitboxSize || 36) * 0.54));
+        hitRadius = player.getHitRadius ? player.getHitRadius() : Math.max(16, Math.min(24, (player.hitboxSize || 36) * 0.54));
       }
       if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
         const hpBeforeHit = tank.hp || 0;
@@ -12729,8 +14544,11 @@ function update() {
   if (bossWarningTimer > 0) {
     bossWarningTimer--;
     // Screen shake during warning
-    if (bossWarningTimer < 60 && bossWarningTimer % 8 === 0) triggerShake(3, 3);
-    if (bossWarningTimer === 60) triggerShake(8, 6);
+    const warningHalfway = Math.floor(BOSS_WARNING_DURATION * 0.5);
+    const warningFinal = Math.floor(BOSS_WARNING_DURATION * 0.24);
+    if (bossWarningTimer < warningHalfway && bossWarningTimer % 10 === 0) triggerShake(2.5, 3);
+    if (bossWarningTimer === warningHalfway) triggerShake(7, 6);
+    if (bossWarningTimer === warningFinal) triggerShake(10, 8);
     if (bossWarningTimer <= 0 && bossWarningDef && bossWarningSpawn) {
       // Spawn the boss
       const bd = bossWarningDef;
@@ -12741,11 +14559,24 @@ function update() {
       sfxBossIntro();
       // Gemini: spawn twin at mirrored position
       if (bd.name === '双子坦克') {
+        const twinBody = getBossBodyProfile(bd);
+        const twinMargin = getCollisionMarginFromBox(twinBody.obstacleW, twinBody.obstacleH);
         const twinX = bs.x + (bs.x < W/2 ? 120 : -120);
         const twinY = bs.y + (bs.y < H/2 ? 80 : -80);
-        const twin = new BossEnemy(Math.max(40, Math.min(W-40, twinX)), Math.max(40, Math.min(H-40, twinY)), bd);
+        const twinSpawn = findSafeTankSpawn({
+          w: twinBody.obstacleW,
+          h: twinBody.obstacleH,
+          minEnemyDist: 95,
+          minPlayerDist: 190,
+          preferred: [{
+            x: Math.max(twinMargin, Math.min(W - twinMargin, twinX)),
+            y: Math.max(twinMargin, Math.min(H - twinMargin, twinY)),
+          }],
+        });
+        const twin = new BossEnemy(twinSpawn.x, twinSpawn.y, bd);
         twin.color = '#624'; twin.turretColor = '#d8f'; // Dark variant
         twin.geminiMaster = bossRef;
+        twin.geminiTwin = bossRef;
         bossRef.geminiTwin = twin;
         recordBossEncounter(bd, twin);
         enemies.push(twin);
@@ -12957,6 +14788,13 @@ function update() {
   for (let i = mines.length - 1; i >= 0; i--) {
     mines[i].life--;
     if (mines[i].life <= 0) { mines.splice(i, 1); continue; }
+    if (mines[i].warning > 0) {
+      mines[i].warning--;
+      if (mines[i].warning <= 0) {
+        mines[i].armed = true;
+        spawnExplosion(mines[i].x, mines[i].y, 4, '#f80', '#da0');
+      }
+    }
     if (mines[i].armed) {
       const mx = mines[i].x - player.x;
       const my = mines[i].y - player.y;
@@ -13191,6 +15029,15 @@ function draw() {
   for (const m of mines) {
     const pulse = Math.sin(Date.now() / 300 + m.x) * 0.3 + 0.7;
     ctx.save();
+    if (m.warning > 0) {
+      ctx.strokeStyle = 'rgba(255,176,72,0.48)';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 5]);
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 15 + Math.sin(Date.now() / 130 + m.y) * 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     ctx.shadowColor = '#f80';
     ctx.shadowBlur = 8 * pulse;
     ctx.fillStyle = m.armed ? '#c40' : '#864';
@@ -13279,8 +15126,11 @@ function draw() {
         label = nearestEnemy.bossDef ? 'BOSS LOCK' : profile.label;
         displayName = nearestEnemy.bossDef ? nearestEnemy.bossDef.name : (nearestEnemy.eliteName || nearestEnemy.constructor.name);
       }
-      drawEnemyInfoPlate(ctx, nearestEnemy.x, nearestEnemy.y - 34, nearestEnemy.bossDef ? 118 : 96, nearestEnemy.hp / nearestEnemy.maxHp, accent, displayName, label, 'HP');
-      drawEnemyMarker(ctx, nearestEnemy.x - (nearestEnemy.bossDef ? 68 : 57), nearestEnemy.y - 34, markerType, nearestEnemy.bossDef ? 8.2 : 7.2, accent);
+      const markerY = nearestEnemy.getNameplateOffsetY
+        ? nearestEnemy.getNameplateOffsetY()
+        : (nearestEnemy.getCollisionProfile ? nearestEnemy.getCollisionProfile().markerY : -34);
+      drawEnemyInfoPlate(ctx, nearestEnemy.x, nearestEnemy.y + markerY, nearestEnemy.bossDef ? 118 : 96, nearestEnemy.hp / nearestEnemy.maxHp, accent, displayName, label, 'HP');
+      drawEnemyMarker(ctx, nearestEnemy.x - (nearestEnemy.bossDef ? 68 : 57), nearestEnemy.y + markerY, markerType, nearestEnemy.bossDef ? 8.2 : 7.2, accent);
     }
   }
 
@@ -13311,33 +15161,7 @@ function draw() {
     ctx.fillRect(-20, -20, W + 40, H + 40);
   }
 
-  // Boss warning overlay
-  if (bossWarningTimer > 0 && bossWarningDef) {
-    const warnProgress = 1 - (bossWarningTimer / 120);
-    // Red vignette
-    const vignetteGrad = ctx.createRadialGradient(W/2, H/2, W*0.35, W/2, H/2, W*0.7);
-    vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
-    vignetteGrad.addColorStop(0.5, 'rgba(80,0,0,' + (warnProgress * 0.3) + ')');
-    vignetteGrad.addColorStop(1, 'rgba(40,0,0,' + (warnProgress * 0.6) + ')');
-    ctx.fillStyle = vignetteGrad;
-    ctx.fillRect(0, 0, W, H);
-    // WARNING text
-    if (bossWarningTimer < 100) {
-      const textAlpha = Math.min(1, (100 - bossWarningTimer) / 30);
-      ctx.save(); ctx.globalAlpha = textAlpha;
-      ctx.fillStyle = '#000'; ctx.font = 'bold 52px "Segoe UI","Microsoft YaHei",sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('WARNING', W/2 + 3, H*0.35 + 3);
-      ctx.fillStyle = '#ff2020';
-      ctx.shadowColor = '#f00'; ctx.shadowBlur = 20;
-      ctx.fillText('WARNING', W/2, H*0.35);
-      ctx.shadowBlur = 0;
-      // Boss name subtitle
-      ctx.fillStyle = '#ff6060'; ctx.font = 'bold 20px "Courier New",monospace';
-      ctx.fillText(bossWarningDef.name, W/2, H*0.35 + 40);
-      ctx.globalAlpha = 1; ctx.restore();
-    }
-  }
+  drawBossWarningOverlay(ctx);
 
   // Crosshair
   ctx.strokeStyle = '#fff';
@@ -13535,6 +15359,9 @@ function resetRunState() {
   buffs = { speed:0, railgun:0, ricochet:0, shield:0, rapid:0, freeze:0, multishot:0, magnet:0, pierce:0, vampire:0, double_score:0, big_bullet:0, explosive:0, invisible:0, thorns:0, overdrive:0, timewarp:0, goldrush:0 };
   isBossWave = false;
   bossRef = null;
+  bossWarningTimer = 0;
+  bossWarningDef = null;
+  bossWarningSpawn = null;
   runXp = 0;
   xpToNext = 100;
   modifierChoiceMode = 'level';

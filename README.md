@@ -1,123 +1,101 @@
-# 幻月战记 (Gengetsu Senki)
+# 幻月战记（Gengetsu Senki）
 
-> 科幻机甲 × 东方弹幕 · HTML5 Canvas 坦克大战
+> 科幻机甲与东方弹幕风格结合的 HTML5 Canvas 坦克对战游戏。
 
-[![Release](https://img.shields.io/badge/release-v3.8.52-gold)](https://github.com/skweo/tank-battle/releases)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+《幻月战记》使用原生 HTML、CSS 和 JavaScript 开发，包含弹幕战斗、Roguelike 局内改造、机体解锁与进化、程序化 BGM，以及单人和本地双人玩法。
 
-**幻月战记**是一款基于 HTML5 Canvas 的坦克大战游戏，融合弹幕射击、Roguelike改造器、坦克养成进化和程序化BGM。灰域科幻世界观 × 东方弹幕美学。
+## 当前状态
 
----
+项目处于持续开发阶段，主循环和主要系统已经可以游玩。目前的开发重点是 Boss 弹幕、敌人 AI 差异化、协议树、机体平衡和高难度节奏。
+
+当前平衡数值仍在调整，不代表最终体验。具体计划见 [优化路线](docs/OPTIMIZATION_ROADMAP.md)。
 
 ## 快速开始
 
-浏览器直接打开 `index.html` 即可游玩，无需安装。
+游戏不需要安装依赖，可以直接用浏览器打开 `index.html`。
 
-或使用本地服务器：
-```bash
-npx serve
-# 访问 http://localhost:8080
+也可以在项目目录启动本地服务器：
+
+```powershell
+python -m http.server 8080
 ```
 
----
+然后访问 `http://localhost:8080`。
 
-## 操作指南
+## 操作方式
 
-| 操作 | 按键 |
-|------|------|
-| 移动 | WASD / 方向键 |
-| 瞄准 | 鼠标 |
-| 射击 | 鼠标左键 / 空格 |
-| 升级选择 | 鼠标点击卡片 |
-| 暂停 | Esc |
-| 快捷重开 | R |
+| 操作 | 键盘与鼠标 | 手柄 |
+| --- | --- | --- |
+| 移动 | `WASD` / 方向键 | 左摇杆 |
+| 瞄准 | 鼠标 | 右摇杆 |
+| 射击 | 鼠标左键 / `Space` / `J` | `RT` / `A` |
+| 暂停或继续 | `P` / `Esc` | - |
+| 关闭功能页面 | `Esc` | - |
+| 结算后重开 | `R` | - |
+| 选机体 | 方向键 + `Enter` / `Space` | 双人选机体界面支持手柄 |
 
----
+自动索敌是可切换的瞄准设置，不是独立游戏模式。启用后玩家只需控制移动，机体会自动选择目标并开火。双人模式中 P1 使用键盘和鼠标，P2 使用手柄；进入双人模式前必须检测到手柄，双方不能选择相同机体。
 
-## 游戏特色
+## 游戏内容
 
-### 10 种可选机体（可解锁/升级/进化）
-扩散型 · 集中型 · 广域型 · 爆裂型 · 狙击型 · 追踪型 · 境界型 · 斩魂型 · 红枪型 · 星仪型
+以下数量直接按当前运行时代码统计，不沿用旧版设计文档中的数量：
 
-### 8 种普通敌人（6 阵营）
-侦察 · 突袭 · 重装 · 炮台 · 狙击者 · 布雷者 · 支援者 · 分裂者
+| 内容 | 当前数量 |
+| --- | ---: |
+| 玩家机体 | 10 |
+| 难度 | 5 |
+| 世界阵营 | 6 |
+| 普通敌人 | 8 |
+| 精英敌人 | 14 |
+| Boss | 21 |
+| 基础道具 | 19 |
+| 道具协同 | 8 |
+| 融合协议 | 5 |
+| 成就 | 125 |
 
-### 14 种精英敌人
-重装 · 狙击 · 疾风 · 火焰 · 召唤 · 隐身 · 分裂 · 再生 · 激光 · 地雷 · 护盾 · 导弹 · 裁断 · 相位
+- 简单、普通、困难、极限、梦魇五档难度
+- 通关战线、无尽战线和每日挑战三种流程
+- 单人、本地双人，以及可独立开关的自动索敌
+- 每 4 波一次 Boss 战，包含阶段变化、特色攻击和出场预警
+- 四选一局内改造，支持稀有度、单卡刷新和同调奖励
+- 机装研究室、全域协议树、图鉴、成就、排行榜和战局报告
+- Web Audio API 程序化 BGM 与战斗音效
+- `localStorage` 本地存档与存档诊断
 
-### 8 种 Boss（每4波随机出场）
-| Boss | 阵营 | 特色 |
-|------|------|------|
-| 巨兽坦克 | 月面兵工厂 | 三炮管正面压制+攻城冲角 |
-| 幻影坦克 | 虚空教派 | 折跃+分身+多方向发射口 |
-| 要塞坦克 | 灰域教会 | 5炮塔固定堡垒+浮游护盾卫星 |
-| 虚空坦克 | 虚空教派 | 引力奇点+黑洞撕裂 |
-| 风暴坦克 | 风暴修会 | 特斯拉线圈电弧+落雷 |
-| 观星者坦克 | 观星台 | 雷达扫描+轨道光束轰炸 |
-| 废铁巨像 | 灰域残骸群 | 不对称拼装机甲+链球AOE |
-| 雷霆执政官 | 风暴修会 | 浮空型+雷电羽翼+光环 |
+当前 21 个 Boss：巨兽坦克、幻影坦克、要塞坦克、虚空坦克、风暴坦克、观星者坦克、废铁巨像、雷霆执政官、轨道炮台、圣龛守卫、星象仪、缝合巨兽、双子坦克、迅影、圣龛织者、灰域剑圣、陷阱师、镜像体、沙暴、重力锚、多头蛇。
 
-- Boss 随机出场顺序（要塞和雷霆执政官前3轮不出现）
-- 每个 Boss 有 2 阶段变换 + telegraph 预警
+## 项目结构
 
-### 动态天气系统
-8 种 biome → 晴 / 雨 / 雾 / 沙尘 / 火花 / 雪 / 灰烬 / 离子风暴，随波次自动切换
-
-### 程序化 BGM 系统
-- Web Audio API 合成器，8 首独立曲目，每次随机切换
-- 菜单 3 首（水晶钟声/虚空氛围/温柔琶音）
-- 战斗 3 首（合成波动/紧迫追逐/重型围城）
-- Boss 2 首（深渊/审判）
-- 延迟混响 + 钟声乐器，C Phrygian 音阶
-
-### 更多系统
-- 四选一升级改造器（标准/稀有/精英/神话 4 级稀有度）
-- 19 种道具 + 5 种融合协议
-- 图鉴档案（道具/敌人分组 + 阵营 + 稀有度排序）
-- 机装研究室（坦克解锁/升级/进化）
-- 全域协议树（天赋树）
-- 25 项成就 + 排行榜
-- 每日挑战（种子随机）
-- 屏幕震动 + 浮动伤害数字
-- 存档诊断面板
-
----
-
-## 阵营体系（6 个）
-| 阵营 | 配色 | 风格 |
-|------|------|------|
-| moon_arsenal（月面兵工厂）| 暗红 | 重甲军事 |
-| void_cult（虚空教派）| 深紫 | 异形引力 |
-| ash_church（灰域教会）| 棕金 | 信仰堡垒 |
-| storm_cloister（风暴修会）| 电蓝 | 雷电高速 |
-| observatory（观星台）| 钢蓝 | 精准扫描 |
-| graveyard（灰域残骸群）| 锈棕 | 废铁拼装 |
-
----
-
-## 开发
-
-纯 HTML5 Canvas + JavaScript，无框架。
-
-### 项目结构
-```
-├── index.html              # 入口 + DOM
-├── scripts/game.js         # 全部游戏逻辑 (~12000行)
-├── styles/game.css         # 全部样式
-├── audio/music-generator.js # 程序化BGM合成器
-├── tests/smoke.js          # 冒烟测试 (15/16 pass)
-├── OPTIMIZATION_ROADMAP.md # 优化路线表
-├── BOSS_DESIGN.md          # Boss设计规范
-├── PROJECT_CONTEXT.md      # 项目上下文(agent交接用)
-├── memory/                 # 设计规范文档
-│   ├── boss-redesign-specs.md
-│   └── faction-color-guide.md
-└── WORLD_SYSTEMS.md        # 世界观设定
+```text
+tank-battle/
+|-- index.html                    # 游戏入口和界面结构
+|-- scripts/
+|   |-- game.js                   # 游戏主循环和主要玩法逻辑
+|   `-- systems/                  # 难度、Boss节奏、阵营等配置模块
+|-- styles/game.css               # 游戏界面和视觉样式
+|-- audio/music-generator.js      # 程序化BGM
+|-- tests/smoke.js                # Node.js冒烟测试
+|-- docs/                         # 设计、架构、任务和重启文档
+`-- memory/                       # 阵营配色与Boss设计参考
 ```
 
-### 本地开发
-```bash
-git clone https://github.com/skweo/tank-battle.git
-node --check scripts/game.js   # 语法检查
-node tests/smoke.js             # 冒烟测试
+## 开发与测试
+
+主要技术：Canvas 2D、Web Audio API、`localStorage` 和原生 JavaScript。
+
+修改代码后运行：
+
+```powershell
+node --check scripts/game.js
+node tests/smoke.js
 ```
+
+玩法和视觉改动仍需要在浏览器中手动试玩验证。
+
+## 文档入口
+
+- [项目上下文](CONTEXT.md)
+- [重启计划](docs/restart/CODEX_RESTART_PLAN.md)
+- [代码结构地图](docs/architecture/game-js-structure-map.md)
+- [Boss 设计](docs/BOSS_DESIGN.md)
+- [世界系统](docs/WORLD_SYSTEMS.md)

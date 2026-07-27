@@ -1,0 +1,22 @@
+{
+  "name": "tank-battle",
+  "version": "1.0.0",
+  "description": "幻月战记：HTML5 Canvas 弹幕坦克对战游戏",
+  "private": true,
+  "scripts": {
+    "test": "node tests/smoke.js",
+    "test:all": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skweo/tank-battle.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/skweo/tank-battle/issues"
+  },
+  "homepage": "https://github.com/skweo/tank-battle#readme",
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}

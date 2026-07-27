@@ -1,0 +1,13 @@
+node_modules/
+output/
+releases/
+
+debug.log
+*.log
+
+playwright-report/
+test-results/
+
+# Local agent tooling
+CLAUDE.md
+skills-lock.json
