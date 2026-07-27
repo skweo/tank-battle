@@ -2,10 +2,11 @@
 // Deeper arrangements: 4-5 simultaneous voices per beat
 
 class CyberSynth {
-  constructor(ctx) {
+  constructor(ctx, destination = null) {
     this.ctx = ctx;
     this.masterGain = ctx.createGain(); this.masterGain.gain.value = 0.45;
-    this.masterGain.connect(ctx.destination);
+    this.destination = destination || ctx.destination;
+    this.masterGain.connect(this.destination);
     // Cathedral reverb — Hollow Knight style space
     this.preVerb = ctx.createGain(); this.preVerb.gain.value = 0.45;
     this.d1 = ctx.createDelay(0.28); this.d2 = ctx.createDelay(0.52);
@@ -150,6 +151,35 @@ class CyberSynth {
     const hp = this.ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 10000;
     const gain = this.ctx.createGain(); gain.gain.setValueAtTime(g, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.016);
     src.connect(hp); hp.connect(gain); gain.connect(this.masterGain); src.start(t);
+  }
+
+  _cymbal(t, g = 0.022) {
+    const buf = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.22), this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < buf.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / buf.length);
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    const hp = this.ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 6500;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(g, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    src.connect(hp); hp.connect(gain); gain.connect(this.masterGain); src.start(t);
+  }
+
+  _impact(t, root = 0, g = 0.08) {
+    this._kick(t, g * 1.35);
+    this._bass(this._n(root, -3), t, 0.45, g);
+    this._osc('sawtooth', this._n(root + 7, -1), t, 0.28, g * 0.32, 420, false);
+  }
+
+  _motif(n, t, bp, root = 0, g = 0.03, octave = 0) {
+    const notes = [0, -2, 3, 0, 5, 3, -2, 0, 7, 5, 3, 0, -2, 0, 3, 5];
+    const note = notes[Math.floor(n / 4) % notes.length] + root;
+    this._lead(this._n(note, octave), t, Math.min(0.46, bp * 1.4), g);
+  }
+
+  _counterMotif(n, t, bp, root = 0, g = 0.018) {
+    const notes = [12, 10, 7, 10, 14, 12, 10, 7, 5, 7, 10, 12, 10, 7, 5, 3];
+    this._arp(this._n(notes[n % notes.length] + root, 0), t + bp * 0.12, 0.18, g);
   }
 
   _n(n, oct = 0) {
@@ -394,116 +424,136 @@ class CyberSynth {
 
   _bossOnslaught(n) {
     const t = this.ctx.currentTime, bp = 60 / this._bpm;
-    // Maximum intensity — dense drums, double bass, alarm chords
-    if (n % 2 === 0) this._kick(t, 0.18);
-    if (n % 2 === 1) this._snare(t, 0.06);
-    if (n % 2 === 0) this._hat(t, 0.028);
-    if (n % 4 === 0) this._hat(t+bp*0.5, 0.02);
-    // Drum roll every 16
-    if (n % 16 === 14) for (let d=0;d<4;d++) this._snare(t+d*bp*0.25, 0.05);
-    // Driving bass — every beat
-    const bl = [0,-7,-5,-3, 0,-7,-5,0, 3,-5,0,-2, -5,-7,-2,3, 0,-7,-5,-3, 3,-5,0,-2, -5,-7,-2,0, 0,-7,-5,-3];
-    this._bass(this._n(bl[n%32], -2), t, bp*0.7, 0.18);
-    // Aggressive chord stabs — every 2 beats
-    if (n % 4 === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*0.5, 0.04);
-    if (n % 4 === 2) this._chord([this._n(-5,-1),this._n(-2,-1),this._n(3,-1)], t, bp*0.4, 0.035);
-    // Lead — urgent
-    if (n % 2 === 0) {
-      const mel = [0,7,5,10,7,12,10,14, 0,7,5,3,7,5,3,0, -2,5,3,7,5,10,7,12, 0,-2,-5,-2,0,3,5,7];
-      this._lead(this._n(mel[n%32], 0), t, 0.38, 0.05);
+    const phase = Math.floor(n / 32) % 4;
+    const root = [0, -5, 3, -2][phase];
+    if (n % 32 === 0) {
+      this._impact(t, root, 0.095);
+      this._cymbal(t, 0.028);
     }
+    // Maximum intensity — dense drums, double bass, alarm chords
+    if (n % 4 === 0) this._kick(t, 0.18);
+    if (n % 8 === 4) this._kick(t + bp * 0.22, 0.105);
+    if (n % 4 === 2) this._snare(t, 0.058);
+    if (n % 2 === 0) this._hat(t, 0.024 + this.intensity * 0.01);
+    if (this.intensity > 0.55 && n % 4 === 1) this._hat(t + bp * 0.5, 0.016);
+    // Drum roll every 16
+    if (n % 16 === 14) for (let d=0;d<4;d++) this._snare(t+d*bp*0.22, 0.045);
+    // Driving bass — every beat
+    const bl = [0,0,-7,-5, -3,-5,0,-2, 3,3,-5,0, -2,-5,-7,-2, 0,0,-7,-5, 3,-5,0,-2, -5,3,0,-5, -7,-5,-2,0];
+    this._bass(this._n(bl[n % 32] + root, -2), t, bp * 0.78, 0.155 + this.intensity * 0.035);
+    // Aggressive chord stabs — every 2 beats
+    if (n % 8 === 0) this._chord([this._n(root,-1),this._n(root+3,-1),this._n(root+7,-1)], t, bp * 1.2, 0.038);
+    if (n % 8 === 4) this._chord([this._n(root-5,-1),this._n(root-2,-1),this._n(root+3,-1)], t, bp * 0.72, 0.03);
+    // Lead — urgent
+    if (n % 4 === 0) this._motif(n, t, bp, root, 0.048 + this.intensity * 0.012, 0);
     // Arp — high speed counterpoint
-    this._arp(this._n([17,14,10,7,3,7,10,14, 17,14,10,7,3,7,10,14][n%16], 0), t+bp*0.08, 0.15, 0.025);
+    if (n % 8 === 4) this._counterMotif(n, t, bp, root, 0.021);
     // Alarm every 8
-    if (n % 8 === 0) { this._osc('sawtooth',this._n(0,1),t,bp*0.8,0.05); this._osc('sawtooth',this._n(7,0),t+0.015,bp*0.7,0.04); }
-    if (n % 16 === 0) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*16, 0.035);
-    if (n % 12 === 0) this._vox(this._n([0,7,14][(n/12)%3], 1), t+bp*0.2, bp*4, 0.035);
+    if (n % 8 === 0) { this._osc('sawtooth',this._n(root,1),t,bp*0.8,0.045); this._osc('sawtooth',this._n(root+7,0),t+0.015,bp*0.7,0.034); }
+    if (this.intensity > 0.72 && n % 16 === 8) this._vox(this._n(root + 14, 1), t + bp * 0.15, bp * 5, 0.034);
+    if (n % 16 === 0) this._pad([this._n(root,-1),this._n(root+3,-1),this._n(root+7,-1),this._n(root+10,-1)], t, bp * 16, 0.027);
   }
 
   _bossCataclysm(n) {
     const t = this.ctx.currentTime, bp = 60 / (this._bpm + 6);
+    const phase = Math.floor(n / 16) % 4;
+    const root = [0, 3, -5, -2][phase];
+    if (n % 16 === 0) {
+      this._impact(t, root, 0.105);
+      this._cymbal(t, 0.034);
+    }
     // Ultimate chaos — fast drums, triple bass, everything at once
     if (n % 2 === 0) this._kick(t, 0.17);
     if (n % 2 === 1) this._snare(t, 0.06);
     this._hat(t, 0.028);
     if (n % 3 === 0) this._hat(t+bp*0.5, 0.02);
-    if (n % 8 === 6) for (let d=0;d<6;d++) this._snare(t+d*bp*0.2, 0.04);
+    if (n % 8 === 6) for (let d=0;d<5;d++) this._snare(t+d*bp*0.18, 0.038);
     // Bass — aggressive walking
     const bl = [0,-7,-5,-3, 3,-5,0,-2, -5,-7,-2,0, 0,-7,-5,3, 0,-7,-5,-3, 3,-5,0,-2, -5,3,0,-5, -7,-5,-2,0];
-    this._bass(this._n(bl[n%32], -2), t, bp*0.7, 0.17);
+    this._bass(this._n(bl[n % 32] + root, -2), t, bp * 0.66, 0.17);
     // Chords — every beat
-    if (n % 2 === 0) this._chord([this._n(0,-1),this._n(4,-1),this._n(7,-1),this._n(11,-1)], t, bp*0.5, 0.04);
-    if (n % 2 === 1) this._chord([this._n(-7,-1),this._n(-3,-1),this._n(0,-1)], t, bp*0.4, 0.035);
+    if (n % 4 === 0) this._chord([this._n(root,-1),this._n(root+4,-1),this._n(root+7,-1),this._n(root+11,-1)], t, bp * 0.72, 0.04);
+    if (n % 4 === 2) this._chord([this._n(root-7,-1),this._n(root-3,-1),this._n(root,-1)], t, bp * 0.58, 0.034);
     // Lead + bell together
-    if (n % 2 === 0) {
-      const mel = [0,7,5,10,7,12,10,14, 0,7,5,3,7,5,3,0, -2,5,3,7,5,10,7,12, 0,-2,-5,3,0,3,5,7, 7,14,10,17,14,19,17,21, 7,14,10,7,14,12,10,7, 0,7,5,10,7,12,10,14, 0,7,5,3,0,-2,-5,-7];
-      this._lead(this._n(mel[n%64], 0), t, 0.38, 0.05);
-    }
-    this._vox(this._n([14,21,17,14,10,7,3,0, 7,14,10,7,0,3,7,10][n%16], 0), t+bp*0.1, bp*2, 0.03);
-    this._arp(this._n([21,17,14,10,7,3,0,3, 7,10,14,17,21,17,14,10][n%16], 0), t+bp*0.06, 0.16, 0.026);
-    if (n % 8 === 0) { this._osc('sawtooth',this._n(0,1),t,bp*0.9,0.05); this._osc('triangle',this._n(4,1),t+0.02,bp*0.7,0.04); }
-    if (n % 16 === 0) this._pad([this._n(0,-1),this._n(4,-1),this._n(7,-1),this._n(11,-1)], t, bp*16, 0.04);
-    if (n % 8 === 0) this._vox(this._n([14,7,0][(n/8)%3], 1), t+bp*0.15, bp*5, 0.035);
+    if (n % 2 === 0) this._motif(n, t, bp, root, 0.052, 0);
+    if (n % 2 === 1) this._counterMotif(n, t, bp, root, 0.024);
+    if (n % 8 === 0) this._vox(this._n(root + [14, 7, 0, 17][(n / 8) % 4], 1), t + bp * 0.12, bp * 4, 0.034);
+    if (n % 16 === 8) this._bell(this._n(root + 21, 0), t + bp * 0.1, 0.8, 0.021);
+    if (n % 8 === 0) { this._osc('sawtooth',this._n(root,1),t,bp*0.9,0.046); this._osc('triangle',this._n(root+4,1),t+0.02,bp*0.7,0.034); }
+    if (n % 16 === 0) this._pad([this._n(root,-1),this._n(root+4,-1),this._n(root+7,-1),this._n(root+11,-1)], t, bp * 16, 0.035);
   }
   _combatStrike(n) {
     const t = this.ctx.currentTime, bp = 60 / this._bpm;
+    const section = Math.floor(n / 32) % 4;
+    const root = [0, -2, 3, -5][section];
     // === NO PAD, NO BELL opening — clean piano + vox ===
     // Opening: just a single kick hit, then vox melody enters
-    if (n === 0) this._kick(t, 0.15);
+    if (n % 64 === 0) {
+      this._kick(t, 0.15);
+      if (section > 0) this._cymbal(t, 0.018);
+    }
     if (n >= 4 && n % 8 === 0) {
       const mel = [0,3,5,7, 3,2,0,-2, 0,3,7,10, 7,5,3,2, 5,7,10,12, 10,7,5,3, 7,10,12,14, 12,10,7,5];
-      this._lead(this._n(mel[(n/4)%32], 0), t, 0.45, 0.038);
+      this._lead(this._n(mel[(n/4)%32] + root, 0), t, 0.45, 0.034 + this.intensity * 0.012);
     }
+    if (this.intensity > 0.55 && n >= 16 && n % 8 === 4) this._counterMotif(n, t, bp, root, 0.015);
     // Vox — main melodic voice, replaces bell
     if (n >= 8 && n % 6 === 0) {
       const voxMel = [0,3,5,7,10,7,5,3, 0,-2,0,3,5,3,2,0, 7,10,12,14,17,14,10,7, 5,3,0,-2,3,5,7,10];
-      this._vox(this._n(voxMel[(n/6)%32], 0), t+bp*0.2, bp*4, 0.035);
+      this._vox(this._n(voxMel[(n/6)%32] + root, 0), t+bp*0.2, bp*4, 0.027 + this.intensity * 0.01);
     }
     // Drums enter gradually
-    if (n >= 16 && n % 8 === 0) this._kick(t, 0.13);
-    if (n >= 32 && n % 8 === 4) this._kick(t+bp*0.3, 0.10);
-    if (n >= 24 && n % 16 === 12) this._snare(t, 0.04);
+    if (n >= 16 && n % 8 === 0) this._kick(t, 0.11 + this.intensity * 0.04);
+    if (n >= 32 && n % 8 === 4) this._kick(t+bp*0.3, 0.08 + this.intensity * 0.035);
+    if (n >= 24 && n % 16 === 12) this._snare(t, 0.034 + this.intensity * 0.018);
+    if (this.intensity > 0.68 && n % 4 === 2) this._hat(t, 0.013);
     // Bass — enters after vox establishes
     if (n >= 16 && n % 8 === 0) {
       const bP = [0, -2, 3, -4, 0, -2, -5, 3];
-      this._bass(this._n(bP[(n/8)%8], -2), t, bp*2, 0.10);
+      this._bass(this._n(bP[(n/8)%8] + root, -2), t, bp*2, 0.085 + this.intensity * 0.04);
     }
     // Pad — ONLY after 32 beats, very subtle
-    if (n === 32) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*96, 0.02);
+    if (n % 64 === 32) this._pad([this._n(root,-1),this._n(root+3,-1),this._n(root+7,-1)], t, bp*64, 0.018 + this.intensity * 0.006);
     // Chords — sparse
-    if (n >= 16 && n % 32 === 16) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*6, 0.02);
+    if (n >= 16 && n % 32 === 16) this._chord([this._n(root,-1),this._n(root+3,-1),this._n(root+7,-1)], t, bp*6, 0.018 + this.intensity * 0.006);
   }
 
   _combatAssault(n) {
     const t = this.ctx.currentTime, bp = 60 / (this._bpm + 4);
+    const section = Math.floor(n / 32) % 4;
+    const root = [0, -5, 3, -2][section];
     // === AGGRESSIVE but clean opening — NO drone ===
     // Opening: double kick hit, then lead immediately
-    if (n === 0) { this._kick(t, 0.16); this._kick(t+bp*0.25, 0.14); }
+    if (n % 64 === 0) { this._kick(t, 0.16); this._kick(t+bp*0.25, 0.14); this._cymbal(t, 0.018); }
     // Lead — aggressive, immediate
     if (n % 4 === 0) {
       const mel = [0,5,3,7, 0,10,7,11, 5,10,12,14, 10,7,5,3, 0,5,3,7, 10,12,7,8, 5,3,0,-2, 3,5,7,10, 7,10,12,14, 17,14,10,7, 5,7,10,12, 14,12,10,7, 0,5,3,7, 10,7,5,3, 0,-2,3,5, 7,10,12,14];
-      this._lead(this._n(mel[n%64], 0), t, 0.4, 0.042);
+      this._lead(this._n(mel[n%64] + root, 0), t, 0.4, 0.036 + this.intensity * 0.014);
     }
+    if (this.intensity > 0.5 && n % 8 === 6) this._counterMotif(n, t, bp, root, 0.018);
     // Vox — urgent
     if (n % 6 === 0) {
-      this._vox(this._n([7,10,14,17,14,10,7,5, 3,7,10,14,17,14,10,7][(n/6)%16], 0), t+bp*0.15, bp*3, 0.03);
+      this._vox(this._n([7,10,14,17,14,10,7,5, 3,7,10,14,17,14,10,7][(n/6)%16] + root, 0), t+bp*0.15, bp*3, 0.024 + this.intensity * 0.012);
     }
     // Drums — dense but clean
-    if (n % 8 === 0) this._kick(t, 0.14);
-    if (n % 8 === 4) this._kick(t+bp*0.3, 0.11);
-    if (n % 8 === 2 || n % 8 === 6) this._snare(t, 0.045);
-    if (n % 32 === 28) { this._snare(t,0.05); this._snare(t+bp*0.5,0.04); }
+    if (n % 8 === 0) this._kick(t, 0.12 + this.intensity * 0.035);
+    if (n % 8 === 4) this._kick(t+bp*0.3, 0.09 + this.intensity * 0.03);
+    if (n % 8 === 2 || n % 8 === 6) this._snare(t, 0.038 + this.intensity * 0.016);
+    if (n % 32 === 28) { this._snare(t,0.045); this._snare(t+bp*0.45,0.036); if (this.intensity > 0.7) this._snare(t+bp*0.7,0.028); }
+    if (this.intensity > 0.62 && n % 2 === 1) this._hat(t, 0.013);
     // Bass — driving
     if (n % 4 === 0) {
       const bP = [0, -5, -2, -3, 3, -5, -2, 0, 0, -5, 3, 0, -2, -5, -2, 0];
-      this._bass(this._n(bP[(n/2)%16], -2), t, bp*1.2, 0.12);
+      this._bass(this._n(bP[(n/2)%16] + root, -2), t, bp*1.2, 0.1 + this.intensity * 0.04);
     }
     // Chords — punchy
-    if (n % 8 === 0) this._chord([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*1.5, 0.028);
-    if (n % 8 === 4) this._chord([this._n(-5,-1),this._n(-2,-1),this._n(3,-1)], t, bp*1.2, 0.024);
+    if (n % 8 === 0) this._chord([this._n(root,-1),this._n(root+3,-1),this._n(root+7,-1)], t, bp*1.5, 0.025 + this.intensity * 0.006);
+    if (n % 8 === 4) this._chord([this._n(root-5,-1),this._n(root-2,-1),this._n(root+3,-1)], t, bp*1.2, 0.021 + this.intensity * 0.005);
     // Pad — VERY late, very subtle
-    if (n === 48) this._pad([this._n(0,-1),this._n(3,-1),this._n(7,-1)], t, bp*48, 0.018);
-  }  _playBeat(n) {
+    if (n % 64 === 48) this._pad([this._n(root,-1),this._n(root+3,-1),this._n(root+7,-1)], t, bp*48, 0.016 + this.intensity * 0.006);
+  }
+
+  _playBeat(n) {
     switch (this._activeTrack) {
       case 'menu_crystal': this._menuCrystal(n); break;
       case 'menu_void': this._menuVoid(n); break;
@@ -512,7 +562,11 @@ class CyberSynth {
       case 'menu_chase': this._menuChase(n); break;
       case 'menu_siege': this._menuSiege(n); break;
       case 'boss_abyss': this._bossAbyss(n); break;
-      case 'boss_judgment': this._bossJudgment(n); break; case 'boss_onslaught': this._bossOnslaught(n); break; case 'boss_cataclysm': this._bossCataclysm(n); break; case 'combat_strike': this._combatStrike(n); break; case 'combat_assault': this._combatAssault(n); break; case 'boss_onslaught': this._bossOnslaught(n); break; case 'boss_cataclysm': this._bossCataclysm(n); break;
+      case 'boss_judgment': this._bossJudgment(n); break;
+      case 'boss_onslaught': this._bossOnslaught(n); break;
+      case 'boss_cataclysm': this._bossCataclysm(n); break;
+      case 'combat_strike': this._combatStrike(n); break;
+      case 'combat_assault': this._combatAssault(n); break;
     }
   }
 
@@ -526,12 +580,13 @@ class CyberSynth {
     this.currentMode = mode; this.currentWave = wave;
     if (mode === 'menu') { this._activeTrack = this._menuTracks[Math.floor(Math.random() * this._menuTracks.length)]; this._bpm = 70; this._fadeTarget = 0.45; }
     else if (mode === 'boss') { this._activeTrack = this._bossTracks[Math.floor(Math.random() * this._bossTracks.length)]; this._bpm = 90 + wave * 1.5; this._fadeTarget = 0.48; }
-    else { this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)]; this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.42; }
+    else { this._activeTrack = this._combatTracks[Math.floor(Math.random() * this._combatTracks.length)]; this._bpm = 82 + Math.min(wave, 18) * 0.8; this._fadeTarget = 0.38; }
     this._nextBeat = this.ctx.currentTime + 0.6; this._beat = 0; this.intensity = 0.5;
   }
   setIntensity(v) {
     this.intensity = Math.max(0, Math.min(1, v));
-    if (this.currentMode === 'combat') { this._bpm = 82 + Math.min(this.currentWave, 18) * 0.8 + this.intensity * 10; this._fadeTarget = 0.12 + this.intensity * 0.06; }
+    if (this.currentMode === 'combat') { this._bpm = 82 + Math.min(this.currentWave, 18) * 0.8 + this.intensity * 10; this._fadeTarget = 0.34 + this.intensity * 0.08; }
+    else if (this.currentMode === 'boss') { this._fadeTarget = 0.46 + this.intensity * 0.06; }
   }
 
   _scheduleLoop() {

@@ -74,6 +74,7 @@
     <h1>机 装 研 究 室</h1>
     <p class="subtitle lab-fragment-line" id="lab-fragments">MOONSTONE: 0</p>
     <p class="lab-route-line">CHASSIS SELECT / PART CALIBRATION / EVOLUTION RITE</p>
+    <div class="lab-summary" id="lab-summary"></div>
     <div class="lab-tank-grid" id="lab-tank-grid"></div>
     <div class="ornament lab-ornament"></div>
     <div class="lab-detail-panel" id="lab-detail"></div>
@@ -151,7 +152,9 @@
   </div>
   <div id="achievements-screen">
     <h1>战 绩 档 案</h1>
+    <div class="ach-summary" id="achieve-summary"></div>
     <div class="achieve-tab-row" id="achieve-tabs"></div>
+    <div class="ach-filter-row" id="achieve-filters"></div>
     <div class="achieve-grid" id="achieve-grid"></div>
     <button class="ach-back-btn" onclick="hideAchievements()">返回</button>
   </div>
@@ -167,6 +170,17 @@
         <button class="best-tab" id="tab-items-fusion" onclick="switchBestiaryTab('items_fusion')">融合协议</button>
       </div>
       <div class="best-archive-summary" id="bestiary-summary">道具档案记录月光石补给、战术模块与禁忌融合协议。</div>
+      <div class="best-archive-tools">
+        <div class="best-progress-panel" id="bestiary-progress">0/0 已解锁</div>
+        <div class="best-search-panel">
+          <input id="bestiary-search" type="search" placeholder="搜索档案" autocomplete="off" />
+          <div class="best-filter-tabs" id="bestiary-filter-tabs">
+            <button class="best-filter-tab active" id="bestiary-filter-all" onclick="setBestiaryUnlockFilter('all')">全部</button>
+            <button class="best-filter-tab" id="bestiary-filter-unlocked" onclick="setBestiaryUnlockFilter('unlocked')">已解锁</button>
+            <button class="best-filter-tab" id="bestiary-filter-locked" onclick="setBestiaryUnlockFilter('locked')">未解锁</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="best-grid" id="bestiary-grid"></div>
     <button class="best-back-btn" onclick="hideBestiary()">返回</button>
@@ -179,6 +193,13 @@
   </div>
 </div>
 
+<script src="scripts/systems/difficulty-config.js"></script>
+<script src="scripts/systems/faction-config.js"></script>
+<script src="scripts/systems/item-config.js"></script>
+<script src="scripts/systems/enemy-visual-profile.js"></script>
+<script src="scripts/systems/tank-config.js"></script>
+<script src="scripts/systems/bestiary-config.js"></script>
+<script src="scripts/systems/boss-pacing.js"></script>
 <script src="scripts/game.js"></script>
 <script src="audio/music-generator.js"></script>
 </body>
