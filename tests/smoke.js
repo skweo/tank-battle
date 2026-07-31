@@ -12,8 +12,9 @@ const enemyVisualProfileJs = fs.readFileSync(path.join(root, 'scripts', 'systems
 const tankConfigJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'tank-config.js'), 'utf8');
 const bestiaryConfigJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'bestiary-config.js'), 'utf8');
 const bossPacingJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'boss-pacing.js'), 'utf8');
+const bossSelectionJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'boss-selection.js'), 'utf8');
 const gameJs = fs.readFileSync(path.join(root, 'scripts', 'game.js'), 'utf8');
-const runtimeJs = `${difficultyConfigJs}\n${factionConfigJs}\n${itemConfigJs}\n${enemyVisualProfileJs}\n${tankConfigJs}\n${bestiaryConfigJs}\n${bossPacingJs}\n${gameJs}`;
+const runtimeJs = `${difficultyConfigJs}\n${factionConfigJs}\n${itemConfigJs}\n${enemyVisualProfileJs}\n${tankConfigJs}\n${bestiaryConfigJs}\n${bossPacingJs}\n${bossSelectionJs}\n${gameJs}`;
 
 function makeStyle() {
   return {
@@ -446,6 +447,7 @@ hostCheck('browser script order loads systems before game', () => {
   const tankConfigIndex = sources.indexOf('scripts/systems/tank-config.js');
   const bestiaryConfigIndex = sources.indexOf('scripts/systems/bestiary-config.js');
   const bossPacingIndex = sources.indexOf('scripts/systems/boss-pacing.js');
+  const bossSelectionIndex = sources.indexOf('scripts/systems/boss-selection.js');
   const gameIndex = sources.indexOf('scripts/game.js');
   if (difficultyConfigIndex < 0) throw new Error('scripts/systems/difficulty-config.js missing from index.html');
   if (factionConfigIndex < 0) throw new Error('scripts/systems/faction-config.js missing from index.html');
@@ -454,6 +456,7 @@ hostCheck('browser script order loads systems before game', () => {
   if (tankConfigIndex < 0) throw new Error('scripts/systems/tank-config.js missing from index.html');
   if (bestiaryConfigIndex < 0) throw new Error('scripts/systems/bestiary-config.js missing from index.html');
   if (bossPacingIndex < 0) throw new Error('scripts/systems/boss-pacing.js missing from index.html');
+  if (bossSelectionIndex < 0) throw new Error('scripts/systems/boss-selection.js missing from index.html');
   if (gameIndex < 0) throw new Error('scripts/game.js missing from index.html');
   if (difficultyConfigIndex > factionConfigIndex) throw new Error('difficulty config must load before faction config');
   if (factionConfigIndex > itemConfigIndex) throw new Error('faction config must load before item config');
@@ -462,7 +465,7 @@ hostCheck('browser script order loads systems before game', () => {
   if (tankConfigIndex > bestiaryConfigIndex) throw new Error('tank config must load before bestiary config');
   if (bestiaryConfigIndex > bossPacingIndex) throw new Error('bestiary config must load before boss pacing');
   if (difficultyConfigIndex > bossPacingIndex) throw new Error('difficulty config must load before boss pacing');
-  if (bossPacingIndex > gameIndex) throw new Error('boss pacing must load before game.js');
+  if (bossSelectionIndex > gameIndex) throw new Error('boss selection must load before game.js');
 });
 
 hostCheck('html onclick handlers resolve', () => {

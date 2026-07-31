@@ -2971,39 +2971,12 @@ function getWaveSpawnRate(diff) {
 
 function selectBossForWave(waveNo) {
   const bossWaveIndex = getBossWaveIndex(waveNo);
-
-  // Build pool: all bosses for archive, expanding pool for post-archive
-  let pool = [...BOSS_TYPES];
-
-  // Tier-based filtering by boss wave depth
-  if (bossWaveIndex < 3) {
-    // Waves 4, 8, 12: Tier 1 only (beginner bosses)
-    pool = pool.filter(b => b.tier === 1);
-  } else if (bossWaveIndex < 6) {
-    // Waves 16, 20, 24: Tier 1 + Tier 2 (intermediate bosses)
-    pool = pool.filter(b => b.tier <= 2);
-  }
-  // Waves 28+: all tiers (Tier 3 bosses join the pool)
-
-  // Filter out last boss to avoid consecutive repeats
-  if (lastBossName && pool.length > 1) {
-    pool = pool.filter(b => b.name !== lastBossName);
-  }
-
-  // Clear mode: filter out already-seen bosses so each appears once
-  if (currentRunMode === 'clear' && runBossesSeen.size > 0 && pool.length > 1) {
-    const unseen = pool.filter(b => !runBossesSeen.has(b.name));
-    if (unseen.length > 0) pool = unseen;
-  }
-
-  // Faction variety: prefer different faction from last boss
-  const lastBoss = BOSS_TYPES.find(b => b.name === lastBossName);
-  if (lastBoss && pool.length > 1) {
-    const factionShift = pool.filter(b => b.faction !== lastBoss.faction);
-    if (factionShift.length > 0) pool = factionShift;
-  }
-
-  return pool[Math.floor(rng() * pool.length)] || BOSS_TYPES[0];
+  return BossSelection.selectBossForWave(BOSS_TYPES, bossWaveIndex, {
+    lastBossName,
+    runMode: currentRunMode,
+    seenBossNames: runBossesSeen,
+    random: rng,
+  }) || BOSS_TYPES[0];
 }
 
 function getRequiredBossDefeats(diff = difficultySettings[currentDifficulty] || difficultySettings.normal) {
