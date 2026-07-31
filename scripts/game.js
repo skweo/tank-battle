@@ -156,6 +156,7 @@ let wave = 1;
 let waveEnemiesRemaining = 0;
 let waveEnemiesToSpawn = 0;
 let waveEnemiesTotal = 0;
+let waveEliteRollsRemaining = 0;
 let wavePause = 0;
 let waveNotificationTimer = 0;
 let comboCount = 0;
@@ -2923,9 +2924,11 @@ function getDualModeEnemyMul() {
 }
 function getWaveEnemyBudget(waveNo) {
   const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
-  const base = Math.min(9, 2 + Math.floor(waveNo * 0.34) + Math.floor(waveNo * waveNo / 150));
-  const dualMul = isDualMode ? 1.3 : 1.0;
-  return Math.max(2, Math.floor(base * (diff.waveBudgetMul || 1) * dualMul));
+  return WavePacing.getEnemyBudget(waveNo, diff, { dualMode: isDualMode });
+}
+function getWaveEliteRollBudget(waveNo) {
+  const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
+  return WavePacing.getEliteRollBudget(waveNo, diff, { dualMode: isDualMode });
 }
 
 const BOSS_WAVE_INTERVAL = BossPacing.BOSS_WAVE_INTERVAL;
@@ -2956,17 +2959,16 @@ function getBossSupportCount(waveNo) {
 }
 
 function getWaveSpawnBurst(waveNo) {
-  return Math.min(2, 1 + Math.floor(waveNo / 12));
+  return WavePacing.getOpeningBurst(waveNo);
 }
 
 function getWaveConcurrentEnemyCap() {
   const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
-  const extra = diff.waveBudgetMul > 0.95 ? 1 : 0;
-  return Math.min(5 + extra, 3 + Math.floor(wave / 9) + Math.floor(level / 11) + extra);
+  return WavePacing.getConcurrentEnemyCap(wave, level, diff);
 }
 
 function getWaveSpawnRate(diff) {
-  return Math.max(92, diff.spawnRate - wave * 3 - level * 2);
+  return WavePacing.getSpawnRate(wave, level, diff, { bossWave: isBossWave });
 }
 
 function selectBossForWave(waveNo) {
@@ -3077,10 +3079,12 @@ function startNextWave() {
   waveEnemiesTotal = enemiesPerWave;
   waveEnemiesRemaining = enemiesPerWave;
   waveEnemiesToSpawn = enemiesPerWave;
+  waveEliteRollsRemaining = getWaveEliteRollBudget(wave);
   wavePause = 0;
   const firstBurst = Math.min(getWaveSpawnBurst(wave), waveEnemiesToSpawn, getWaveConcurrentEnemyCap());
+  const openingEliteRolls = WavePacing.getOpeningEliteRolls(wave);
   for (let i = 0; i < firstBurst; i++) {
-    if (spawnEnemy()) waveEnemiesToSpawn = Math.max(0, waveEnemiesToSpawn - 1);
+    if (spawnEnemy({ allowElite: i < openingEliteRolls })) waveEnemiesToSpawn = Math.max(0, waveEnemiesToSpawn - 1);
   }
   spawnTimer = 0;
   const sub = (wave % 3 === 0) ? '补给时间! 收集道具准备下一波' : '准备迎战!';
@@ -14208,7 +14212,7 @@ const enemyTypes = [
   { kind:'fissure',  color: '#2a1040', turret: '#9880e0', speed: 0.5,  hp: 2, label: 'Fissure',   faction:'void_cult' },
 ];
 
-function spawnEnemy() {
+function spawnEnemy(options = {}) {
   let x, y, safe;
   const diff = difficultySettings[currentDifficulty] || difficultySettings.normal;
   const minDistToPlayer = player && player.invincible > 0 ? 220 : 150;
@@ -14255,7 +14259,9 @@ function spawnEnemy() {
   // Chance to spawn elite (increases with level)
   const baseEliteChance = 0.09 + wave * 0.018 + level * 0.012;
   const eliteChance = Math.min(0.58, baseEliteChance * (diff.eliteChanceMul || 1));
-  if (wave >= 3 && rng() < eliteChance) {
+  const canRollElite = wave >= 3 && (isBossWave || (options.allowElite !== false && waveEliteRollsRemaining > 0));
+  if (canRollElite && !isBossWave) waveEliteRollsRemaining = Math.max(0, waveEliteRollsRemaining - 1);
+  if (canRollElite && rng() < eliteChance) {
     const maxIdx = Math.min(eliteTypes.length - 1, Math.floor((wave + level) / 3));
     const idx = Math.floor(rng() * (maxIdx + 1));
     const etype = eliteTypes[idx];
@@ -15303,6 +15309,7 @@ function resetRunState() {
   waveEnemiesRemaining = 0;
   waveEnemiesToSpawn = 0;
   waveEnemiesTotal = 0;
+  waveEliteRollsRemaining = 0;
   wavePause = 0;
   waveNotificationTimer = 0;
   comboCount = 0;

@@ -5,6 +5,7 @@
     easy: Object.freeze({
       lives: 5,
       spawnRate: 470,
+      regularWaveSpawnRate: 300,
       enemyHpBonus: 1,
       playerHp: 12,
       enemySpeedMul: 0.66,
@@ -20,6 +21,7 @@
     normal: Object.freeze({
       lives: 3,
       spawnRate: 410,
+      regularWaveSpawnRate: 270,
       enemyHpBonus: 2,
       playerHp: 10,
       enemySpeedMul: 0.94,
@@ -35,6 +37,7 @@
     hard: Object.freeze({
       lives: 2,
       spawnRate: 335,
+      regularWaveSpawnRate: 240,
       enemyHpBonus: 4,
       playerHp: 8,
       enemySpeedMul: 1.18,
@@ -50,6 +53,7 @@
     extreme: Object.freeze({
       lives: 2,
       spawnRate: 280,
+      regularWaveSpawnRate: 210,
       enemyHpBonus: 6,
       playerHp: 7,
       enemySpeedMul: 1.42,
@@ -65,6 +69,7 @@
     nightmare: Object.freeze({
       lives: 1,
       spawnRate: 235,
+      regularWaveSpawnRate: 180,
       enemyHpBonus: 8,
       playerHp: 6,
       enemySpeedMul: 1.62,

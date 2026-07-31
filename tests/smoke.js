@@ -6,6 +6,7 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const difficultyConfigJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'difficulty-config.js'), 'utf8');
+const wavePacingJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'wave-pacing.js'), 'utf8');
 const factionConfigJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'faction-config.js'), 'utf8');
 const itemConfigJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'item-config.js'), 'utf8');
 const enemyVisualProfileJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'enemy-visual-profile.js'), 'utf8');
@@ -14,7 +15,7 @@ const bestiaryConfigJs = fs.readFileSync(path.join(root, 'scripts', 'systems', '
 const bossPacingJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'boss-pacing.js'), 'utf8');
 const bossSelectionJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'boss-selection.js'), 'utf8');
 const gameJs = fs.readFileSync(path.join(root, 'scripts', 'game.js'), 'utf8');
-const runtimeJs = `${difficultyConfigJs}\n${factionConfigJs}\n${itemConfigJs}\n${enemyVisualProfileJs}\n${tankConfigJs}\n${bestiaryConfigJs}\n${bossPacingJs}\n${bossSelectionJs}\n${gameJs}`;
+const runtimeJs = `${difficultyConfigJs}\n${wavePacingJs}\n${factionConfigJs}\n${itemConfigJs}\n${enemyVisualProfileJs}\n${tankConfigJs}\n${bestiaryConfigJs}\n${bossPacingJs}\n${bossSelectionJs}\n${gameJs}`;
 
 function makeStyle() {
   return {
@@ -441,6 +442,7 @@ hostCheck('game scripts syntax parses', () => {
 hostCheck('browser script order loads systems before game', () => {
   const sources = getScriptSources(html);
   const difficultyConfigIndex = sources.indexOf('scripts/systems/difficulty-config.js');
+  const wavePacingIndex = sources.indexOf('scripts/systems/wave-pacing.js');
   const factionConfigIndex = sources.indexOf('scripts/systems/faction-config.js');
   const itemConfigIndex = sources.indexOf('scripts/systems/item-config.js');
   const enemyVisualProfileIndex = sources.indexOf('scripts/systems/enemy-visual-profile.js');
@@ -450,6 +452,7 @@ hostCheck('browser script order loads systems before game', () => {
   const bossSelectionIndex = sources.indexOf('scripts/systems/boss-selection.js');
   const gameIndex = sources.indexOf('scripts/game.js');
   if (difficultyConfigIndex < 0) throw new Error('scripts/systems/difficulty-config.js missing from index.html');
+  if (wavePacingIndex < 0) throw new Error('scripts/systems/wave-pacing.js missing from index.html');
   if (factionConfigIndex < 0) throw new Error('scripts/systems/faction-config.js missing from index.html');
   if (itemConfigIndex < 0) throw new Error('scripts/systems/item-config.js missing from index.html');
   if (enemyVisualProfileIndex < 0) throw new Error('scripts/systems/enemy-visual-profile.js missing from index.html');
@@ -458,7 +461,8 @@ hostCheck('browser script order loads systems before game', () => {
   if (bossPacingIndex < 0) throw new Error('scripts/systems/boss-pacing.js missing from index.html');
   if (bossSelectionIndex < 0) throw new Error('scripts/systems/boss-selection.js missing from index.html');
   if (gameIndex < 0) throw new Error('scripts/game.js missing from index.html');
-  if (difficultyConfigIndex > factionConfigIndex) throw new Error('difficulty config must load before faction config');
+  if (difficultyConfigIndex > wavePacingIndex) throw new Error('difficulty config must load before wave pacing');
+  if (wavePacingIndex > factionConfigIndex) throw new Error('wave pacing must load before faction config');
   if (factionConfigIndex > itemConfigIndex) throw new Error('faction config must load before item config');
   if (itemConfigIndex > enemyVisualProfileIndex) throw new Error('item config must load before enemy visual profile');
   if (enemyVisualProfileIndex > tankConfigIndex) throw new Error('enemy visual profile must load before tank config');
