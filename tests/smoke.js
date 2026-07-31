@@ -756,7 +756,7 @@ const smokeHarness = `
     boss.drawTelegraph(ctx, phantomDef.phases[1], phantomDef.turret);
   });
 
-  step('enemy and boss projectiles keep correct ownership', () => {
+  step('orbital cannon phase one fires its locked laser beam', () => {
     startGame('easy', 'spread', { mode: 'clear' });
     enemies = [];
     enemyBullets = [];
@@ -768,9 +768,37 @@ const smokeHarness = `
     orbital.telegraphAngle = 0;
     orbital.turretAngle = 0;
     orbital.shoot();
-    assert(enemyBullets.some(b => b.color === '#f84' && b.railgun && b.fromPlayer === false), 'orbital snipe should be an enemy railgun');
 
+    assert(enemyBullets.length === 1, 'orbital phase one should emit one attack entity');
+    const beam = enemyBullets[0];
+    assert(beam.attackKind === 'laser_beam', 'orbital phase one should emit a laser beam instead of a bullet');
+    assert(beam.fromPlayer === false, 'orbital laser should belong to the enemy');
+    assert(beam.duration >= 12 && beam.width >= 16, 'orbital laser should have a readable firing window and lane width');
+    assert(beam.angle === orbital.telegraphAngle, 'orbital laser should preserve the completed telegraph angle');
+    assert(beam.hitsTank({ x: 760, y: 420, getHitRadius: () => 18 }), 'orbital laser should cover the warned lane');
+    assert(!beam.hitsTank({ x: 760, y: 470, getHitRadius: () => 18 }), 'orbital laser should miss tanks outside the warned lane');
+
+    const beamX = beam.x;
+    const beamY = beam.y;
+    beam.update();
+    assert(beam.x === beamX && beam.y === beamY, 'orbital laser should remain fixed instead of moving like a bullet');
+
+    player.x = 760;
+    player.y = 420;
+    player.invincible = 0;
+    const hpBeforeBeam = player.hp;
+    checkBulletTankCollisions(enemyBullets, [player], false);
+    assert(player.hp === hpBeforeBeam - 1, 'orbital laser should damage a player who stays in the warned lane');
+    player.invincible = 0;
+    checkBulletTankCollisions(enemyBullets, [player], false);
+    assert(player.hp === hpBeforeBeam - 1, 'one orbital laser should not repeatedly damage the same player');
+  });
+
+  step('enemy and boss projectiles keep correct ownership', () => {
+    startGame('easy', 'spread', { mode: 'clear' });
+    enemies = [];
     enemyBullets = [];
+
     const anchorDef = BOSS_TYPES.find(b => b.name === '重力锚');
     const anchor = new BossEnemy(520, 420, anchorDef);
     anchor.currentPhase = 1;

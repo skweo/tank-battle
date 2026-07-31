@@ -5459,6 +5459,75 @@ class Bullet {
   }
 }
 
+class BossLaserBeam {
+  constructor(x, y, angle, options = {}) {
+    this.x = x;
+    this.y = y;
+    this.angle = angle;
+    this.attackKind = 'laser_beam';
+    this.color = options.color || '#f84';
+    this.fromPlayer = false;
+    this.damage = options.damage || 1;
+    this.duration = Math.max(12, options.duration || 18);
+    this.life = this.duration;
+    this.width = Math.max(16, options.width || 20);
+    this.length = options.length || Math.hypot(W, H) * 1.15;
+    this.radius = this.width / 2;
+    this.alive = true;
+    this.railgun = true;
+    this.pierce = true;
+    this.hitTargets = new Set();
+  }
+  update() {
+    this.life--;
+    if (this.life <= 0) this.alive = false;
+  }
+  hitsTank(tank) {
+    if (!tank) return false;
+    const dx = tank.x - this.x;
+    const dy = tank.y - this.y;
+    const alongBeam = dx * Math.cos(this.angle) + dy * Math.sin(this.angle);
+    if (alongBeam < 0 || alongBeam > this.length) return false;
+    const distanceFromBeam = Math.abs(dx * -Math.sin(this.angle) + dy * Math.cos(this.angle));
+    const tankRadius = tank.getHitRadius ? tank.getHitRadius() : 20;
+    return distanceFromBeam <= this.width / 2 + tankRadius;
+  }
+  draw(ctx) {
+    const lifeRatio = Math.max(0, this.life / this.duration);
+    const pulse = 0.88 + Math.sin((this.duration - this.life) * 1.7) * 0.12;
+    const endX = this.x + Math.cos(this.angle) * this.length;
+    const endY = this.y + Math.sin(this.angle) * this.length;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = Math.min(1, lifeRatio * 1.8);
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 28;
+    ctx.strokeStyle = 'rgba(255,92,44,0.38)';
+    ctx.lineWidth = this.width * 1.8 * pulse;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = this.width * pulse;
+    ctx.stroke();
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = '#fff3d6';
+    ctx.lineWidth = Math.max(3, this.width * 0.24);
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff3d6';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.width * 0.62 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 // --- Tanks ---
 class Tank {
   constructor(x, y, color, turretColor, speed, hp) {
@@ -9142,13 +9211,15 @@ class BossEnemy extends EliteEnemy {
       spawnExplosion(baseX, baseY, 26, '#6ff', '#fff');
       triggerShake(this.currentPhase > 0 ? 10 : 7, 10);
     } else if (phase.attack === 'laser_snipe') {
-      // === ORBITAL CANNON P1: Single high-speed railgun snipe ===
-      const a = this.telegraphAngle;
-      const b = new Bullet(bx, by, a, phase.bulletSpeed + 3.0, '#f84', false, this.currentPhase > 0 ? 3 : 2);
-      b.radius = 3.5; b.railgun = true;
-      enemyBullets.push(b);
-      // Warning beam visual is handled by telegraph
-      triggerShake(3, 5);
+      const beam = new BossLaserBeam(bx, by, this.telegraphAngle, {
+        color: '#f84',
+        damage: 1,
+        duration: 18,
+        width: 20,
+      });
+      enemyBullets.push(beam);
+      spawnExplosion(bx, by, 12, '#f84', '#fff3d6');
+      triggerShake(7, 9);
     } else if (phase.attack === 'beam_sweep') {
       const sweepBase = this.telegraphAngle + (this.attackBurstShots - 1) * 0.08;
       const side = sweepBase + Math.PI / 2;
@@ -14291,17 +14362,25 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
     if (!bullet.alive) continue;
     for (const tank of tanks) {
       if (!tank.alive) continue;
-      const dx = bullet.x - tank.x;
-      const dy = bullet.y - tank.y;
-      let hitRadius = bullet.railgun ? 24 : (fromPlayer && buffs.big_bullet > 0 ? 28 : 20);
-      if (fromPlayer && tank.getHitRadius) {
-        const bodyRadius = tank.getHitRadius();
-        hitRadius = bullet.railgun ? Math.max(hitRadius, bodyRadius) : Math.max(hitRadius, bodyRadius + (buffs.big_bullet > 0 ? 4 : 0));
+      let hitsTank = false;
+      if (bullet.attackKind === 'laser_beam') {
+        if (bullet.hitTargets.has(tank)) continue;
+        hitsTank = bullet.hitsTank(tank);
+        if (hitsTank) bullet.hitTargets.add(tank);
+      } else {
+        const dx = bullet.x - tank.x;
+        const dy = bullet.y - tank.y;
+        let hitRadius = bullet.railgun ? 24 : (fromPlayer && buffs.big_bullet > 0 ? 28 : 20);
+        if (fromPlayer && tank.getHitRadius) {
+          const bodyRadius = tank.getHitRadius();
+          hitRadius = bullet.railgun ? Math.max(hitRadius, bodyRadius) : Math.max(hitRadius, bodyRadius + (buffs.big_bullet > 0 ? 4 : 0));
+        }
+        if (!fromPlayer && tank === player) {
+          hitRadius = player.getHitRadius ? player.getHitRadius() : Math.max(16, Math.min(24, (player.hitboxSize || 36) * 0.54));
+        }
+        hitsTank = Math.sqrt(dx * dx + dy * dy) < hitRadius;
       }
-      if (!fromPlayer && tank === player) {
-        hitRadius = player.getHitRadius ? player.getHitRadius() : Math.max(16, Math.min(24, (player.hitboxSize || 36) * 0.54));
-      }
-      if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+      if (hitsTank) {
         const hpBeforeHit = tank.hp || 0;
         if (!fromPlayer && tank === player) recordPlayerHit(bullet);
         if (!bullet.railgun && !bullet.pierce) bullet.alive = false;
@@ -14375,7 +14454,7 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         if (!bullet.railgun && !bullet.pierce) break;
       }
     }
-    if (bullet.alive && bulletHitsObstacle(bullet)) {
+    if (bullet.attackKind !== 'laser_beam' && bullet.alive && bulletHitsObstacle(bullet)) {
       if (!bullet.ricochet) bullet.alive = false;
     }
   }
@@ -15237,6 +15316,7 @@ function checkBulletBulletCollisions() {
     if (!p.alive) continue;
     for (const e of enemyBullets) {
       if (!e.alive) continue;
+      if (e.attackKind === 'laser_beam') continue;
       const dx = p.x - e.x;
       const dy = p.y - e.y;
       const r = (p.radius || 3) + (e.radius || 3) + 2;
