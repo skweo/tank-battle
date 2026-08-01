@@ -14,8 +14,9 @@ const tankConfigJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'tank
 const bestiaryConfigJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'bestiary-config.js'), 'utf8');
 const bossPacingJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'boss-pacing.js'), 'utf8');
 const bossSelectionJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'boss-selection.js'), 'utf8');
+const ricochetBuildJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'ricochet-build.js'), 'utf8');
 const gameJs = fs.readFileSync(path.join(root, 'scripts', 'game.js'), 'utf8');
-const runtimeJs = `${difficultyConfigJs}\n${wavePacingJs}\n${factionConfigJs}\n${itemConfigJs}\n${enemyVisualProfileJs}\n${tankConfigJs}\n${bestiaryConfigJs}\n${bossPacingJs}\n${bossSelectionJs}\n${gameJs}`;
+const runtimeJs = `${difficultyConfigJs}\n${wavePacingJs}\n${factionConfigJs}\n${itemConfigJs}\n${enemyVisualProfileJs}\n${tankConfigJs}\n${bestiaryConfigJs}\n${bossPacingJs}\n${bossSelectionJs}\n${ricochetBuildJs}\n${gameJs}`;
 
 function makeStyle() {
   return {
@@ -450,6 +451,7 @@ hostCheck('browser script order loads systems before game', () => {
   const bestiaryConfigIndex = sources.indexOf('scripts/systems/bestiary-config.js');
   const bossPacingIndex = sources.indexOf('scripts/systems/boss-pacing.js');
   const bossSelectionIndex = sources.indexOf('scripts/systems/boss-selection.js');
+  const ricochetBuildIndex = sources.indexOf('scripts/systems/ricochet-build.js');
   const gameIndex = sources.indexOf('scripts/game.js');
   if (difficultyConfigIndex < 0) throw new Error('scripts/systems/difficulty-config.js missing from index.html');
   if (wavePacingIndex < 0) throw new Error('scripts/systems/wave-pacing.js missing from index.html');
@@ -460,6 +462,7 @@ hostCheck('browser script order loads systems before game', () => {
   if (bestiaryConfigIndex < 0) throw new Error('scripts/systems/bestiary-config.js missing from index.html');
   if (bossPacingIndex < 0) throw new Error('scripts/systems/boss-pacing.js missing from index.html');
   if (bossSelectionIndex < 0) throw new Error('scripts/systems/boss-selection.js missing from index.html');
+  if (ricochetBuildIndex < 0) throw new Error('scripts/systems/ricochet-build.js missing from index.html');
   if (gameIndex < 0) throw new Error('scripts/game.js missing from index.html');
   if (difficultyConfigIndex > wavePacingIndex) throw new Error('difficulty config must load before wave pacing');
   if (wavePacingIndex > factionConfigIndex) throw new Error('wave pacing must load before faction config');
@@ -470,6 +473,7 @@ hostCheck('browser script order loads systems before game', () => {
   if (bestiaryConfigIndex > bossPacingIndex) throw new Error('bestiary config must load before boss pacing');
   if (difficultyConfigIndex > bossPacingIndex) throw new Error('difficulty config must load before boss pacing');
   if (bossSelectionIndex > gameIndex) throw new Error('boss selection must load before game.js');
+  if (ricochetBuildIndex > gameIndex) throw new Error('ricochet build must load before game.js');
 });
 
 hostCheck('html onclick handlers resolve', () => {
@@ -539,6 +543,185 @@ const smokeHarness = `
     assert(player && player.alive, 'player should be alive');
     assert(obstacles.length > 0, 'map obstacles should generate');
     assert(waveEnemiesTotal > 0, 'wave enemy budget should initialize');
+  });
+
+  step('ricochet starter unlocks its directed upgrade path', () => {
+    resetModifiers();
+    level = 2;
+    const starter = MODIFIER_DEFS.find(def => def.id === 'ricochet_starter');
+    const amplifier = MODIFIER_DEFS.find(def => def.id === 'ricochet_amplifier');
+    assert(starter && amplifier, 'ricochet modifier cards missing');
+    assert(isModifierAvailable(starter), 'starter should be available at level 2');
+    assert(!isModifierAvailable(amplifier), 'amplifier should require the starter');
+    const openDraft = getModifierChoices(4, [], true, 'level');
+    assert(openDraft.some(def => def.family !== 'ricochet_chain'), 'starter should remain optional beside non-ricochet upgrades');
+    applyModifierDef(starter);
+    level = 3;
+    assert(isModifierAvailable(amplifier), 'amplifier should unlock after the starter');
+    const directedDraft = getModifierChoices(4, [], true, 'level');
+    assert(directedDraft.some(def => def.id === 'ricochet_amplifier'), 'the next draft should guarantee a legal ricochet-path component');
+    const state = getActiveRicochetBuildState();
+    assert(state.enabled && state.directDamageMultiplier === 0.78, 'starter runtime drawback missing');
+    resetModifiers();
+  });
+
+  step('non-ricochet shooting keeps its original damage and cadence', () => {
+    resetModifiers();
+    playerBullets = [];
+    player.ammo = player.magSize;
+    player.shootCooldown = 0;
+    const expectedDamage = Math.ceil(player._tankDef.bulletDamage * playerBulletDmgMul);
+    const expectedDelay = Math.max(8, Math.floor(player.shootDelay * playerShootDelayMul));
+    player.shoot();
+    assert(playerBullets.length > 0, 'baseline player shot missing');
+    assert(playerBullets[0].damage === expectedDamage, 'unbuilt shots should keep their original direct damage');
+    assert(!playerBullets[0].ricochetChain, 'unbuilt shots should not carry enemy-chain state');
+    assert(getEffectiveShootDelay() === expectedDelay, 'unbuilt shooting should keep its original cadence');
+  });
+
+  step('ricochet starter reduces direct damage and launches an enemy chain', () => {
+    resetModifiers();
+    level = 2;
+    applyModifierDef(MODIFIER_DEFS.find(def => def.id === 'ricochet_starter'));
+    playerBullets = [];
+    enemies = [];
+    player.ammo = player.magSize;
+    const expectedBaseDamage = Math.ceil(player._tankDef.bulletDamage * playerBulletDmgMul);
+    player.shoot();
+    const directShot = playerBullets[0];
+    assert(directShot, 'player shot missing');
+    assert(Math.abs(directShot.damage - expectedBaseDamage * 0.78) < 0.001, 'starter direct-hit drawback not applied');
+    assert(directShot.ricochetChain, 'direct shot should carry enemy-chain state');
+
+    const first = {
+      x: directShot.x,
+      y: directShot.y,
+      hp: 10,
+      alive: true,
+      hit(bullet) { this.hp -= bullet.damage; return false; },
+    };
+    const second = {
+      x: directShot.x + 100,
+      y: directShot.y,
+      hp: 10,
+      alive: true,
+      hit(bullet) { this.hp -= bullet.damage; return false; },
+    };
+    enemies = [first, second];
+    playerBullets = [directShot];
+    checkBulletTankCollisions(playerBullets, enemies, true);
+    const chainShot = playerBullets.find(bullet => bullet.ricochetChainDepth === 1);
+    assert(chainShot && chainShot.ricochetTarget === second, 'first enemy hit should launch a chain toward the next target');
+    assert(Math.abs(chainShot.damage - expectedBaseDamage * 0.72) < 0.001, 'first bounce decay missing');
+    resetModifiers();
+  });
+
+  step('ricochet loop, survival, core, and capstone close the runtime build loop', () => {
+    resetModifiers();
+    level = 7;
+    const buildIds = [
+      'ricochet_starter',
+      'ricochet_amplifier',
+      'ricochet_loop',
+      'ricochet_survival',
+      'ricochet_core',
+      'ricochet_capstone',
+    ];
+    buildIds.forEach(id => applyModifierDef(MODIFIER_DEFS.find(def => def.id === id)));
+    const state = getActiveRicochetBuildState();
+    assert(state.directDamageMultiplier === 0.58, 'core direct-hit drawback missing');
+    assert(getEffectiveShootDelay() === Math.max(8, Math.floor(player.shootDelay * 1.3)), 'capstone fire-delay drawback missing');
+
+    const slowed = new EnemyTank(240, 240, '#f00', '#f80', 0.5, 10, 'scout');
+    const slowBullet = new Bullet(240, 240, 0, 0, '#72f1ff', true, 1);
+    slowBullet.ricochetSlowFrames = state.slowFrames;
+    slowed.hit(slowBullet);
+    assert(slowed.frozen === 90, 'amplifier should slow a bounce target for 90 frames');
+
+    ricochetBounceMeter = 4;
+    player.shootCooldown = 24;
+    player.reloadTimer = 0;
+    player.ammo = 0;
+    buffs.shield = 0;
+    const chain = {
+      state,
+      owner: player,
+      baseDamage: 4,
+      visited: new Set(),
+      reserved: new Set(),
+      refundClaimed: false,
+    };
+    applyRicochetBounceOutcome(chain, true);
+    assert(player.shootCooldown === 14 && player.ammo === 1, 'loop kill should refund cooldown and one ammo');
+    assert(chain.refundClaimed === true, 'chain refund should be marked as consumed');
+    assert(buffs.shield === 150 && ricochetBounceMeter === 0, 'fifth bounce hit should grant the survival shield');
+    player.shootCooldown = 24;
+    player.ammo = 0;
+    applyRicochetBounceOutcome(chain, true);
+    assert(player.shootCooldown === 24 && player.ammo === 0, 'a chain must not refund resources twice');
+
+    const origin = { x: 300, y: 300, alive: false };
+    enemies = [
+      { x: 340, y: 300, alive: true },
+      { x: 380, y: 300, alive: true },
+      { x: 420, y: 300, alive: true },
+    ];
+    chain.visited = new Set([origin]);
+    chain.reserved = new Set();
+    playerBullets = [];
+    const secondBounce = new Bullet(origin.x, origin.y, 0, 4, '#72f1ff', true, 4);
+    secondBounce.ricochetChain = chain;
+    secondBounce.ricochetChainDepth = 2;
+    const split = spawnRicochetChainTargets(secondBounce, origin);
+    assert(split.length === 2 && split.every(bullet => bullet.ricochetChainDepth === 3), 'third bounce should split into two targets');
+    resetModifiers();
+  });
+
+  step('ricochet boss relic is a one-time reward after the final boss unit dies', () => {
+    resetModifiers();
+    level = 4;
+    runXp = 0;
+    xpToNext = 99999;
+    applyModifierDef(MODIFIER_DEFS.find(def => def.id === 'ricochet_starter'));
+    const relic = MODIFIER_DEFS.find(def => def.id === 'ricochet_relic');
+    assert(relic, 'ricochet boss relic definition missing');
+    assert(!isModifierAvailable(relic, 'level'), 'boss relic must stay out of normal level drafts');
+
+    const firstBoss = { alive: false, bossDef: { name: '测试双首领甲' }, isElite: true };
+    const finalBoss = { alive: true, bossDef: { name: '测试双首领乙' }, isElite: true };
+    enemies = [firstBoss, finalBoss];
+    waveEnemiesRemaining = 2;
+    onEnemyKilled(firstBoss);
+    assert(pendingRicochetBossReward === false, 'reward must wait until every boss unit is dead');
+
+    finalBoss.alive = false;
+    onEnemyKilled(finalBoss);
+    assert(pendingRicochetBossReward === true, 'final boss kill should queue a ricochet reward');
+    assert(ricochetBossRewardOffered === false, 'queued reward should not count as offered before its draft opens');
+    assert(showPendingRicochetBossReward() === true, 'queued reward should open a boss draft');
+    assert(currentModifierDraft && currentModifierDraft.mode === 'boss', 'boss reward should use a distinct draft mode');
+    assert(currentModifierDraft.choices[0] === relic, 'boss draft should guarantee the ricochet relic in its first slot');
+    assert(currentModifierDraft.choices.slice(1).every(def => def.source !== 'boss'), 'boss draft alternatives should be ordinary upgrades');
+    assert(buildModifierCard(relic, 0).includes('disabled'), 'the guaranteed relic slot should not be rerollable');
+
+    pickModifierFromDraft(1);
+    assert(!getActiveRicochetIds().includes('ricochet_relic'), 'choosing an alternative should skip the relic');
+    assert(pendingRicochetBossReward === false && ricochetBossRewardOffered === true, 'skipping the relic should consume the one-time offer');
+    assert(!isModifierAvailable(relic, 'boss'), 'consumed relic offer must not become eligible again this run');
+
+    resetModifiers();
+    assert(pendingRicochetBossReward === false && ricochetBossRewardOffered === false, 'new runs should reset boss reward state');
+    level = 4;
+    applyModifierDef(MODIFIER_DEFS.find(def => def.id === 'ricochet_starter'));
+    pendingRicochetBossReward = true;
+    assert(showPendingRicochetBossReward() === true, 'a fresh run should be able to open the relic offer');
+    pickModifierFromDraft(0);
+    const relicState = getActiveRicochetBuildState();
+    assert(getActiveRicochetIds().includes('ricochet_relic'), 'choosing the guaranteed slot should grant the relic');
+    assert(relicState.range === 184 && relicState.firstBounceTargets === 2, 'relic should trade 20% range for two range-edge targets');
+    assert(!isModifierAvailable(relic, 'boss'), 'chosen relic must not be offered twice');
+
+    resetModifiers();
   });
 
   step('pause and resume flow works', () => {

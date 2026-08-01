@@ -1022,7 +1022,7 @@ const MODIFIER_REROLLS_PER_SLOT = 2;
 const MODIFIER_AXIS_LABELS = {
   damage:'弹头', cadence:'射击', survival:'生存', mobility:'机动',
   support:'补给', scoring:'清算', blast:'爆轰', economy:'月光石', miracle:'奇迹',
-  intercept:'反制', boss:'猎手',
+  intercept:'反制', boss:'猎手', chain:'连锁',
 };
 const MODIFIER_ARCHETYPES = {
   barrage: { label:'弹幕压制流', code:'BARRAGE', desc:'用弹匣、冷却与装填维持火线' },
@@ -1035,6 +1035,7 @@ const MODIFIER_ARCHETYPES = {
   boss: { label:'Boss猎手流', code:'HUNTER', desc:'专门针对首领装甲与二阶段压力' },
   economy: { label:'月光石远征流', code:'VAULT', desc:'牺牲当下火力换取局外资源' },
   miracle: { label:'奇迹保全流', code:'MIRACLE', desc:'极低概率出现的生还协议' },
+  ricochet: { label:'电弧弹射流', code:'ARC-LINK', desc:'用敌群间距建立连锁、回授与护盾循环' },
 };
 const MODIFIER_STACK_LIMITS = {
   damage: 8, speed: 7, firerate: 6, reload: 6, hp: 5, repair: 5,
@@ -1154,6 +1155,9 @@ let playerBulletDmgMul = 1, playerSpeedMul = 1, playerShootDelayMul = 1;
 let playerReloadMul = 1, powerUpDropMul = 1, bulletSpeedMul = 1, comboBonusMul = 1;
 let eliteDropMul = 0, explosionRadiusMul = 1, playerMagBonus = 0, playerMaxHpBonus = 0, playerRepairChance = 0;
 let runClashPowerBonus = 0, playerBossDamageMul = 1;
+let ricochetBounceMeter = 0;
+let pendingRicochetBossReward = false;
+let ricochetBossRewardOffered = false;
 
 function getModifierRarityConfig(rarity) {
   return MODIFIER_RARITIES[rarity] || MODIFIER_RARITIES.standard;
@@ -1194,10 +1198,31 @@ const SPECIAL_MODIFIER_DEFS = [
   { id:'moon_600', family:'moonstone_cache', axis:'economy', archetype:'economy', name:'月光石匣 600', desc:'立即获得600 MOONSTONE', icon:'MS6', rarity:'mythic', rarityRank:4, weight:20, minLevel:4, stackLimit:9, color:'#ffd47a', rgb:'255,212,122', tradeoff:'罕见财务异常，足够重写一段机体预算', jackpotEligible:false, grantsMoonstone:600, apply(){ grantDraftMoonstone(600); } },
   { id:'moon_900', family:'moonstone_cache', axis:'economy', archetype:'economy', name:'月光石匣 900', desc:'立即获得900 MOONSTONE', icon:'MS9', rarity:'mythic', rarityRank:4, weight:9, minLevel:6, stackLimit:9, color:'#f6e5aa', rgb:'246,229,170', tradeoff:'最高级别的资源奇迹，概率极低', jackpotEligible:false, grantsMoonstone:900, apply(){ grantDraftMoonstone(900); } },
 ];
+const RICOCHET_MODIFIER_DEFS = RicochetBuild.getDefinitions().map(def => ({
+  ...def,
+  family: 'ricochet_chain',
+  axis: 'chain',
+  archetype: 'ricochet',
+  rarityRank: getModifierRarityConfig(def.rarity).rank,
+  stackLimit: 1,
+  jackpotEligible: false,
+  apply(){},
+}));
 const MODIFIER_DEFS = [
   ...MODIFIER_BLUEPRINTS.flatMap(bp => MODIFIER_RARITY_ORDER.map(r => buildScaledModifier(bp, r))),
   ...SPECIAL_MODIFIER_DEFS,
+  ...RICOCHET_MODIFIER_DEFS,
 ];
+
+function getActiveRicochetIds() {
+  return activeModifiers
+    .filter(modifier => modifier && modifier.family === 'ricochet_chain')
+    .map(modifier => modifier.id);
+}
+
+function getActiveRicochetBuildState() {
+  return RicochetBuild.getState(getActiveRicochetIds());
+}
 
 function getModifierStackCount(mod) {
   const family = typeof mod === 'string'
@@ -1239,20 +1264,41 @@ function pickWeightedModifier(pool) {
   return Math.max(0, pool.length - 1);
 }
 
-function isModifierAvailable(m) {
+function isModifierAvailable(m, source = 'level') {
   if (!m) return false;
+  if (m.family === 'ricochet_chain') {
+    if (m.source !== source) return false;
+    if (source === 'boss' && ricochetBossRewardOffered) return false;
+    const eligibleIds = RicochetBuild
+      .getEligibleDefinitions(getActiveRicochetIds(), { source, level })
+      .map(def => def.id);
+    if (!eligibleIds.includes(m.id)) return false;
+  }
   if (level < (m.minLevel || 1)) return false;
-  if (getModifierStackCount(m) >= (m.stackLimit || MODIFIER_STACK_LIMITS[m.family] || 6)) return false;
+  if (m.family !== 'ricochet_chain' && getModifierStackCount(m) >= (m.stackLimit || MODIFIER_STACK_LIMITS[m.family] || 6)) return false;
   if (m.rarity === 'mythic' && level < 3 && !m.grantsMoonstone) return false;
   return true;
 }
 
-function getModifierChoices(count = 4, excludeIds = [], guaranteeFoundation = true) {
+function getModifierChoices(count = 4, excludeIds = [], guaranteeFoundation = true, mode = 'level') {
   const exclude = new Set(excludeIds);
   const choices = [];
-  let available = MODIFIER_DEFS.filter(m => isModifierAvailable(m) && !exclude.has(m.id));
+  let available = MODIFIER_DEFS.filter(m => isModifierAvailable(m, mode) && !exclude.has(m.id));
+  const bossRelic = mode === 'boss' ? available.find(m => m.id === 'ricochet_relic') : null;
+  if (bossRelic) {
+    choices.push(bossRelic);
+    exclude.add(bossRelic.id);
+    available = available.filter(m => m.id !== bossRelic.id);
+  }
+  const directedRicochet = available.filter(m => m.family === 'ricochet_chain' && m.source === 'level');
+  if (mode === 'level' && guaranteeFoundation && getActiveRicochetBuildState().enabled && directedRicochet.length > 0) {
+    const directed = directedRicochet[pickWeightedModifier(directedRicochet)];
+    choices.push(directed);
+    exclude.add(directed.id);
+    available = available.filter(m => m.id !== directed.id);
+  }
   const foundational = available.filter(m => !m.grantsMoonstone && (m.rarity === 'standard' || m.rarity === 'rare'));
-  if (guaranteeFoundation && foundational.length > 0) {
+  if (guaranteeFoundation && choices.length < count && foundational.length > 0) {
     const first = foundational[pickWeightedModifier(foundational)];
     choices.push(first);
     exclude.add(first.id);
@@ -1268,7 +1314,7 @@ function getModifierChoices(count = 4, excludeIds = [], guaranteeFoundation = tr
 }
 
 function createModifierDraft(mode) {
-  const choices = getModifierChoices(4);
+  const choices = getModifierChoices(4, [], true, mode);
   return {
     id: Date.now() + ':' + Math.floor(rng() * 100000),
     mode,
@@ -1293,12 +1339,15 @@ function buildModifierCard(m, index) {
   const rarity = getModifierRarityConfig(m.rarity);
   const rerollUsed = currentModifierDraft ? (currentModifierDraft.rerolled[index] || 0) : 0;
   const rerollExhausted = rerollUsed >= MODIFIER_REROLLS_PER_SLOT;
+  const relicLocked = currentModifierDraft && currentModifierDraft.mode === 'boss' && m.source === 'boss';
   const cost = getModifierRerollCost();
   const canAfford = coreFragments >= cost;
-  const disabled = rerollExhausted || !canAfford || (currentModifierDraft && currentModifierDraft.jackpotResolved);
+  const disabled = relicLocked || rerollExhausted || !canAfford || (currentModifierDraft && currentModifierDraft.jackpotResolved);
   const axisLabel = MODIFIER_AXIS_LABELS[m.axis] || '战术';
   const archetype = getModifierArchetype(m.archetype || m.axis);
-  const rerollLabel = rerollExhausted
+  const rerollLabel = relicLocked
+    ? '遗物槽锁定'
+    : rerollExhausted
     ? '已用 ' + rerollUsed + '/' + MODIFIER_REROLLS_PER_SLOT
     : '刷新 ' + cost + ' MS ' + rerollUsed + '/' + MODIFIER_REROLLS_PER_SLOT;
   return `<div class="mod-card rarity-${escapeHtml(rarity.className)} ${rerollUsed > 0 ? 'reroll-used' : ''}" data-rarity="${escapeHtml(rarity.label)}" style="--mod-accent:${escapeHtml(m.color || rarity.color)};--mod-rgb:${escapeHtml(m.rgb || rarity.rgb)}" onclick="pickModifierFromDraft(${index})">
@@ -1322,13 +1371,20 @@ function renderModifierDraft() {
   if (!currentModifierDraft) return;
   const jackpotFamily = getModifierJackpotFamily(currentModifierDraft.choices);
   container.classList.toggle('jackpot-ready', !!jackpotFamily);
-  if (title) title.textContent = currentModifierDraft.mode === 'level' ? '局 内 升 级 / 四 选 一 改 造' : '选 择 改 造 器';
+  if (title) {
+    title.textContent = currentModifierDraft.mode === 'boss'
+      ? '首 领 遗 物 / 四 选 一 改 造'
+      : (currentModifierDraft.mode === 'level' ? '局 内 升 级 / 四 选 一 改 造' : '选 择 改 造 器');
+  }
   if (meta) {
     const cost = getModifierRerollCost();
     const used = currentModifierDraft.rerolled.reduce((sum, n) => sum + (n || 0), 0);
     const total = currentModifierDraft.rerolled.length * MODIFIER_REROLLS_PER_SLOT;
+    const rule = currentModifierDraft.mode === 'boss'
+      ? '遗物槽已锁定；选择其他改造即放弃本局遗物'
+      : (jackpotFamily ? '四联同调已锁定：即将获得全部选项' : '每张卡可刷新 ' + MODIFIER_REROLLS_PER_SLOT + ' 次，费用在本次升级内温和递增');
     meta.innerHTML = renderMoonstoneChip(coreFragments, 'REROLL ' + cost + ' MS / ' + used + '/' + total + ' USED')
-      + `<span class="mod-rule">${jackpotFamily ? '四联同调已锁定：即将获得全部选项' : '每张卡可刷新 ' + MODIFIER_REROLLS_PER_SLOT + ' 次，费用在本次升级内温和递增'}</span>`;
+      + `<span class="mod-rule">${rule}</span>`;
   }
   grid.innerHTML = currentModifierDraft.choices.map((m, i) => buildModifierCard(m, i)).join('');
 }
@@ -1336,12 +1392,27 @@ function renderModifierDraft() {
 function showModifierChoice(mode = 'level') {
   modifierChoiceMode = mode;
   currentModifierDraft = createModifierDraft(mode);
-  if (!currentModifierDraft.choices.length) return;
+  if (!currentModifierDraft.choices.length) {
+    currentModifierDraft = null;
+    return false;
+  }
   const container = document.getElementById('modifier-screen');
   renderModifierDraft();
   container.style.display = 'flex';
   gameRunning = false; // pause during choice
   tryResolveModifierJackpot('draft');
+  return true;
+}
+
+function showPendingRicochetBossReward() {
+  if (!pendingRicochetBossReward || ricochetBossRewardOffered || currentModifierDraft) return false;
+  pendingRicochetBossReward = false;
+  if (!showModifierChoice('boss')) {
+    pendingRicochetBossReward = true;
+    return false;
+  }
+  ricochetBossRewardOffered = true;
+  return true;
 }
 
 function grantDraftMoonstone(amount) {
@@ -1377,6 +1448,7 @@ function applyModifierDef(def) {
 function finishModifierSelection(defs, jackpot = false) {
   const picked = Array.isArray(defs) ? defs.filter(Boolean) : [defs].filter(Boolean);
   if (!picked.length) return;
+  const completedMode = currentModifierDraft ? currentModifierDraft.mode : modifierChoiceMode;
   picked.forEach(applyModifierDef);
   if (jackpot && runReport) {
     const start = Math.max(0, runReport.modifierPicks.length - picked.length);
@@ -1390,7 +1462,7 @@ function finishModifierSelection(defs, jackpot = false) {
   screen.classList.remove('jackpot-ready');
   gameRunning = true;
   isPaused = false;
-  if (modifierChoiceMode === 'wave') startNextWave();
+  if (completedMode === 'wave') startNextWave();
   const main = picked[0];
   const toast = document.getElementById('achieve-toast');
   toast.querySelector('.achieve-icon').textContent = jackpot ? 'JACK' : main.icon;
@@ -1404,6 +1476,7 @@ function finishModifierSelection(defs, jackpot = false) {
   document.getElementById('lives').textContent = lives;
   updateRunXpHud();
   checkAchievements();
+  if (completedMode !== 'boss') showPendingRicochetBossReward();
 }
 
 function pickModifierFromDraft(index) {
@@ -1423,6 +1496,7 @@ function rerollModifierChoice(event, index) {
     event.stopPropagation();
   }
   if (!currentModifierDraft || currentModifierDraft.jackpotResolved) return;
+  if (currentModifierDraft.mode === 'boss' && currentModifierDraft.choices[index]?.source === 'boss') return;
   const slotRerolls = currentModifierDraft.rerolled[index] || 0;
   if (slotRerolls >= MODIFIER_REROLLS_PER_SLOT) return;
   const cost = getModifierRerollCost();
@@ -1438,7 +1512,7 @@ function rerollModifierChoice(event, index) {
   if (sessionModifierRerolls >= 1) unlockAchievement('modifier_reroll');
   if (currentModifierDraft.rerolled.every(count => count > 0)) unlockAchievement('modifier_full_reroll');
   const exclude = currentModifierDraft.choices.map(m => m && m.id).filter(Boolean);
-  const replacement = getModifierChoices(1, exclude, false)[0];
+  const replacement = getModifierChoices(1, exclude, false, currentModifierDraft.mode)[0];
   if (replacement) currentModifierDraft.choices[index] = replacement;
   saveProgression();
   renderModifierDraft();
@@ -1472,6 +1546,9 @@ function resetModifiers() {
   eliteDropMul = 0; explosionRadiusMul = 1; playerMagBonus = 0; playerMaxHpBonus = 0;
   playerRepairChance = getGlobalRepairChance();
   runClashPowerBonus = 0; playerBossDamageMul = 1;
+  ricochetBounceMeter = 0;
+  pendingRicochetBossReward = false;
+  ricochetBossRewardOffered = false;
 }
 
 // --- Seeded RNG (mulberry32) ---
@@ -2813,6 +2890,16 @@ function resetAchievementTracking() {
   runReport = createRunReport();
 }
 
+function queueRicochetBossReward(killedBoss) {
+  if (!killedBoss || !killedBoss.bossDef) return false;
+  if (pendingRicochetBossReward || ricochetBossRewardOffered) return false;
+  if (!getActiveRicochetBuildState().enabled || getActiveRicochetIds().includes('ricochet_relic')) return false;
+  const anotherBossAlive = enemies.some(enemy => enemy && enemy !== killedBoss && enemy.alive && enemy.bossDef);
+  if (anotherBossAlive) return false;
+  pendingRicochetBossReward = true;
+  return true;
+}
+
 function onEnemyKilled(enemyOrElite) {
   const killedEnemy = typeof enemyOrElite === 'object' ? enemyOrElite : null;
   // Gemini rage: when one twin dies, the other enrages
@@ -2838,7 +2925,10 @@ function onEnemyKilled(enemyOrElite) {
   const isElite = killedEnemy ? !!killedEnemy.isElite : !!enemyOrElite;
   const isBossKill = !!(killedEnemy && killedEnemy.bossDef);
   const nextBossKills = (tankUnlockProgress.bossKills || 0) + (isBossKill ? 1 : 0);
-  if (isBossKill) recordBossKill(killedEnemy);
+  if (isBossKill) {
+    recordBossKill(killedEnemy);
+    queueRicochetBossReward(killedEnemy);
+  }
   sfxEnemyDestroyed(isElite, isBossKill);
   sessionKills++;
   if (isElite) sessionEliteKills++;
@@ -3355,7 +3445,8 @@ function getPlayerInputVector() {
 
 function getEffectiveShootDelay() {
   const base = buffs.rapid > 0 ? Math.floor(player.shootDelay * 0.65) : player.shootDelay;
-  return Math.max(8, Math.floor(base * playerShootDelayMul));
+  const ricochetFireDelay = getActiveRicochetBuildState().fireDelayMultiplier;
+  return Math.max(8, Math.floor(base * playerShootDelayMul * ricochetFireDelay));
 }
 
 function getEffectiveReloadTime() {
@@ -5386,8 +5477,14 @@ class Bullet {
     this.homingStrength = 0;
     this.drainOnHit = 0;
     this.shardBurst = 0;
+    this.ricochetChain = null;
+    this.ricochetChainDepth = 0;
+    this.ricochetTarget = null;
   }
   update() {
+    if (this.ricochetTarget && this.ricochetTarget.alive) {
+      this.angle = Math.atan2(this.ricochetTarget.y - this.y, this.ricochetTarget.x - this.x);
+    }
     this.x += Math.cos(this.angle) * this.speed;
     this.y += Math.sin(this.angle) * this.speed;
 
@@ -5445,6 +5542,14 @@ class Bullet {
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
+    if (this.ricochetChainDepth > 0) {
+      ctx.strokeStyle = 'rgba(114,241,255,0.8)';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(this.x - Math.cos(this.angle) * 13, this.y - Math.sin(this.angle) * 13);
+      ctx.lineTo(this.x, this.y);
+      ctx.stroke();
+    }
     if (this.railgun) {
       ctx.strokeStyle = this.color;
       ctx.lineWidth = 2;
@@ -5892,12 +5997,15 @@ class PlayerTank extends Tank {
     const count = buffs.multishot > 0 ? def.bulletCount + 2 : def.bulletCount;
     const spread = buffs.multishot > 0 ? Math.max(def.spreadAngle, 0.14) : def.spreadAngle;
     const halfSpread = spread * (count - 1) / 2;
+    const ricochetState = getActiveRicochetBuildState();
     recordShot(count);
     for (let i = 0; i < count; i++) {
       const angleOffset = count === 1 ? 0 : -halfSpread + i * spread;
       let dmg = Math.ceil(def.bulletDamage * playerBulletDmgMul) + (buffs.overdrive > 0 ? 1 : 0);
       if (spType === 'pierce' || spType === 'super_pierce' || spType === 'phantom_slash' || spType === 'blood_lance' || buffs.pierce > 0) dmg += (def.pierceDamageBonus || 0);
       if (spType === 'blood_lance') dmg += (def.lanceDamageBonus || 0);
+      const ricochetBaseDamage = dmg;
+      if (ricochetState.enabled) dmg = Math.round(dmg * ricochetState.directDamageMultiplier * 100) / 100;
       const b = new Bullet(bx, by, this.turretAngle + angleOffset, baseSpeed, baseColor, true, dmg);
       b.radius = baseRadius;
       b.ricochet = isRicochet;
@@ -5908,6 +6016,16 @@ class PlayerTank extends Tank {
       b.bounces = bounceCount;
       b.homing = isHoming;
       b.homingStrength = homingStr;
+      if (ricochetState.enabled) {
+        b.ricochetChain = {
+          state: ricochetState,
+          owner: this,
+          baseDamage: ricochetBaseDamage,
+          visited: new Set(),
+          reserved: new Set(),
+          refundClaimed: false,
+        };
+      }
       if (spType === 'phantom_slash') b.shardBurst = 1 + (def.slashShardBonus || 0);
       if (spType === 'blood_lance') b.drainOnHit = Math.min(0.6, 0.22 + (def.lanceDrainBonus || 0));
       playerBullets.push(b);
@@ -6865,6 +6983,12 @@ class EnemyTank extends Tank {
     const dmgType = bullet && bullet.railgun ? 'pierce' : (bullet && bullet.explosive ? 'explosive' : (bullet && bullet.freeze ? 'freeze' : (dmg >= 3 ? 'crit' : 'normal')));
     this.hp -= dmg;
     this.hitFlash = 6; // Brief white flash
+    if (bullet && bullet.ricochetSlowFrames > 0) {
+      if (!this.frozen) this._origSpeed = this.speed;
+      this.frozen = Math.max(this.frozen || 0, bullet.ricochetSlowFrames);
+      spawnExplosion(this.x, this.y, 7, '#72f1ff', '#e8ffff');
+      sfxStatus('freeze');
+    }
     if (bullet && bullet.freeze && !this.frozen) {
       const freezeBonus = player && player._tankDef ? (player._tankDef.freezeDurationBonus || 0) : 0;
       const freezeMul = player && player._tankDef ? (player._tankDef.freezeDurationMul || 1) : 1;
@@ -14356,12 +14480,77 @@ function spawnEnemy(options = {}) {
   return true;
 }
 
+function applyRicochetBounceOutcome(chain, killed) {
+  if (!chain) return;
+  const outcome = RicochetBuild.resolveBounceHit({
+    state: chain.state,
+    meter: ricochetBounceMeter,
+    killed,
+    refundClaimed: chain.refundClaimed,
+  });
+  ricochetBounceMeter = outcome.meter;
+  chain.refundClaimed = outcome.refundClaimed;
+  if (outcome.shieldFrames > 0) {
+    buffs.shield = Math.max(buffs.shield || 0, outcome.shieldFrames);
+    if (player && player.alive) spawnExplosion(player.x, player.y, 12, '#72f1ff', '#e8ffff');
+    sfxStatus('shield');
+  }
+  const owner = chain.owner;
+  if (!owner || outcome.cooldownRefund <= 0) return;
+  if (owner.reloadTimer > 0) {
+    owner.reloadTimer = Math.max(0, owner.reloadTimer - outcome.reloadRefund);
+  } else {
+    owner.shootCooldown = Math.max(0, (owner.shootCooldown || 0) - outcome.cooldownRefund);
+    owner.ammo = Math.min(owner.magSize || 1, (owner.ammo || 0) + outcome.ammoRefund);
+  }
+}
+
+function spawnRicochetChainTargets(sourceBullet, hitTank) {
+  const chain = sourceBullet && sourceBullet.ricochetChain;
+  if (!chain || !hitTank) return [];
+  const nextDepth = (sourceBullet.ricochetChainDepth || 0) + 1;
+  const excluded = [...chain.visited, ...chain.reserved];
+  const targets = RicochetBuild.selectTargets({
+    state: chain.state,
+    origin: hitTank,
+    candidates: enemies,
+    visited: excluded,
+    nextDepth,
+  });
+  const spawned = [];
+  for (const target of targets) {
+    chain.reserved.add(target);
+    const angle = Math.atan2(target.y - hitTank.y, target.x - hitTank.x);
+    const damage = RicochetBuild.getBounceDamage(chain.state, chain.baseDamage, nextDepth);
+    const bullet = new Bullet(hitTank.x, hitTank.y, angle, Math.max(4.8, sourceBullet.speed * 1.2), '#72f1ff', true, damage);
+    bullet.radius = 3.2;
+    bullet.ricochetChain = chain;
+    bullet.ricochetChainDepth = nextDepth;
+    bullet.ricochetTarget = target;
+    bullet.ricochetSlowFrames = chain.state.slowFrames;
+    playerBullets.push(bullet);
+    spawned.push(bullet);
+  }
+  if (spawned.length > 0) spawnExplosion(hitTank.x, hitTank.y, 7, '#72f1ff', '#e8ffff');
+  return spawned;
+}
+
+function handleRicochetTankHit(bullet, tank) {
+  const chain = bullet && bullet.ricochetChain;
+  if (!chain || !tank) return;
+  if (bullet.ricochetTarget) chain.reserved.delete(bullet.ricochetTarget);
+  chain.visited.add(tank);
+  if (bullet.ricochetChainDepth > 0) applyRicochetBounceOutcome(chain, !tank.alive);
+  spawnRicochetChainTargets(bullet, tank);
+}
+
 // --- Collision detection ---
 function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
   for (const bullet of bullets) {
     if (!bullet.alive) continue;
     for (const tank of tanks) {
       if (!tank.alive) continue;
+      if (bullet.ricochetChain && bullet.ricochetChain.visited.has(tank)) continue;
       let hitsTank = false;
       if (bullet.attackKind === 'laser_beam') {
         if (bullet.hitTargets.has(tank)) continue;
@@ -14413,7 +14602,9 @@ function checkBulletTankCollisions(bullets, tanks, fromPlayer) {
         if (fromPlayer && tank.bossDef && (playerBossDamageMul > 1 || tank.recoverVulnerable)) {
           bullet.damage = originalDamage;
         }
-        if (fromPlayer) recordEnemyHit(tank, bullet, Math.max(0, hpBeforeHit - (tank.hp || 0)));
+        const damageDealt = Math.max(0, hpBeforeHit - (tank.hp || 0));
+        if (fromPlayer) recordEnemyHit(tank, bullet, damageDealt);
+        if (fromPlayer && damageDealt > 0 && bullet.ricochetChain) handleRicochetTankHit(bullet, tank);
         if (bullet.drainOnHit > 0 && fromPlayer && player && player.alive && rng() < bullet.drainOnHit) {
           player.hp = Math.min(player.maxHp, player.hp + 1);
           
@@ -14739,6 +14930,7 @@ function update() {
   if (waveEnemiesRemaining <= 0 && enemies.length === 0) {
     // Wave cleared - pause before next wave
     if (wavePause === 0) {
+      if (showPendingRicochetBossReward()) return;
       showWaveNotification('第 ' + wave + ' 波 清除!', (wave % 3 === 0) ? '补给时间! 准备迎接下一波' : '');
       if (shouldClearDifficulty()) {
         clearDifficulty();

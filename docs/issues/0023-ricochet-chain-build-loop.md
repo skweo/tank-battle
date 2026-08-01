@@ -1,6 +1,6 @@
 # 0023 Ricochet-chain build loop
 
-Status: todo
+Status: done
 
 Labels: roguelike, build, gameplay, P0
 
@@ -68,3 +68,12 @@ Create one complete ricochet build loop whose later choices change targeting, re
 node tests/smoke.js
 npm.cmd run test:all
 ```
+
+## Verification
+
+- `node --check scripts/game.js`: passed.
+- `node --test tests/ricochet-build.test.js`: 7/7 passed.
+- `node tests/smoke.js`: 43/43 passed.
+- `npm.cmd run test:all`: 20/20 test files passed.
+- Browser play check: the directed draft, complete build, and one-time Boss relic reward all rendered without console errors.
+- Browser runtime check: the complete build changed the base firing interval from 28 to 36 frames, split the third bounce into two targets, granted a 150-frame shield, and applied a 90-frame slow.
