@@ -15,8 +15,9 @@ const bestiaryConfigJs = fs.readFileSync(path.join(root, 'scripts', 'systems', '
 const bossPacingJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'boss-pacing.js'), 'utf8');
 const bossSelectionJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'boss-selection.js'), 'utf8');
 const ricochetBuildJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'ricochet-build.js'), 'utf8');
+const obstacleLayoutJs = fs.readFileSync(path.join(root, 'scripts', 'systems', 'obstacle-layout.js'), 'utf8');
 const gameJs = fs.readFileSync(path.join(root, 'scripts', 'game.js'), 'utf8');
-const runtimeJs = `${difficultyConfigJs}\n${wavePacingJs}\n${factionConfigJs}\n${itemConfigJs}\n${enemyVisualProfileJs}\n${tankConfigJs}\n${bestiaryConfigJs}\n${bossPacingJs}\n${bossSelectionJs}\n${ricochetBuildJs}\n${gameJs}`;
+const runtimeJs = `${difficultyConfigJs}\n${wavePacingJs}\n${factionConfigJs}\n${itemConfigJs}\n${enemyVisualProfileJs}\n${tankConfigJs}\n${bestiaryConfigJs}\n${bossPacingJs}\n${bossSelectionJs}\n${ricochetBuildJs}\n${obstacleLayoutJs}\n${gameJs}`;
 
 function makeStyle() {
   return {
@@ -452,6 +453,7 @@ hostCheck('browser script order loads systems before game', () => {
   const bossPacingIndex = sources.indexOf('scripts/systems/boss-pacing.js');
   const bossSelectionIndex = sources.indexOf('scripts/systems/boss-selection.js');
   const ricochetBuildIndex = sources.indexOf('scripts/systems/ricochet-build.js');
+  const obstacleLayoutIndex = sources.indexOf('scripts/systems/obstacle-layout.js');
   const gameIndex = sources.indexOf('scripts/game.js');
   if (difficultyConfigIndex < 0) throw new Error('scripts/systems/difficulty-config.js missing from index.html');
   if (wavePacingIndex < 0) throw new Error('scripts/systems/wave-pacing.js missing from index.html');
@@ -463,6 +465,7 @@ hostCheck('browser script order loads systems before game', () => {
   if (bossPacingIndex < 0) throw new Error('scripts/systems/boss-pacing.js missing from index.html');
   if (bossSelectionIndex < 0) throw new Error('scripts/systems/boss-selection.js missing from index.html');
   if (ricochetBuildIndex < 0) throw new Error('scripts/systems/ricochet-build.js missing from index.html');
+  if (obstacleLayoutIndex < 0) throw new Error('scripts/systems/obstacle-layout.js missing from index.html');
   if (gameIndex < 0) throw new Error('scripts/game.js missing from index.html');
   if (difficultyConfigIndex > wavePacingIndex) throw new Error('difficulty config must load before wave pacing');
   if (wavePacingIndex > factionConfigIndex) throw new Error('wave pacing must load before faction config');
@@ -474,6 +477,7 @@ hostCheck('browser script order loads systems before game', () => {
   if (difficultyConfigIndex > bossPacingIndex) throw new Error('difficulty config must load before boss pacing');
   if (bossSelectionIndex > gameIndex) throw new Error('boss selection must load before game.js');
   if (ricochetBuildIndex > gameIndex) throw new Error('ricochet build must load before game.js');
+  if (obstacleLayoutIndex > gameIndex) throw new Error('obstacle layout must load before game.js');
 });
 
 hostCheck('html onclick handlers resolve', () => {
@@ -542,7 +546,51 @@ const smokeHarness = `
     assert(wave === 1, 'first wave should start');
     assert(player && player.alive, 'player should be alive');
     assert(obstacles.length > 0, 'map obstacles should generate');
+    const obstacleRoles = new Set(obstacles.map(obstacle => obstacle.archetype));
+    assert(['small_cover', 'slow_field', 'destructible_cover', 'long_barrier']
+      .every(role => obstacleRoles.has(role)), 'map should expose all four obstacle spatial roles');
+    assert(!tankCollidesObstacle(player.x, player.y, player.hitboxSize || 36, player.hitboxSize || 36), 'player spawn should be obstacle-free');
+    const initialBarrier = obstacles.find(obstacle => obstacle.archetype === 'long_barrier');
+    const initialBarrierSignature = [initialBarrier.x, initialBarrier.y, initialBarrier.w, initialBarrier.h].join(':');
+    refreshObstacles();
+    const refreshedBarrier = obstacles.find(obstacle => obstacle.archetype === 'long_barrier');
+    assert(refreshedBarrier && [refreshedBarrier.x, refreshedBarrier.y, refreshedBarrier.w, refreshedBarrier.h].join(':') === initialBarrierSignature,
+      'wave refresh should preserve the route-defining barrier');
+    assert(obstacles.length <= ObstacleLayout.DEFAULTS.maxObstacleCount, 'wave refresh should respect the obstacle-count budget');
+    const blockedArea = obstacles.filter(obstacle => !obstacle.passable)
+      .reduce((total, obstacle) => total + obstacle.w * obstacle.h, 0);
+    assert(blockedArea <= W * H * ObstacleLayout.DEFAULTS.maxBlockedAreaRatio, 'wave refresh should respect the blocked-area budget');
+    assert(!tankCollidesObstacle(player.x, player.y, player.hitboxSize || 36, player.hitboxSize || 36), 'wave refresh should keep the live player clear');
     assert(waveEnemiesTotal > 0, 'wave enemy budget should initialize');
+  });
+
+  step('long barriers and legacy obstacle behaviors share the existing collision pipeline', () => {
+    obstacles.length = 0;
+    const barrier = {
+      x: 300, y: 260, w: 320, h: 38,
+      type: 'long_barrier', archetype: 'long_barrier', orientation: 'horizontal',
+      passable: false, slow: 0, color: '#26323a', stroke: '#9ab8c8', routeLanes: [],
+    };
+    obstacles.push(barrier);
+    assert(tankCollidesObstacle(460, 279, 36, 36), 'long barrier should block tank movement');
+    assert(bulletHitsObstacle({ x: 460, y: 279, angle: 0, damage: 1, bounces: 0 }) === true, 'long barrier should stop ordinary bullets');
+    assert(hasLineOfSight(460, 180, 460, 380) === false, 'long barrier should block line of sight');
+    drawObstacles(ctx);
+
+    obstacles.length = 0;
+    obstacles.push({ x: 100, y: 100, w: 100, h: 80, type: 'bush', passable: true, slow: 0.5 });
+    assert(tankCollidesObstacle(150, 140, 36, 36) === false, 'slow fields should remain passable');
+
+    obstacles.length = 0;
+    obstacles.push({ x: 100, y: 100, w: 30, h: 30, type: 'crate', passable: false, slow: 0, destructible: true, hp: 1 });
+    assert(bulletHitsObstacle({ x: 115, y: 115, angle: 0, damage: 1 }) === true, 'destructible cover should consume a bullet');
+    assert(obstacles.length === 0, 'destructible cover should be removed at zero hp');
+
+    const bounce = { x: 100, y: 100, w: 30, h: 20, type: 'bounce', passable: false, slow: 0, ricochet: true };
+    const reflected = { x: 115, y: 110, angle: 0.3, damage: 1 };
+    obstacles.push(bounce);
+    assert(bulletHitsObstacle(reflected) === false, 'bounce cover should reflect rather than consume the bullet');
+    assert(reflected.damage === 2 && reflected.angle !== 0.3, 'bounce cover should preserve its damage and reflection rules');
   });
 
   step('ricochet starter unlocks its directed upgrade path', () => {

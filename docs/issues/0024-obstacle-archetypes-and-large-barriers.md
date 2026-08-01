@@ -1,6 +1,6 @@
 # 0024 Obstacle archetypes and large barriers
 
-Status: todo
+Status: done
 
 Labels: battlefield, obstacles, gameplay, P1
 
@@ -66,3 +66,23 @@ Add obstacle archetypes with distinct spatial roles, including occasional long b
 node tests/smoke.js
 npm.cmd run test:all
 ```
+
+## Completion Notes
+
+Completed on 2026-08-01.
+
+- Added a pure obstacle-layout module with small-cover, slow-field, destructible-cover, and long-barrier archetypes.
+- Added horizontal and vertical route barriers with count, blocked-area, overlap, boundary, spawn keep-out, tank-clearance, and connectivity constraints.
+- Preserved legacy obstacle skins and weighted selection, including crystal cover, destructible props, slow fields, bounce cover, and iron effects.
+- Integrated generation and refresh into the existing movement, projectile, ricochet, line-of-sight, and drawing pipelines.
+- Preserved valid route barriers across refreshes while removing stale obstacles that enter live player keep-out zones.
+
+## Verification
+
+- `node --test tests\obstacle-layout.test.js`: 9/9 passed.
+- `node tests\smoke.js`: 44/44 passed.
+- `npm.cmd run test:all`: 29/29 passed.
+- Browser checks passed for fixed seeds 11, 12, and 13: all four roles present, horizontal and vertical barriers visible, route lanes open, player spawn clear, Canvas nonblank, and no page errors.
+- Visual evidence: `output/playwright/obstacle-layout-seed-11.png`, `obstacle-layout-seed-12.png`, and `obstacle-layout-seed-13.png` (local ignored artifacts).
+- Standards review: no hard violations; browser evidence recorded above.
+- Spec review findings on route connectivity, refreshed keep-out zones, and legacy skin weighting were fixed and covered by focused tests.

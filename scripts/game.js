@@ -13801,112 +13801,63 @@ const OBSTACLE_TYPES = {
   iron:    { color:'#3a4048', stroke:'#6a7078', passable:false, slow:0, minW:30, maxW:65, minH:12, maxH:22, weight:8, spark:true },
   gravel:  { color:'#3a3028', stroke:'#5a4840', passable:true, slow:0.4, minW:20, maxW:45, minH:15, maxH:35, weight:11 },
   pipes:   { color:'#444440', stroke:'#6a6a50', passable:false, slow:0, minW:15, maxW:25, minH:30, maxH:55, weight:7 },
+  long_barrier: { color:'#26323a', stroke:'#9ab8c8', passable:false, slow:0, minW:30, maxW:420, minH:30, maxH:420, weight:0 },
 };
 
+function decorateObstacle(obstacle) {
+  const def = OBSTACLE_TYPES[obstacle.type] || OBSTACLE_TYPES.wall;
+  return {
+    ...obstacle,
+    passable: obstacle.passable ?? def.passable,
+    slow: obstacle.slow ?? def.slow,
+    color: obstacle.color || def.color,
+    stroke: obstacle.stroke || def.stroke,
+  };
+}
+
+function getLiveObstacleKeepOutZones() {
+  const zones = ObstacleLayout.getDefaultKeepOutZones(W, H);
+  for (const tank of [player, player2]) {
+    if (!tank || tank.alive === false) continue;
+    zones.push({ x: tank.x - 90, y: tank.y - 90, w: 180, h: 180 });
+  }
+  return zones;
+}
+
 function refreshObstacles() {
-  // Remove ~5% of obstacles far from player
+  const targetCount = Math.min(obstacles.length, ObstacleLayout.DEFAULTS.maxObstacleCount);
   const removeCount = Math.max(1, Math.floor(obstacles.length * 0.05));
   for (let i = 0; i < removeCount; i++) {
-    let bestIdx = 0, bestDist = 0;
+    let bestIdx = -1, bestDist = 0;
     for (let j = 0; j < obstacles.length; j++) {
+      if (obstacles[j].archetype === 'long_barrier') continue;
       const pdx = player ? (obstacles[j].x + obstacles[j].w/2 - player.x) : 0;
       const pdy = player ? (obstacles[j].y + obstacles[j].h/2 - player.y) : 0;
       const pDist = pdx*pdx + pdy*pdy;
       if (pDist > bestDist) { bestDist = pDist; bestIdx = j; }
     }
-    if (obstacles.length > 8) obstacles.splice(bestIdx, 1);
+    if (obstacles.length > 8 && bestIdx >= 0) obstacles.splice(bestIdx, 1);
   }
-  // Add 5% new obstacles — never near player, weighted random
-  const addCount = Math.max(1, Math.floor(obstacles.length * 0.05));
-  const allTypes = Object.entries(OBSTACLE_TYPES);
-  const totalWeight = allTypes.reduce((s, [,d]) => s + d.weight, 0);
-  for (let i = 0; i < addCount; i++) {
-    // Weighted random selection
-    const roll = rng() * totalWeight;
-    let cumulative = 0, obsKey = 'wall';
-    for (const [key, d] of allTypes) {
-      cumulative += d.weight;
-      if (roll < cumulative) { obsKey = key; break; }
-    }
-    const def = OBSTACLE_TYPES[obsKey];
-    let attempts = 0, ox, oy, ow, oh;
-    do {
-      ox = 50 + rng() * (W - 100); oy = 50 + rng() * (H - 100);
-      ow = def.minW + rng() * (def.maxW - def.minW);
-      oh = def.minH + rng() * (def.maxH - def.minH);
-      attempts++;
-    } while (attempts < 10 && player &&
-      Math.abs((ox + ow/2) - player.x) < 80 && Math.abs((oy + oh/2) - player.y) < 80);
-    if (attempts >= 10) continue;
-    const obs = { x: ox, y: oy, w: ow, h: oh, type: obsKey,
-      passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke };
-    if (def.explosive) { obs.explosive = true; obs.hp = 2; }
-    if (def.ricochet) obs.ricochet = true;
-    if (def.destructible) obs.hp = 1;
-    if (def.spark) obs.spark = true;
-    obstacles.push(obs);
-  }
+  const refreshed = ObstacleLayout.generate({
+    width: W,
+    height: H,
+    count: targetCount,
+    existing: obstacles,
+    keepOutZones: getLiveObstacleKeepOutZones(),
+    random: rng,
+  });
+  obstacles.splice(0, obstacles.length, ...refreshed.map(decorateObstacle));
 }
 
 function generateObstacles(countOverride) {
-  const prevLen = obstacles.length;
-  const count = countOverride || Math.max(18, 18 + wave * 1.5);
-  const totalWeight = Object.values(OBSTACLE_TYPES).reduce((s, d) => s + d.weight, 0);
-  const keepOutZones = [
-    { x: W / 2, y: H - 70, r: 90 },
-    { x: W / 2, y: H - 130, r: 72 },
-  ];
-
-  for (let i = 0; i < count; i++) {
-    const roll = rng() * totalWeight;
-    let cumulative = 0, obsType = 'wall';
-    for (const [key, def] of Object.entries(OBSTACLE_TYPES)) {
-      cumulative += def.weight;
-      if (roll < cumulative) { obsType = key; break; }
-    }
-    const def = OBSTACLE_TYPES[obsType];
-    const ox = 40 + rng() * (W - 80);
-    const oy = 40 + rng() * (H - 80);
-    const ow = def.minW + rng() * (def.maxW - def.minW);
-    const oh = def.minH + rng() * (def.maxH - def.minH);
-    const cx0 = ox + ow / 2, cy0 = oy + oh / 2;
-    const blockedMain = keepOutZones.some(z => {
-      const dx = cx0 - z.x, dy = cy0 - z.y;
-      return Math.sqrt(dx * dx + dy * dy) < z.r;
-    });
-    if (blockedMain) continue;
-    const obs = { x: ox, y: oy, w: ow, h: oh, type: obsType, passable: def.passable, slow: def.slow, color: def.color, stroke: def.stroke };
-    if (def.explosive) { obs.explosive = true; obs.hp = 2; }
-    if (def.ricochet) obs.ricochet = true;
-    if (def.conceal) obs.conceal = true;
-    if (def.destructible) obs.hp = 1;
-    if (def.spark) obs.spark = true;
-    obstacles.push(obs);
-
-    // 30% chance to spawn 1-2 smaller obstacles nearby (cluster effect)
-    if (rng() < 0.3) {
-      for (let j = 0; j < 1 + Math.floor(rng() * 2); j++) {
-        const cx = ox + (rng() - 0.5) * 60;
-        const cy = oy + (rng() - 0.5) * 60;
-        if (cx < 30 || cx > W - 30 || cy < 30 || cy > H - 30) continue;
-        const ctype = obsType === 'wall' ? (rng() < 0.5 ? 'crate' : 'rubble') : obsType;
-        const cd = OBSTACLE_TYPES[ctype];
-        const cw = cd.minW + rng() * (cd.maxW - cd.minW) * 0.7;
-        const ch = cd.minH + rng() * (cd.maxH - cd.minH) * 0.7;
-        const ccx = cx + cw / 2, ccy = cy + ch / 2;
-        const blockedCluster = keepOutZones.some(z => {
-          const dx = ccx - z.x, dy = ccy - z.y;
-          return Math.sqrt(dx * dx + dy * dy) < z.r;
-        });
-        if (blockedCluster) continue;
-        const cobs = { x: cx, y: cy, w: cw, h: ch, type: ctype, passable: cd.passable, slow: cd.slow, color: cd.color, stroke: cd.stroke };
-        if (cd.explosive) { cobs.explosive = true; cobs.hp = 2; }
-        if (cd.ricochet) cobs.ricochet = true;
-        if (cd.destructible) cobs.hp = 1;
-        obstacles.push(cobs);
-      }
-    }
-  }
+  const count = countOverride ?? Math.max(18, 18 + wave * 1.5);
+  const generated = ObstacleLayout.generate({
+    width: W,
+    height: H,
+    count,
+    random: rng,
+  });
+  obstacles.splice(0, obstacles.length, ...generated.map(decorateObstacle));
 }
 
 function drawObstacles(ctx) {
@@ -13917,7 +13868,27 @@ function drawObstacles(ctx) {
     ctx.fillRect(obs.x + 3, obs.y + 3, obs.w, obs.h);
   }
   for (const obs of obstacles) {
-    if (obs.type === 'wall') {
+    if (obs.type === 'long_barrier') {
+      const horizontal = obs.orientation !== 'vertical';
+      ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = obs.stroke; ctx.lineWidth = 3; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.fillStyle = '#172126';
+      ctx.fillRect(obs.x + 5, obs.y + 5, Math.max(0, obs.w - 10), Math.max(0, obs.h - 10));
+      ctx.strokeStyle = '#58707c'; ctx.lineWidth = 1.5;
+      if (horizontal) {
+        for (let seam = obs.x + 36; seam < obs.x + obs.w; seam += 42) {
+          ctx.beginPath(); ctx.moveTo(seam, obs.y + 3); ctx.lineTo(seam, obs.y + obs.h - 3); ctx.stroke();
+        }
+        ctx.fillStyle = '#d7a53a';
+        ctx.fillRect(obs.x + 8, obs.y + obs.h / 2 - 2, obs.w - 16, 4);
+      } else {
+        for (let seam = obs.y + 36; seam < obs.y + obs.h; seam += 42) {
+          ctx.beginPath(); ctx.moveTo(obs.x + 3, seam); ctx.lineTo(obs.x + obs.w - 3, seam); ctx.stroke();
+        }
+        ctx.fillStyle = '#d7a53a';
+        ctx.fillRect(obs.x + obs.w / 2 - 2, obs.y + 8, 4, obs.h - 16);
+      }
+    } else if (obs.type === 'wall') {
       // Concrete wall — brick seam pattern
       ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
       ctx.strokeStyle = obs.stroke; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
